@@ -1,6 +1,12 @@
 #include "mqtt_settings.h"
 #include "config.h"
-#include <LittleFS.h>
+#include <Preferences.h>
+
+// Persistita in NVS, non su LittleFS: quella partizione viene sostituita
+// per intero da ogni aggiornamento OTA del sito, NVS no. Vedi il commento
+// analogo in schedule.cpp.
+static const char* NVS_NAMESPACE = "gd_mqtt";
+static const char* NVS_KEY = "json";
 
 void MqttSettings::begin() {
   if (!load()) {
@@ -14,12 +20,14 @@ void MqttSettings::begin() {
 }
 
 bool MqttSettings::load() {
-  if (!LittleFS.exists(MQTT_CONFIG_FILE)) return false;
-  File f = LittleFS.open(MQTT_CONFIG_FILE, "r");
-  if (!f) return false;
+  Preferences prefs;
+  if (!prefs.begin(NVS_NAMESPACE, true)) return false;
+  String json = prefs.getString(NVS_KEY, "");
+  prefs.end();
+  if (json.isEmpty()) return false;
+
   JsonDocument doc;
-  DeserializationError err = deserializeJson(doc, f);
-  f.close();
+  DeserializationError err = deserializeJson(doc, json);
   if (err) return false;
 
   data_.enabled = doc["enabled"] | false;
@@ -38,11 +46,14 @@ bool MqttSettings::save() {
   doc["user"] = data_.user;
   doc["password"] = data_.password;
 
-  File f = LittleFS.open(MQTT_CONFIG_FILE, "w");
-  if (!f) return false;
-  serializeJson(doc, f);
-  f.close();
-  return true;
+  String json;
+  serializeJson(doc, json);
+
+  Preferences prefs;
+  if (!prefs.begin(NVS_NAMESPACE, false)) return false;
+  bool ok = prefs.putString(NVS_KEY, json) > 0;
+  prefs.end();
+  return ok;
 }
 
 String MqttSettings::validate(JsonVariantConst mqtt) const {

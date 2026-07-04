@@ -81,29 +81,21 @@
 #define MQTT_DISCOVERY_PREFIX "homeassistant"
 #define MQTT_NODE_ID "geyser_domotizer"
 // I valori sopra sono solo il default al primo avvio: da quel momento in poi
-// la configurazione MQTT reale vive in questo file su LittleFS, modificabile
-// dall'interfaccia web (sezione "Configurazione MQTT") senza dover riflashare.
-#define MQTT_CONFIG_FILE "/mqtt_config.json"
-
-// --- Rete (DHCP / IP statico) ---
-#define NETWORK_CONFIG_FILE "/network_config.json"
-
-// --- Selezione GPIO relè pompa (elenco candidati in gpio_settings.cpp) ---
-#define GPIO_CONFIG_FILE "/gpio_config.json"
+// la configurazione MQTT reale vive in NVS (vedi mqtt_settings.cpp),
+// modificabile dall'interfaccia web (sezione "Configurazione MQTT") senza
+// dover riflashare.
 
 // --- Programmazione ---
 #define MAX_ENTRIES_PER_DAY 8
-#define SCHEDULE_FILE "/schedule.json"
 #define SCHEDULE_MIN_DURATION_S 5
 #define SCHEDULE_MAX_DURATION_S 1800
 
 // --- Fuso orario per NTP (Roma) ---
 // NTP_SERVER è solo il default al primo avvio: da quel momento in poi il
-// server realmente in uso vive in NTP_CONFIG_FILE su LittleFS, modificabile
+// server realmente in uso vive in NVS (vedi ntp_settings.cpp), modificabile
 // dalla UI (sezione "Server NTP") senza dover riflashare né riavviare.
 #define NTP_SERVER "pool.ntp.org"
 #define TZ_INFO "CET-1CEST,M3.5.0,M10.5.0/3"
-#define NTP_CONFIG_FILE "/ntp_config.json"
 #define NTP_DEFAULT_INTERVAL_HOURS 6
 #define NTP_MIN_INTERVAL_HOURS 1
 #define NTP_MAX_INTERVAL_HOURS 168
@@ -112,7 +104,7 @@
 // Da bump manuale ad ogni release: deve corrispondere ESATTAMENTE al tag
 // GitHub "vX.Y.Z" (senza la "v"), il confronto è una semplice uguaglianza
 // di stringa, non un confronto semver.
-#define FIRMWARE_VERSION "0.15.0"
+#define FIRMWARE_VERSION "0.16.0"
 #define GITHUB_OWNER "wifi75"
 #define GITHUB_REPO "geyser-domotizer"
 // Nome dell'asset da cercare tra quelli allegati alla release GitHub: deve

@@ -1,8 +1,14 @@
 #include "ntp_settings.h"
 #include "config.h"
-#include <LittleFS.h>
+#include <Preferences.h>
 #include <ArduinoJson.h>
 #include <time.h>
+
+// Persistita in NVS, non su LittleFS: quella partizione viene sostituita
+// per intero da ogni aggiornamento OTA del sito, NVS no. Vedi il commento
+// analogo in schedule.cpp.
+static const char* NVS_NAMESPACE = "gd_ntp";
+static const char* NVS_KEY = "json";
 
 void NtpSettings::begin(AsyncWebServer& server) {
   if (!load()) {
@@ -21,12 +27,14 @@ void NtpSettings::begin(AsyncWebServer& server) {
 }
 
 bool NtpSettings::load() {
-  if (!LittleFS.exists(NTP_CONFIG_FILE)) return false;
-  File f = LittleFS.open(NTP_CONFIG_FILE, "r");
-  if (!f) return false;
+  Preferences prefs;
+  if (!prefs.begin(NVS_NAMESPACE, true)) return false;
+  String json = prefs.getString(NVS_KEY, "");
+  prefs.end();
+  if (json.isEmpty()) return false;
+
   JsonDocument doc;
-  DeserializationError err = deserializeJson(doc, f);
-  f.close();
+  DeserializationError err = deserializeJson(doc, json);
   if (err) return false;
 
   String s = doc["server"] | NTP_SERVER;
@@ -44,11 +52,14 @@ bool NtpSettings::save() {
   JsonDocument doc;
   doc["server"] = ntpServer_;
   doc["intervalHours"] = intervalHours_;
-  File f = LittleFS.open(NTP_CONFIG_FILE, "w");
-  if (!f) return false;
-  serializeJson(doc, f);
-  f.close();
-  return true;
+  String json;
+  serializeJson(doc, json);
+
+  Preferences prefs;
+  if (!prefs.begin(NVS_NAMESPACE, false)) return false;
+  bool ok = prefs.putString(NVS_KEY, json) > 0;
+  prefs.end();
+  return ok;
 }
 
 void NtpSettings::apply() {

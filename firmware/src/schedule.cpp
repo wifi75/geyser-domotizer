@@ -1,6 +1,15 @@
 #include "schedule.h"
 #include "config.h"
-#include <LittleFS.h>
+#include <Preferences.h>
+
+// Persistita in NVS (flash separata dalla partizione LittleFS), non in un
+// file su LittleFS: un aggiornamento OTA del sito (littlefs.bin) sostituisce
+// l'INTERA partizione LittleFS con l'immagine generata da web/, cancellando
+// qualunque file scritto a runtime che vivesse li' insieme agli asset del
+// sito. NVS è una partizione a parte, mai toccata dagli aggiornamenti
+// firmware/sito, quindi la configurazione sopravvive agli OTA.
+static const char* NVS_NAMESPACE = "gd_schedule";
+static const char* NVS_KEY = "json";
 
 const char* const DAY_KEYS[7] = {
   "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"
@@ -26,20 +35,25 @@ void Schedule::begin() {
 }
 
 bool Schedule::load() {
-  if (!LittleFS.exists(SCHEDULE_FILE)) return false;
-  File f = LittleFS.open(SCHEDULE_FILE, "r");
-  if (!f) return false;
-  DeserializationError err = deserializeJson(doc_, f);
-  f.close();
+  Preferences prefs;
+  if (!prefs.begin(NVS_NAMESPACE, true)) return false;
+  String json = prefs.getString(NVS_KEY, "");
+  prefs.end();
+  if (json.isEmpty()) return false;
+
+  DeserializationError err = deserializeJson(doc_, json);
   return !err;
 }
 
 bool Schedule::save() {
-  File f = LittleFS.open(SCHEDULE_FILE, "w");
-  if (!f) return false;
-  serializeJson(doc_, f);
-  f.close();
-  return true;
+  String json;
+  serializeJson(doc_, json);
+
+  Preferences prefs;
+  if (!prefs.begin(NVS_NAMESPACE, false)) return false;
+  bool ok = prefs.putString(NVS_KEY, json) > 0;
+  prefs.end();
+  return ok;
 }
 
 String Schedule::validate(JsonVariantConst candidate) const {

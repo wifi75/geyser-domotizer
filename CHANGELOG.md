@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.16.0 — 2026-07-04
+
+Fix: la configurazione non si perde più dopo un aggiornamento firmware; discovery MQTT riparata; etichette di progresso OTA più chiare.
+
+- **Bug grave risolto**: la configurazione (MQTT, rete, GPIO, NTP, programmazione) ora è salvata in NVS invece che in file su LittleFS. Un aggiornamento OTA del sito sovrascrive l'INTERA partizione LittleFS con la sola immagine di `web/`, cancellando qualunque file scritto a runtime che vivesse lì — da qui la configurazione persa ad ogni update. NVS è una partizione separata, mai toccata dagli aggiornamenti firmware/sito. ⚠️ Essendo un cambio di formato di storage, questo aggiornamento farà perdere la configurazione UN'ULTIMA VOLTA (i vecchi file su LittleFS non vengono più letti); da qui in avanti resterà persistente.
+- **Bug risolto**: la discovery MQTT verso Home Assistant falliva silenziosamente per via di un buffer di PubSubClient (768 byte) dimensionato solo sul payload, senza margine per l'header MQTT e il topic (~60 byte) — risultato: il dispositivo compariva in HA ma senza nessuna entità. Buffer portato a 1024 byte, e aggiunto un log seriale in caso di fallimento futuro.
+- Etichette di avanzamento OTA più chiare: "Scaricamento e installazione firmware" / "Scaricamento e installazione sito web" invece di "Download firmware"/"Download sito", per chiarire che scaricamento e scrittura in flash avvengono insieme (non ci sono due fasi separate)
+
 ## v0.15.0 — 2026-07-04
 
 Intervallo di risincronizzazione NTP configurabile.

@@ -364,9 +364,12 @@ async function waitForDeviceAndReload(maxAttempts = 60) {
 function setOtaProgressUI(phase, current, total) {
   const isFlashing = phase === "done";
   const percent = isFlashing ? 100 : total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
-  const phaseLabel = phase === "firmware" ? "Download firmware"
-    : phase === "littlefs" ? "Download sito"
-    : isFlashing ? "Flash in corso"
+  // "firmware"/"littlefs": scaricamento e scrittura in flash avvengono
+  // insieme in streaming (non c'è un passo di "download" separato da uno
+  // di "installazione"), da qui l'etichetta unica.
+  const phaseLabel = phase === "firmware" ? "Scaricamento e installazione firmware"
+    : phase === "littlefs" ? "Scaricamento e installazione sito web"
+    : isFlashing ? "Riavvio in corso"
     : phase;
   const label = isFlashing || total === 0 ? `${phaseLabel}...` : `${phaseLabel}: ${percent}%`;
   [

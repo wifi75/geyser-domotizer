@@ -1,8 +1,14 @@
 #include "gpio_settings.h"
 #include "config.h"
 #include "pump.h"
-#include <LittleFS.h>
+#include <Preferences.h>
 #include <ArduinoJson.h>
+
+// Persistita in NVS, non su LittleFS: quella partizione viene sostituita
+// per intero da ogni aggiornamento OTA del sito, NVS no. Vedi il commento
+// analogo in schedule.cpp.
+static const char* NVS_NAMESPACE = "gd_gpio";
+static const char* NVS_KEY = "json";
 
 struct GpioOption {
   int pin;
@@ -55,12 +61,14 @@ void GpioSettings::begin(AsyncWebServer& server, Pump& pump) {
 }
 
 bool GpioSettings::load() {
-  if (!LittleFS.exists(GPIO_CONFIG_FILE)) return false;
-  File f = LittleFS.open(GPIO_CONFIG_FILE, "r");
-  if (!f) return false;
+  Preferences prefs;
+  if (!prefs.begin(NVS_NAMESPACE, true)) return false;
+  String json = prefs.getString(NVS_KEY, "");
+  prefs.end();
+  if (json.isEmpty()) return false;
+
   JsonDocument doc;
-  DeserializationError err = deserializeJson(doc, f);
-  f.close();
+  DeserializationError err = deserializeJson(doc, json);
   if (err) return false;
 
   int pin = doc["relayPin"] | PIN_RELAY_PUMP;
@@ -73,11 +81,14 @@ bool GpioSettings::save() {
   JsonDocument doc;
   doc["relayPin"] = relayPin_;
   doc["relayActiveHigh"] = relayActiveHigh_;
-  File f = LittleFS.open(GPIO_CONFIG_FILE, "w");
-  if (!f) return false;
-  serializeJson(doc, f);
-  f.close();
-  return true;
+  String json;
+  serializeJson(doc, json);
+
+  Preferences prefs;
+  if (!prefs.begin(NVS_NAMESPACE, false)) return false;
+  bool ok = prefs.putString(NVS_KEY, json) > 0;
+  prefs.end();
+  return ok;
 }
 
 void GpioSettings::handleGet(AsyncWebServerRequest* request) {

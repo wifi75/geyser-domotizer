@@ -16,7 +16,14 @@ void MqttClientWrapper::applySettings() {
   const MqttSettingsData& d = settings_->data();
   if (!d.enabled || d.host.isEmpty()) return;
   client_.setServer(d.host.c_str(), d.port);
-  client_.setBufferSize(768);  // i payload di discovery sono più grandi dello stato
+  // Il buffer di PubSubClient deve contenere l'intero pacchetto MQTT (header
+  // + topic + payload), non solo il payload: con topic di discovery lunghi
+  // ~60 byte (es. "homeassistant/binary_sensor/geyser_domotizer/pump_active/config")
+  // sommati a un payload vicino al limite, un buffer uguale alla sola
+  // dimensione del payload andava in overflow e publish() falliva in
+  // silenzio (sintomo: il "device" compare in Home Assistant ma nessuna
+  // entità, perché solo alcuni discovery arrivavano per intero).
+  client_.setBufferSize(1024);
   lastReconnectAttemptMs_ = 0;  // riprova subito con i nuovi parametri
 }
 
@@ -81,11 +88,15 @@ void MqttClientWrapper::publishEntityConfig(const char* component, const char* o
   device["model"] = "ESP32";
   device["sw_version"] = FIRMWARE_VERSION;
 
-  char payload[768];
+  char payload[900];
   size_t len = serializeJson(doc, payload, sizeof(payload));
   char topic[128];
   snprintf(topic, sizeof(topic), "%s/%s/%s/%s/config", MQTT_DISCOVERY_PREFIX, component, MQTT_NODE_ID, objectId);
-  client_.publish(topic, (const uint8_t*)payload, len, true);
+  bool ok = client_.publish(topic, (const uint8_t*)payload, len, true);
+  if (!ok) {
+    Serial.printf("MQTT discovery FALLITA per %s (payload %u byte, stato client %d)\n",
+                  objectId, (unsigned)len, client_.state());
+  }
 }
 
 void MqttClientWrapper::publishDiscovery() {
