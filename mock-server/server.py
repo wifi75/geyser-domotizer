@@ -27,7 +27,7 @@ NETWORK_FILE = os.path.join(DATA_DIR, "network.json")
 PORT = int(os.environ.get("PORT", 8000))
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.6.0-beta"
+MOCK_CURRENT_VERSION = "0.7.0-beta"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 DEFAULT_CONFIG = {
@@ -134,6 +134,13 @@ class State:
                 # il risultato di WiFi.localIP(), l'indirizzo DHCP reale.
                 "wifi": {"connected": True, "ssid": "WiFi (mock, non reale)", "ip": "203.0.113.50", "rssi": -55},
                 "mqtt": {"connected": bool(self.config["mqtt"]["enabled"] and self.config["mqtt"]["host"])},
+                # Valori tipici osservati sul vero ESP32 DevKitV1 (v0.6.0-beta),
+                # solo per popolare la UI in locale: non cambiano nel mock.
+                "system": {
+                    "ramFreeBytes": 210000, "ramTotalBytes": 327680,
+                    "flashUsedBytes": 1111184, "flashFreeBytes": 199536,
+                    "fsUsedBytes": 5200, "fsTotalBytes": 1441792,
+                },
             }
 
     def start_manual(self, duration_seconds):

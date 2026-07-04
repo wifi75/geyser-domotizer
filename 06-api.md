@@ -12,9 +12,16 @@ Stato corrente del dispositivo, interrogato dal frontend ogni 2-3 secondi.
   "battery": { "voltage": 12.4, "percent": 82, "low": false },
   "pump": { "active": false, "remainingSeconds": 0, "source": null },
   "wifi": { "connected": true, "ssid": "WiFi", "ip": "192.168.1.235", "rssi": -58 },
-  "mqtt": { "connected": true }
+  "mqtt": { "connected": true },
+  "system": {
+    "ramFreeBytes": 210000, "ramTotalBytes": 327680,
+    "flashUsedBytes": 1111184, "flashFreeBytes": 199536,
+    "fsUsedBytes": 5200, "fsTotalBytes": 1441792
+  }
 }
 ```
+
+`system.flashFreeBytes` è lo spazio libero nella partizione OTA (quanto margine c'è per il prossimo aggiornamento firmware); `system.fsUsedBytes`/`fsTotalBytes` sono LittleFS (il sito + i file di configurazione).
 
 `pump.source` è `"manual"` o `"schedule"` quando `active` è `true`, altrimenti `null`.
 `wifi.ssid`/`wifi.ip` sono stringa vuota quando `wifi.connected` è `false`. La qualità del segnale (barre/percentuale) è calcolata lato frontend da `rssi`, non serve un campo dedicato.

@@ -23,6 +23,19 @@ function setBadge(elm, connected) {
   elm.classList.toggle("ok", !!connected);
 }
 
+function fmtBytes(bytes) {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${bytes} B`;
+}
+
+function renderSystem(system) {
+  if (!system) return;
+  el("sys-ram").textContent = `${fmtBytes(system.ramFreeBytes)} libera su ${fmtBytes(system.ramTotalBytes)}`;
+  el("sys-flash").textContent = `${fmtBytes(system.flashUsedBytes)} usati, ${fmtBytes(system.flashFreeBytes)} liberi per il prossimo aggiornamento`;
+  el("sys-fs").textContent = `${fmtBytes(system.fsUsedBytes)} usati su ${fmtBytes(system.fsTotalBytes)}`;
+}
+
 function renderWifi(wifi) {
   const bars = el("wifi-signal-bars");
   const spans = bars.querySelectorAll("span");
@@ -64,6 +77,7 @@ async function refreshStatus() {
     setBadge(el("badge-wifi"), s.wifi.connected);
     setBadge(el("badge-mqtt"), s.mqtt.connected);
     renderWifi(s.wifi);
+    renderSystem(s.system);
 
     el("device-time").textContent = s.time;
 
@@ -419,6 +433,21 @@ el("btn-save-network").addEventListener("click", saveNetworkConfig);
 el("banner-update-summary").addEventListener("click", () => {
   el("banner-update-details").classList.toggle("hidden");
 });
+
+function showTab(name) {
+  document.querySelectorAll(".tab-panel").forEach((panel) => {
+    panel.classList.toggle("hidden", panel.dataset.tab !== name);
+  });
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.tab === name);
+  });
+  localStorage.setItem("geyser-tab", name);
+}
+
+document.querySelectorAll(".tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => showTab(btn.dataset.tab));
+});
+showTab(localStorage.getItem("geyser-tab") || "stato");
 
 refreshStatus();
 loadSchedule();

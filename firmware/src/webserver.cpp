@@ -85,6 +85,13 @@ void WebServerApp::handleStatus(AsyncWebServerRequest* request) {
 
   doc["mqtt"]["connected"] = mqttConnected_;
 
+  doc["system"]["ramFreeBytes"] = ESP.getFreeHeap();
+  doc["system"]["ramTotalBytes"] = ESP.getHeapSize();
+  doc["system"]["flashUsedBytes"] = ESP.getSketchSize();
+  doc["system"]["flashFreeBytes"] = ESP.getFreeSketchSpace();
+  doc["system"]["fsUsedBytes"] = LittleFS.usedBytes();
+  doc["system"]["fsTotalBytes"] = LittleFS.totalBytes();
+
   AsyncResponseStream* response = request->beginResponseStream("application/json");
   serializeJson(doc, *response);
   request->send(response);

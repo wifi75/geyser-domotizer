@@ -15,47 +15,93 @@
   </div>
 </header>
 
+<section id="banner-low-battery" class="banner banner-warn hidden">
+  ⚠️ Batteria scarica: la programmazione automatica potrebbe non completarsi.
+</section>
+
+<section id="banner-update" class="banner banner-info hidden">
+  <div id="banner-update-summary" class="banner-clickable">
+    🔔 Nuova versione disponibile: <strong id="banner-update-version">--</strong> — <span class="banner-link">vedi novità</span>
+  </div>
+  <div id="banner-update-details" class="hidden">
+    <pre id="banner-update-notes"></pre>
+    <button id="btn-banner-update-now" class="btn btn-primary">Aggiorna ora</button>
+  </div>
+</section>
+
+<nav id="tabs">
+  <button class="tab-btn active" data-tab="stato">Stato</button>
+  <button class="tab-btn" data-tab="programmazione">Programmazione</button>
+  <button class="tab-btn" data-tab="impostazioni">Impostazioni</button>
+</nav>
+
 <main>
 
-  <section id="banner-low-battery" class="banner banner-warn hidden">
-    ⚠️ Batteria scarica: la programmazione automatica potrebbe non completarsi.
-  </section>
+  <div class="tab-panel" data-tab="stato">
 
-  <section id="banner-update" class="banner banner-info hidden">
-    <div id="banner-update-summary" class="banner-clickable">
-      🔔 Nuova versione disponibile: <strong id="banner-update-version">--</strong> — <span class="banner-link">vedi novità</span>
-    </div>
-    <div id="banner-update-details" class="hidden">
-      <pre id="banner-update-notes"></pre>
-      <button id="btn-banner-update-now" class="btn btn-primary">Aggiorna ora</button>
-    </div>
-  </section>
-
-  <section class="card" id="card-battery">
-    <h2>Batteria Geyser</h2>
-    <div class="battery-row">
-      <div class="battery-percent"><span id="battery-percent">--</span>%</div>
-      <div class="battery-bar-wrap">
-        <div id="battery-bar" class="battery-bar"></div>
+    <section class="card" id="card-battery">
+      <h2>Batteria Geyser</h2>
+      <div class="battery-row">
+        <div class="battery-percent"><span id="battery-percent">--</span>%</div>
+        <div class="battery-bar-wrap">
+          <div id="battery-bar" class="battery-bar"></div>
+        </div>
+        <div class="battery-voltage"><span id="battery-voltage">--</span> V</div>
       </div>
-      <div class="battery-voltage"><span id="battery-voltage">--</span> V</div>
-    </div>
-  </section>
+    </section>
 
-  <section class="card" id="card-wifi">
-    <h2>Connessione</h2>
-    <div class="wifi-row">
-      <div class="wifi-signal-bars" id="wifi-signal-bars" title="">
-        <span></span><span></span><span></span><span></span>
+    <section class="card" id="card-wifi">
+      <h2>Connessione</h2>
+      <div class="wifi-row">
+        <div class="wifi-signal-bars" id="wifi-signal-bars" title="">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div class="wifi-details">
+          <div><strong id="wifi-ssid">--</strong> <span id="wifi-rssi" class="muted">--</span></div>
+          <div class="muted">IP attuale: <span id="wifi-ip">--</span></div>
+        </div>
       </div>
-      <div class="wifi-details">
-        <div><strong id="wifi-ssid">--</strong> <span id="wifi-rssi" class="muted">--</span></div>
-        <div class="muted">IP attuale: <span id="wifi-ip">--</span></div>
-      </div>
-    </div>
+    </section>
 
-    <div class="network-form">
-      <h3>Configurazione IP</h3>
+    <section class="card" id="card-pump">
+      <h2>Nebulizzazione</h2>
+      <p id="pump-state">Stato: <strong id="pump-state-text">--</strong></p>
+      <p id="pump-remaining-wrap" class="hidden">Tempo rimanente: <strong id="pump-remaining">--</strong></p>
+      <div class="manual-controls">
+        <label for="manual-duration">Durata (minuti)</label>
+        <input type="number" id="manual-duration" min="1" max="30" value="2" step="1">
+        <button id="btn-start" class="btn btn-primary">Avvia ora</button>
+        <button id="btn-stop" class="btn btn-danger" disabled>Ferma</button>
+      </div>
+      <p id="manual-feedback" class="feedback"></p>
+    </section>
+
+    <section class="card" id="card-system">
+      <h2>Sistema</h2>
+      <div class="system-grid">
+        <div>RAM libera</div><div id="sys-ram"><span class="muted">--</span></div>
+        <div>Flash firmware</div><div id="sys-flash"><span class="muted">--</span></div>
+        <div>Spazio sito (LittleFS)</div><div id="sys-fs"><span class="muted">--</span></div>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="tab-panel hidden" data-tab="programmazione">
+    <section class="card" id="card-schedule">
+      <h2>Programmazione settimanale</h2>
+      <div id="schedule-days"></div>
+      <div class="schedule-actions">
+        <button id="btn-save-schedule" class="btn btn-primary">Salva programmazione</button>
+        <span id="schedule-feedback" class="feedback"></span>
+      </div>
+    </section>
+  </div>
+
+  <div class="tab-panel hidden" data-tab="impostazioni">
+
+    <section class="card" id="card-network">
+      <h2>Configurazione IP</h2>
       <label class="network-mode-row">
         <input type="radio" name="network-mode" id="network-mode-dhcp" value="dhcp" checked>
         DHCP automatico (consigliato)
@@ -81,80 +127,59 @@
         <button id="btn-save-network" class="btn btn-primary">Salva (riavvia il dispositivo)</button>
         <span id="network-feedback" class="feedback"></span>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="card" id="card-pump">
-    <h2>Nebulizzazione</h2>
-    <p id="pump-state">Stato: <strong id="pump-state-text">--</strong></p>
-    <p id="pump-remaining-wrap" class="hidden">Tempo rimanente: <strong id="pump-remaining">--</strong></p>
-    <div class="manual-controls">
-      <label for="manual-duration">Durata (minuti)</label>
-      <input type="number" id="manual-duration" min="1" max="30" value="2" step="1">
-      <button id="btn-start" class="btn btn-primary">Avvia ora</button>
-      <button id="btn-stop" class="btn btn-danger" disabled>Ferma</button>
-    </div>
-    <p id="manual-feedback" class="feedback"></p>
-  </section>
+    <section class="card" id="card-mqtt">
+      <h2>Configurazione MQTT</h2>
+      <div class="mqtt-form">
+        <label class="mqtt-enabled-row">
+          <input type="checkbox" id="mqtt-enabled">
+          Abilitato (Home Assistant / broker MQTT)
+        </label>
+        <div class="mqtt-fields" id="mqtt-fields">
+          <label for="mqtt-host">Host/IP broker</label>
+          <input type="text" id="mqtt-host" placeholder="192.168.1.10">
 
-  <section class="card" id="card-schedule">
-    <h2>Programmazione settimanale</h2>
-    <div id="schedule-days"></div>
-    <div class="schedule-actions">
-      <button id="btn-save-schedule" class="btn btn-primary">Salva programmazione</button>
-      <span id="schedule-feedback" class="feedback"></span>
-    </div>
-  </section>
+          <label for="mqtt-port">Porta</label>
+          <input type="number" id="mqtt-port" min="1" max="65535" value="1883">
 
-  <section class="card" id="card-mqtt">
-    <h2>Configurazione MQTT</h2>
-    <div class="mqtt-form">
-      <label class="mqtt-enabled-row">
-        <input type="checkbox" id="mqtt-enabled">
-        Abilitato (Home Assistant / broker MQTT)
-      </label>
-      <div class="mqtt-fields" id="mqtt-fields">
-        <label for="mqtt-host">Host/IP broker</label>
-        <input type="text" id="mqtt-host" placeholder="192.168.1.10">
+          <label for="mqtt-user">Utente</label>
+          <input type="text" id="mqtt-user" placeholder="(opzionale)">
 
-        <label for="mqtt-port">Porta</label>
-        <input type="number" id="mqtt-port" min="1" max="65535" value="1883">
-
-        <label for="mqtt-user">Utente</label>
-        <input type="text" id="mqtt-user" placeholder="(opzionale)">
-
-        <label for="mqtt-password">Password</label>
-        <input type="password" id="mqtt-password" placeholder="lascia vuoto per non cambiarla">
-        <span id="mqtt-password-hint" class="muted mqtt-password-hint"></span>
+          <label for="mqtt-password">Password</label>
+          <input type="password" id="mqtt-password" placeholder="lascia vuoto per non cambiarla">
+          <span id="mqtt-password-hint" class="muted mqtt-password-hint"></span>
+        </div>
+        <div class="schedule-actions">
+          <button id="btn-save-mqtt" class="btn btn-primary">Salva configurazione MQTT</button>
+          <span id="mqtt-feedback" class="feedback"></span>
+        </div>
       </div>
-      <div class="schedule-actions">
-        <button id="btn-save-mqtt" class="btn btn-primary">Salva configurazione MQTT</button>
-        <span id="mqtt-feedback" class="feedback"></span>
+    </section>
+
+    <section class="card" id="card-ota">
+      <h2>Aggiornamenti firmware</h2>
+      <p>Versione installata: <strong id="ota-current-version">--</strong></p>
+
+      <div class="ota-github">
+        <button id="btn-ota-check" class="btn btn-primary">Controlla su GitHub</button>
+        <span id="ota-check-feedback" class="feedback"></span>
+        <button id="btn-ota-update" class="btn btn-primary hidden">Aggiorna ora</button>
       </div>
-    </div>
-  </section>
 
-  <section class="card" id="card-ota">
-    <h2>Aggiornamenti firmware</h2>
-    <p>Versione installata: <strong id="ota-current-version">--</strong></p>
-
-    <div class="ota-github">
-      <button id="btn-ota-check" class="btn btn-primary">Controlla su GitHub</button>
-      <span id="ota-check-feedback" class="feedback"></span>
-      <button id="btn-ota-update" class="btn btn-primary hidden">Aggiorna ora</button>
-    </div>
-
-    <div class="ota-manual">
-      <h3>Aggiornamento manuale</h3>
-      <p class="muted">Carica un file .bin compilato in locale (deve corrispondere esattamente alla scheda in uso).</p>
-      <input type="file" id="ota-file-input" accept=".bin">
-      <button id="btn-ota-upload" class="btn btn-primary">Carica e aggiorna</button>
-      <div id="ota-upload-progress-wrap" class="hidden">
-        <div class="battery-bar-wrap"><div id="ota-upload-progress" class="battery-bar"></div></div>
+      <div class="ota-manual">
+        <h3>Aggiornamento manuale</h3>
+        <p class="muted">Carica un file .bin compilato in locale (deve corrispondere esattamente alla scheda in uso).</p>
+        <input type="file" id="ota-file-input" accept=".bin">
+        <button id="btn-ota-upload" class="btn btn-primary">Carica e aggiorna</button>
+        <div id="ota-upload-progress-wrap" class="hidden">
+          <div class="battery-bar-wrap"><div id="ota-upload-progress" class="battery-bar"></div></div>
+        </div>
+        <span id="ota-upload-feedback" class="feedback"></span>
       </div>
-      <span id="ota-upload-feedback" class="feedback"></span>
-    </div>
-  </section>
+    </section>
+
+  </div>
 
   <footer>
     <span id="device-time">--</span>
