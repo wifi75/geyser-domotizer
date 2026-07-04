@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.20.1 — 2026-07-04
+
+Più robustezza contro l'errore OTA "Could Not Activate The Firmware".
+
+- Timeout del client TLS di download OTA (firmware e sito) portato da ~5s a 15s: un breve stallo WiFi durante lo scaricamento di ~1MB veniva interpretato come fine dello stream, scrivendo un'immagine troncata che poi falliva la verifica interna all'attivazione (da qui l'errore "Could Not Activate The Firmware")
+- Log seriale con il codice `Update.getError()` in caso di fallimento, per diagnosticare più facilmente eventuali episodi futuri
+- Messaggio d'errore in UI più chiaro: per `download_failed` suggerisce di riprovare, perché nella maggior parte dei casi è un blip di rete transitorio
+
 ## v0.20.0 — 2026-07-04
 
 Versione spostata nel footer, credito sviluppatore.

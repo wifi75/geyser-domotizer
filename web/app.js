@@ -477,7 +477,11 @@ async function applyOtaUpdate() {
     }
 
     if (p.phase === "error") {
-      feedback.textContent = `Errore: ${p.error} ${p.details ?? ""}`;
+      // "download_failed" è spesso un blip WiFi durante lo scaricamento
+      // (immagine troncata che poi non passa la verifica interna), non un
+      // problema permanente: nella maggior parte dei casi riprovare basta.
+      const retryHint = p.error === "download_failed" ? " — riprova, spesso basta." : "";
+      feedback.textContent = `Errore: ${p.error} ${p.details ?? ""}${retryHint}`;
       feedback.className = "feedback error";
       progressWraps.forEach((w) => w.classList.add("hidden"));
       return;

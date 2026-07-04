@@ -158,12 +158,20 @@ void OtaManager::runUpdateTask() {
 
   WiFiClientSecure firmwareClient;
   firmwareClient.setInsecure();
+  // Il default (~5s) può bastare per una connessione TLS ma è troppo poco
+  // per riprendersi da un singolo blip WiFi nel mezzo di un download da
+  // ~1MB: uno stallo momentaneo veniva interpretato come fine dello stream,
+  // scrivendo un'immagine tronca che poi fallisce all'attivazione
+  // ("Could Not Activate The Firmware" = firma dell'app non valida).
+  firmwareClient.setTimeout(15000);
   progressPhase_ = "firmware";
   t_httpUpdate_return ret = httpUpdate.update(firmwareClient, pendingAssetUrl_);
 
   if (ret != HTTP_UPDATE_OK) {
     lastErrorCode_ = ret == HTTP_UPDATE_NO_UPDATES ? "no_update_needed" : "download_failed";
     lastErrorDetails_ = httpUpdate.getLastErrorString();
+    Serial.printf("OTA firmware fallito: %s (Update.getError()=%d)\n",
+                  lastErrorDetails_.c_str(), Update.getError());
     progressPhase_ = "error";
     updateInProgress_ = false;
     return;
@@ -178,6 +186,7 @@ void OtaManager::runUpdateTask() {
     progressTotal_ = 0;
     WiFiClientSecure littlefsClient;
     littlefsClient.setInsecure();
+    littlefsClient.setTimeout(15000);
     t_httpUpdate_return fsRet = httpUpdate.updateSpiffs(littlefsClient, pendingLittlefsAssetUrl_);
     if (fsRet != HTTP_UPDATE_OK) {
       Serial.printf("Aggiornamento sito fallito (%s), procedo comunque col firmware\n",
