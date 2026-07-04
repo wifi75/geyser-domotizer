@@ -312,6 +312,7 @@ async function saveMqttConfig() {
 async function loadOtaInfo() {
   const info = await api("/api/ota/info");
   el("ota-current-version").textContent = `v${info.currentVersion}`;
+  el("header-version").textContent = `v${info.currentVersion}`;
 }
 
 function showUpdateBanner(latestVersion, releaseNotes) {
@@ -388,6 +389,7 @@ async function waitForDeviceAndReload(maxAttempts = 60) {
     try {
       const ok = await pingDevice();
       if (ok && sawDown) {
+        localStorage.setItem("geyser-tab", "stato");  // dopo un riavvio si riparte sempre da Stato
         location.reload();
         return;
       }
@@ -413,7 +415,7 @@ function setOtaProgressUI(phase, current, total) {
   // insieme in streaming (non c'è un passo di "download" separato da uno
   // di "installazione"), da qui l'etichetta unica.
   const phaseLabel = phase === "firmware" ? "Scaricamento e installazione firmware"
-    : phase === "littlefs" ? "Scaricamento e installazione sito web"
+    : phase === "littlefs" ? "Aggiornamento ed installazione interfaccia web"
     : isFlashing ? "Riavvio in corso"
     : phase;
   const label = isFlashing || total === 0 ? `${phaseLabel}...` : `${phaseLabel}: ${percent}%`;

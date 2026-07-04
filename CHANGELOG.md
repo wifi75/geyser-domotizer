@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.18.0 — 2026-07-04
+
+Versione app in testata, torna sempre su Stato dopo un riavvio, etichetta OTA più chiara per l'interfaccia web.
+
+- Numero di versione (es. "v0.18.0") mostrato sotto il titolo in ogni pagina
+- Dopo un riavvio (OTA, riavvio manuale, salvataggio configurazione IP) la pagina torna sempre sulla tab "Stato", invece di restare su quella aperta prima
+- Fase di aggiornamento del sito rinominata "Aggiornamento ed installazione interfaccia web" (prima "Scaricamento e installazione sito web")
+
 ## v0.17.0 — 2026-07-04
 
 Pagina che si ricarica da sola dopo un salvataggio, copia/incolla partenze tra giorni.
