@@ -431,7 +431,9 @@ function setOtaProgressUI(phase, current, total) {
     : phase === "littlefs" ? "Aggiornamento ed installazione interfaccia web"
     : isFlashing ? "Riavvio in corso"
     : phase;
-  const label = isFlashing || total === 0 ? `${phaseLabel}...` : `${phaseLabel}: ${percent}%`;
+  // Spazio unificatore ( ) tra "..." e la percentuale: evita che vadano
+  // a capo separatamente quando l'etichetta è lunga e il contenitore stretto.
+  const label = isFlashing || total === 0 ? `${phaseLabel}...` : `${phaseLabel}: ${percent}%`;
   [
     ["ota-update-progress-bar", "ota-update-progress-label"],
     ["banner-update-progress-bar", "banner-update-progress-label"]

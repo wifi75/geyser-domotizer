@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.19.1 — 2026-07-04
+
+Fix: la percentuale di avanzamento OTA poteva andare a capo da sola, separata dal resto dell'etichetta.
+
+- Spazio non-breaking prima della percentuale nella barra di avanzamento OTA: con l'etichetta lunga ("Aggiornamento ed installazione interfaccia web") e il contenitore stretto, "31%" poteva finire da solo su una seconda riga
+
 ## v0.19.0 — 2026-07-04
 
 Programmazione: "+ Aggiungi partenza" incolla se hai già copiato un giorno, nuove partenze partono da 06:00/1 minuto.
