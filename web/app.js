@@ -325,7 +325,7 @@ async function saveMqttConfig() {
 async function loadOtaInfo() {
   const info = await api("/api/ota/info");
   el("ota-current-version").textContent = `v${info.currentVersion}`;
-  el("header-version").textContent = `v${info.currentVersion}`;
+  el("footer-version").textContent = `v${info.currentVersion}`;
 }
 
 function showUpdateBanner(latestVersion, releaseNotes) {

@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.20.0 — 2026-07-04
+
+Versione spostata nel footer, credito sviluppatore.
+
+- Numero di versione spostato dall'header al footer, subito sotto l'orario del dispositivo
+- Aggiunto "Sviluppato da Tiziano Cassone" nel footer, con link mailto a tizianocassone@gmail.com
+
 ## v0.19.1 — 2026-07-04
 
 Fix: la percentuale di avanzamento OTA poteva andare a capo da sola, separata dal resto dell'etichetta.
