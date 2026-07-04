@@ -236,13 +236,112 @@ async function saveMqttConfig() {
   }
 }
 
+async function loadOtaInfo() {
+  const info = await api("/api/ota/info");
+  el("ota-current-version").textContent = `v${info.currentVersion}`;
+}
+
+async function checkOtaUpdate() {
+  const feedback = el("ota-check-feedback");
+  const updateBtn = el("btn-ota-update");
+  feedback.textContent = "Controllo in corso...";
+  feedback.className = "feedback";
+  updateBtn.classList.add("hidden");
+  try {
+    const r = await api("/api/ota/check", { method: "POST" });
+    if (!r.ok) {
+      feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+      feedback.className = "feedback error";
+      return;
+    }
+    if (r.updateAvailable) {
+      feedback.textContent = `Disponibile: v${r.latestVersion}`;
+      feedback.className = "feedback ok";
+      updateBtn.classList.remove("hidden");
+    } else {
+      feedback.textContent = "Sei già aggiornato.";
+      feedback.className = "feedback ok";
+    }
+  } catch (e) {
+    feedback.textContent = "Errore di comunicazione con il dispositivo.";
+    feedback.className = "feedback error";
+  }
+}
+
+async function applyOtaUpdate() {
+  const feedback = el("ota-check-feedback");
+  feedback.textContent = "Scaricamento e aggiornamento in corso, il dispositivo si riavvierà...";
+  feedback.className = "feedback";
+  try {
+    const r = await api("/api/ota/update", { method: "POST" });
+    if (r && r.ok === false) {
+      feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+      feedback.className = "feedback error";
+    }
+  } catch (e) {
+    // Il dispositivo si riavvia subito dopo il flash: la richiesta può
+    // fallire semplicemente perché non risponde più. Non è un errore.
+    feedback.textContent = "Aggiornamento avviato, il dispositivo si sta riavviando...";
+    feedback.className = "feedback ok";
+  }
+}
+
+function uploadFirmwareFile() {
+  const feedback = el("ota-upload-feedback");
+  const fileInput = el("ota-file-input");
+  const progressWrap = el("ota-upload-progress-wrap");
+  const progressBar = el("ota-upload-progress");
+  feedback.textContent = "";
+  feedback.className = "feedback";
+
+  if (!fileInput.files.length) {
+    feedback.textContent = "Seleziona prima un file .bin.";
+    feedback.className = "feedback error";
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("firmware", fileInput.files[0]);
+
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", "/api/ota/upload");
+  progressWrap.classList.remove("hidden");
+  xhr.upload.addEventListener("progress", (e) => {
+    if (e.lengthComputable) progressBar.style.width = `${Math.round((e.loaded / e.total) * 100)}%`;
+  });
+  xhr.onload = () => {
+    try {
+      const r = JSON.parse(xhr.responseText);
+      if (r.ok) {
+        feedback.textContent = "Caricato, il dispositivo si sta riavviando...";
+        feedback.className = "feedback ok";
+      } else {
+        feedback.textContent = `Errore: ${r.error}`;
+        feedback.className = "feedback error";
+      }
+    } catch (e) {
+      feedback.textContent = "Caricato, il dispositivo si sta riavviando...";
+      feedback.className = "feedback ok";
+    }
+  };
+  xhr.onerror = () => {
+    feedback.textContent = "Caricato: il dispositivo potrebbe essersi già riavviato.";
+    feedback.className = "feedback ok";
+  };
+  xhr.send(formData);
+}
+
 el("btn-start").addEventListener("click", startManual);
 el("btn-stop").addEventListener("click", stopManual);
 el("btn-save-schedule").addEventListener("click", saveSchedule);
 el("btn-save-mqtt").addEventListener("click", saveMqttConfig);
 el("mqtt-enabled").addEventListener("change", updateMqttFieldsVisibility);
+el("btn-ota-check").addEventListener("click", checkOtaUpdate);
+el("btn-ota-update").addEventListener("click", applyOtaUpdate);
+el("btn-ota-upload").addEventListener("click", uploadFirmwareFile);
 
 refreshStatus();
 loadSchedule();
 loadMqttConfig();
+loadOtaInfo();
 setInterval(refreshStatus, 2000);

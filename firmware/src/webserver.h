@@ -8,12 +8,12 @@
 
 class WebServerApp {
  public:
-  WebServerApp(Pump& pump, Battery& battery, Schedule& schedule, bool& mqttConnected,
-               MqttSettings& mqttSettings, MqttClientWrapper& mqttClient);
+  WebServerApp(AsyncWebServer& server, Pump& pump, Battery& battery, Schedule& schedule,
+               bool& mqttConnected, MqttSettings& mqttSettings, MqttClientWrapper& mqttClient);
   void begin();
 
  private:
-  AsyncWebServer server_{80};
+  AsyncWebServer& server_;
   Pump& pump_;
   Battery& battery_;
   Schedule& schedule_;

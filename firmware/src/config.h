@@ -86,3 +86,18 @@
 // --- Fuso orario per NTP (Roma) ---
 #define NTP_SERVER "pool.ntp.org"
 #define TZ_INFO "CET-1CEST,M3.5.0,M10.5.0/3"
+
+// --- OTA (aggiornamento firmware) ---
+// Da bump manuale ad ogni release: deve corrispondere al tag "vX.Y.Z" su
+// GitHub perché il controllo aggiornamenti funzioni correttamente.
+#define FIRMWARE_VERSION "0.4.0"
+#define GITHUB_OWNER "wifi75"
+#define GITHUB_REPO "geyser-domotizer"
+// Nome dell'asset da cercare tra quelli allegati alla release GitHub: deve
+// esistere un binario diverso per ciascuna scheda, NON sono intercambiabili
+// (architetture di chip diverse tra ESP32 classico e RISC-V C3/C6).
+#if defined(BOARD_ESP32DEV)
+  #define OTA_ASSET_NAME "firmware-esp32dev.bin"
+#else
+  #define OTA_ASSET_NAME "firmware-xiao-esp32c3.bin"
+#endif

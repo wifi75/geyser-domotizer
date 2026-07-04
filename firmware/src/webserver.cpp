@@ -4,9 +4,9 @@
 #include <time.h>
 #include <ArduinoJson.h>
 
-WebServerApp::WebServerApp(Pump& pump, Battery& battery, Schedule& schedule, bool& mqttConnected,
-                           MqttSettings& mqttSettings, MqttClientWrapper& mqttClient)
-    : pump_(pump), battery_(battery), schedule_(schedule), mqttConnected_(mqttConnected),
+WebServerApp::WebServerApp(AsyncWebServer& server, Pump& pump, Battery& battery, Schedule& schedule,
+                           bool& mqttConnected, MqttSettings& mqttSettings, MqttClientWrapper& mqttClient)
+    : server_(server), pump_(pump), battery_(battery), schedule_(schedule), mqttConnected_(mqttConnected),
       mqttSettings_(mqttSettings), mqttClient_(mqttClient) {}
 
 static const char* pumpSourceToString(PumpSource s) {
@@ -55,8 +55,6 @@ void WebServerApp::begin() {
       });
   configHandler->setMethod(HTTP_PUT);
   server_.addHandler(configHandler);
-
-  server_.begin();
 }
 
 void WebServerApp::handleStatus(AsyncWebServerRequest* request) {

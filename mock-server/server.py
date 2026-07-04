@@ -15,6 +15,8 @@ import os
 import socketserver
 import threading
 import time
+import urllib.request
+import urllib.error
 from datetime import datetime
 
 WEB_DIR = os.path.join(os.path.dirname(__file__), "..", "web")
@@ -22,6 +24,10 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 SCHEDULE_FILE = os.path.join(DATA_DIR, "schedule.json")
 CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
 PORT = int(os.environ.get("PORT", 8000))
+
+# Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
+MOCK_CURRENT_VERSION = "0.4.0"
+GITHUB_REPO = "wifi75/geyser-domotizer"
 
 DEFAULT_CONFIG = {
     "mqtt": {"enabled": False, "host": "", "port": 1883, "user": "", "password": None}
@@ -52,6 +58,7 @@ class State:
         os.makedirs(DATA_DIR, exist_ok=True)
         self.schedule = self._load_schedule()
         self.config = self._load_config()
+        self.ota_pending_version = None
 
     def _load_schedule(self):
         if os.path.exists(SCHEDULE_FILE):
@@ -163,6 +170,30 @@ class State:
 state = State()
 
 
+def check_github_latest_release():
+    """Interroga davvero le release GitHub del repo (utile: il mock gira sul
+    PC dello sviluppatore, che ha accesso a internet, a differenza dell'ESP32
+    isolato in laboratorio). Usa /releases (lista) e non /releases/latest,
+    perché quest'ultimo esclude le prerelease -- e qui sono tutte beta.
+    Ritorna (tag_senza_v, errore)."""
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/releases"
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "geyser-domotizer-mock",
+        "Accept": "application/vnd.github+json",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            releases = json.load(resp)
+        if not releases:
+            return None, "nessuna release pubblicata su GitHub"
+        tag = releases[0].get("tag_name", "")
+        return tag[1:] if tag.startswith("v") else tag, None
+    except urllib.error.HTTPError as e:
+        return None, f"errore HTTP {e.code}"
+    except Exception as e:
+        return None, str(e)
+
+
 def ticker_loop():
     while True:
         time.sleep(1)
@@ -230,6 +261,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self._send_json(state.schedule)
         if self.path == "/api/config":
             return self._send_json(state.config_public())
+        if self.path == "/api/ota/info":
+            return self._send_json({"currentVersion": MOCK_CURRENT_VERSION})
         return super().do_GET()
 
     def do_POST(self):
@@ -240,6 +273,34 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self._send_json({"ok": ok, **({"error": error} if error else {})})
         if self.path == "/api/manual/stop":
             state.stop()
+            return self._send_json({"ok": True})
+        if self.path == "/api/ota/check":
+            latest, error = check_github_latest_release()
+            if error:
+                return self._send_json({"ok": False, "error": "network_error", "details": error})
+            state.ota_pending_version = latest
+            return self._send_json({
+                "ok": True,
+                "updateAvailable": latest != MOCK_CURRENT_VERSION,
+                "latestVersion": latest,
+            })
+        if self.path == "/api/ota/update":
+            if not state.ota_pending_version:
+                return self._send_json({"ok": False, "error": "no_pending_update"})
+            print(f"[ota] simulazione aggiornamento a v{state.ota_pending_version} "
+                  f"(su un vero ESP32 qui scaricherebbe il binario e si riavvierebbe)")
+            time.sleep(1.5)
+            return self._send_json({"ok": True})
+        if self.path == "/api/ota/upload":
+            length = int(self.headers.get("Content-Length", 0))
+            remaining = length
+            while remaining > 0:
+                chunk = self.rfile.read(min(65536, remaining))
+                if not chunk:
+                    break
+                remaining -= len(chunk)
+            print(f"[ota] upload manuale ricevuto ({length} byte), simulazione flash")
+            time.sleep(1)
             return self._send_json({"ok": True})
         self.send_error(404)
 

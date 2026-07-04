@@ -95,6 +95,28 @@
     </div>
   </section>
 
+  <section class="card" id="card-ota">
+    <h2>Aggiornamenti firmware</h2>
+    <p>Versione installata: <strong id="ota-current-version">--</strong></p>
+
+    <div class="ota-github">
+      <button id="btn-ota-check" class="btn btn-primary">Controlla su GitHub</button>
+      <span id="ota-check-feedback" class="feedback"></span>
+      <button id="btn-ota-update" class="btn btn-primary hidden">Aggiorna ora</button>
+    </div>
+
+    <div class="ota-manual">
+      <h3>Aggiornamento manuale</h3>
+      <p class="muted">Carica un file .bin compilato in locale (deve corrispondere esattamente alla scheda in uso).</p>
+      <input type="file" id="ota-file-input" accept=".bin">
+      <button id="btn-ota-upload" class="btn btn-primary">Carica e aggiorna</button>
+      <div id="ota-upload-progress-wrap" class="hidden">
+        <div class="battery-bar-wrap"><div id="ota-upload-progress" class="battery-bar"></div></div>
+      </div>
+      <span id="ota-upload-feedback" class="feedback"></span>
+    </div>
+  </section>
+
   <footer>
     <span id="device-time">--</span>
   </footer>

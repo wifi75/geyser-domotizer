@@ -86,6 +86,32 @@ Richiesta:
 
 Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "invalid_config", "details": "..." }`
 
+## GET /api/ota/info
+
+```json
+{ "currentVersion": "0.4.0" }
+```
+
+## POST /api/ota/check
+
+Interroga le release GitHub del progetto e confronta con la versione attuale. Il risultato resta memorizzato lato dispositivo per il successivo `/api/ota/update`.
+
+Risposta: `{ "ok": true, "updateAvailable": true, "latestVersion": "0.5.0" }` oppure `{ "ok": false, "error": "network_error", "details": "..." }`
+
+## POST /api/ota/update
+
+Scarica dall'ultima release GitHub controllata (va chiamato `/api/ota/check` prima) il binario corrispondente alla scheda in uso e lo flasha. Se ha successo il dispositivo si riavvia da solo — la richiesta HTTP potrebbe non ricevere risposta perché il riavvio parte subito dopo.
+
+Risposta (se fallisce prima di riavviare): `{ "ok": false, "error": "no_pending_update" | "download_failed", "details": "..." }`
+
+## POST /api/ota/upload
+
+Aggiornamento manuale: upload diretto di un file `.bin` (`multipart/form-data`, campo `firmware`) compilato in locale, senza passare da GitHub. Se il nome del file contiene `littlefs` viene scritto come filesystem, altrimenti come firmware applicativo. Il dispositivo si riavvia da solo al termine.
+
+Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "flash_failed" }`
+
+⚠️ Il binario caricato **deve** corrispondere esattamente alla scheda in uso (es. `firmware-esp32dev.bin` vs `firmware-xiao-esp32c3.bin`, non sono intercambiabili: architetture di chip diverse).
+
 ## Note di validazione (condivise da mock e firmware)
 
 - Al massimo 8 partenze per giorno

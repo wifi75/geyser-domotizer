@@ -162,6 +162,32 @@ main {
 
 .mqtt-password-hint { grid-column: 2; margin-top: -4px; }
 
+.ota-github {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.ota-manual {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ota-manual h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+#ota-upload-progress-wrap { max-width: 300px; }
+
 .manual-controls {
   display: flex;
   align-items: center;
