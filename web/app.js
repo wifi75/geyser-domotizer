@@ -324,14 +324,20 @@ async function waitForDeviceAndReload(maxAttempts = 60) {
 }
 
 function setOtaProgressUI(phase, current, total) {
-  const percent = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
-  const phaseLabel = phase === "firmware" ? "Firmware" : phase === "littlefs" ? "Sito" : phase;
-  const label = total > 0 ? `${phaseLabel}: ${percent}%` : `${phaseLabel}...`;
+  const isFlashing = phase === "done";
+  const percent = isFlashing ? 100 : total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+  const phaseLabel = phase === "firmware" ? "Download firmware"
+    : phase === "littlefs" ? "Download sito"
+    : isFlashing ? "Flash in corso"
+    : phase;
+  const label = isFlashing || total === 0 ? `${phaseLabel}...` : `${phaseLabel}: ${percent}%`;
   [
     ["ota-update-progress-bar", "ota-update-progress-label"],
     ["banner-update-progress-bar", "banner-update-progress-label"]
   ].forEach(([barId, labelId]) => {
-    el(barId).style.width = `${percent}%`;
+    const bar = el(barId);
+    bar.style.width = `${percent}%`;
+    bar.classList.toggle("phase-flash", isFlashing);
     el(labelId).textContent = label;
   });
 }
@@ -377,6 +383,9 @@ async function applyOtaUpdate() {
     setOtaProgressUI(p.phase, p.current, p.total);
 
     if (p.phase === "done") {
+      // Breve pausa per far vedere lo stato "Flash in corso" (rosso) prima
+      // di nascondere la barra: il dispositivo si riavvia poco dopo comunque.
+      await new Promise((r) => setTimeout(r, 700));
       feedback.textContent = "Aggiornamento completato, il dispositivo si sta riavviando...";
       feedback.className = "feedback ok";
       progressWraps.forEach((w) => w.classList.add("hidden"));
