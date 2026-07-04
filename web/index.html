@@ -155,6 +155,17 @@
       </div>
     </section>
 
+    <section class="card" id="card-ntp">
+      <h2>Server NTP</h2>
+      <p class="muted">L'orologio si sincronizza sempre da qui, anche dopo ogni riconnessione WiFi.</p>
+      <label for="ntp-server">Indirizzo server NTP</label>
+      <input type="text" id="ntp-server" placeholder="pool.ntp.org">
+      <div class="schedule-actions">
+        <button id="btn-save-ntp" class="btn btn-primary">Salva</button>
+        <span id="ntp-feedback" class="feedback"></span>
+      </div>
+    </section>
+
     <section class="card" id="card-mqtt">
       <h2>Configurazione MQTT</h2>
       <div class="mqtt-form">
@@ -225,7 +236,13 @@
 
 <template id="tpl-day">
   <div class="day-block">
-    <h3 class="day-name"></h3>
+    <div class="day-header">
+      <h3 class="day-name"></h3>
+      <div class="day-header-right">
+        <span class="day-summary muted"></span>
+        <span class="day-toggle-icon">▾</span>
+      </div>
+    </div>
     <div class="day-entries"></div>
     <button class="btn btn-small btn-add-entry">+ Aggiungi partenza</button>
   </div>

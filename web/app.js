@@ -141,8 +141,18 @@ function addEntryRow(container, entry) {
   node.querySelector(".entry-enabled").checked = entry?.enabled ?? true;
   node.querySelector(".entry-time").value = entry?.time ?? "06:30";
   node.querySelector(".entry-duration").value = entry ? Math.round(entry.durationSeconds / 60) : 2;
-  node.querySelector(".entry-remove").addEventListener("click", () => node.remove());
+  node.querySelector(".entry-remove").addEventListener("click", () => {
+    const dayBlock = node.closest(".day-block");
+    node.remove();
+    if (dayBlock) updateDaySummary(dayBlock);
+  });
   container.appendChild(node);
+}
+
+function updateDaySummary(dayNode) {
+  const count = dayNode.querySelectorAll(".entry-row").length;
+  dayNode.querySelector(".day-summary").textContent =
+    count === 0 ? "Nessuna partenza" : `${count} partenz${count === 1 ? "a" : "e"}`;
 }
 
 function renderSchedule(schedule) {
@@ -155,8 +165,17 @@ function renderSchedule(schedule) {
     dayNode.querySelector(".day-name").textContent = label;
     dayNode.dataset.day = key;
     const entriesWrap = dayNode.querySelector(".day-entries");
-    (schedule[key] || []).forEach((entry) => addEntryRow(entriesWrap, entry));
-    dayNode.querySelector(".btn-add-entry").addEventListener("click", () => addEntryRow(entriesWrap));
+    const entries = schedule[key] || [];
+    entries.forEach((entry) => addEntryRow(entriesWrap, entry));
+    dayNode.classList.toggle("collapsed", entries.length === 0);
+    updateDaySummary(dayNode);
+    dayNode.querySelector(".day-header").addEventListener("click", () => {
+      dayNode.classList.toggle("collapsed");
+    });
+    dayNode.querySelector(".btn-add-entry").addEventListener("click", () => {
+      addEntryRow(entriesWrap);
+      updateDaySummary(dayNode);
+    });
     wrap.appendChild(dayNode);
   }
 }
@@ -519,6 +538,36 @@ async function saveGpioConfig() {
   }
 }
 
+async function loadNtpConfig() {
+  const cfg = await api("/api/ntp");
+  el("ntp-server").value = cfg.server || "";
+}
+
+async function saveNtpConfig() {
+  const feedback = el("ntp-feedback");
+  feedback.textContent = "";
+  feedback.className = "feedback";
+  const server = el("ntp-server").value.trim();
+
+  try {
+    const r = await api("/api/ntp", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ server })
+    });
+    if (r && r.ok === false) {
+      feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+      feedback.className = "feedback error";
+    } else {
+      feedback.textContent = "Salvato, orologio risincronizzato.";
+      feedback.className = "feedback ok";
+    }
+  } catch (e) {
+    feedback.textContent = "Errore di comunicazione con il dispositivo.";
+    feedback.className = "feedback error";
+  }
+}
+
 function updateNetworkFieldsVisibility() {
   const isStatic = el("network-mode-static").checked;
   el("network-fields").classList.toggle("hidden", !isStatic);
@@ -582,6 +631,7 @@ el("network-mode-static").addEventListener("change", updateNetworkFieldsVisibili
 el("btn-save-network").addEventListener("click", saveNetworkConfig);
 el("btn-restart").addEventListener("click", restartDevice);
 el("btn-save-gpio").addEventListener("click", saveGpioConfig);
+el("btn-save-ntp").addEventListener("click", saveNtpConfig);
 
 el("banner-update-summary").addEventListener("click", () => {
   el("banner-update-details").classList.toggle("hidden");
@@ -621,5 +671,6 @@ loadMqttConfig();
 loadOtaInfo();
 loadNetworkConfig();
 loadGpioConfig();
+loadNtpConfig();
 checkOtaUpdate({ silent: true });
 setInterval(refreshStatus, 2000);

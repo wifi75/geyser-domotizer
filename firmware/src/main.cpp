@@ -13,6 +13,7 @@
 #include "ota.h"
 #include "network_settings.h"
 #include "gpio_settings.h"
+#include "ntp_settings.h"
 
 // NOTA su consumo energetico: questa v1 del firmware resta sempre sveglia
 // (niente deep-sleep) cosi' l'interfaccia web e l'avvio manuale rispondono
@@ -33,6 +34,7 @@ WebServerApp webApp(server, pump, battery, schedule, mqttConnectedFlag, mqttSett
 OtaManager ota;
 NetworkSettings networkSettings;
 GpioSettings gpioSettings;
+NtpSettings ntpSettings;
 
 uint32_t lastWifiAttemptMs = 0;
 String lastCheckedMinuteKey = "";
@@ -45,6 +47,7 @@ void connectWifiIfNeeded() {
     if (isConnected) {
       Serial.print("WiFi connesso, IP: ");
       Serial.println(WiFi.localIP());
+      ntpSettings.resync();  // riallinea subito l'orologio dopo ogni riconnessione
     } else {
       Serial.println("WiFi disconnesso");
     }
@@ -92,6 +95,7 @@ void setup() {
   mqttSettings.begin();
   networkSettings.begin(server);
   gpioSettings.begin(server);
+  ntpSettings.begin(server);
   pump.begin(gpioSettings.relayPin(), gpioSettings.relayActiveHigh());
 
   WiFi.mode(WIFI_STA);
@@ -116,8 +120,6 @@ void setup() {
   }
   Serial.printf("Provo a connettermi a '%s'...\n", WIFI_SSID);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-  configTzTime(TZ_INFO, NTP_SERVER);
 
   webApp.begin();
   ota.begin(server);

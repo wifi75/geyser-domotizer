@@ -98,14 +98,18 @@
 #define SCHEDULE_MAX_DURATION_S 1800
 
 // --- Fuso orario per NTP (Roma) ---
+// NTP_SERVER è solo il default al primo avvio: da quel momento in poi il
+// server realmente in uso vive in NTP_CONFIG_FILE su LittleFS, modificabile
+// dalla UI (sezione "Server NTP") senza dover riflashare né riavviare.
 #define NTP_SERVER "pool.ntp.org"
 #define TZ_INFO "CET-1CEST,M3.5.0,M10.5.0/3"
+#define NTP_CONFIG_FILE "/ntp_config.json"
 
 // --- OTA (aggiornamento firmware) ---
 // Da bump manuale ad ogni release: deve corrispondere ESATTAMENTE al tag
 // GitHub "vX.Y.Z" (senza la "v"), il confronto è una semplice uguaglianza
 // di stringa, non un confronto semver.
-#define FIRMWARE_VERSION "0.12.1"
+#define FIRMWARE_VERSION "0.13.0"
 #define GITHUB_OWNER "wifi75"
 #define GITHUB_REPO "geyser-domotizer"
 // Nome dell'asset da cercare tra quelli allegati alla release GitHub: deve

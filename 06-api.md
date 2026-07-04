@@ -8,7 +8,7 @@ Stato corrente del dispositivo, interrogato dal frontend ogni 2-3 secondi.
 
 ```json
 {
-  "time": "2026-07-04T18:32:10",
+  "time": "04/07/2026 18:32:10",
   "battery": { "voltage": 12.4, "percent": 82, "low": false },
   "pump": { "active": false, "remainingSeconds": 0, "source": null },
   "wifi": { "connected": true, "ssid": "WiFi", "ip": "192.168.1.235", "rssi": -58 },
@@ -25,6 +25,7 @@ Stato corrente del dispositivo, interrogato dal frontend ogni 2-3 secondi.
 
 `pump.source` è `"manual"` o `"schedule"` quando `active` è `true`, altrimenti `null`.
 `wifi.ssid`/`wifi.ip` sono stringa vuota quando `wifi.connected` è `false`. La qualità del segnale (barre/percentuale) è calcolata lato frontend da `rssi`, non serve un campo dedicato.
+`time` è sempre sincronizzato via NTP (vedi `GET/PUT /api/ntp`), non è l'orologio interno dell'ESP32 non sincronizzato.
 
 ## POST /api/manual/start
 
@@ -183,6 +184,19 @@ Cambia modalità DHCP/IP statico. Se `mode` è `"static"`, `ip`/`gateway`/`subne
 Risposta (se la validazione fallisce, prima di riavviare): `{ "ok": false, "error": "invalid_network_config", "details": "..." }`
 
 ⚠️ Se l'IP statico scelto è sbagliato o già occupato da un altro dispositivo sulla rete, il dispositivo potrebbe diventare irraggiungibile dalla UI: in tal caso serve ricollegarlo via USB e correggere manualmente (cancellare `/network_config.json` da LittleFS, o riflashare).
+
+## GET /api/ntp
+
+```json
+{ "server": "pool.ntp.org" }
+```
+
+## PUT /api/ntp
+
+Cambia il server NTP usato per sincronizzare l'orologio. Applicato **subito, senza riavviare** (a differenza di `/api/gpio` e `/api/network`): il dispositivo richiama la sincronizzazione con il nuovo server appena salvato, e anche automaticamente ogni volta che si riconnette al WiFi.
+
+Richiesta: `{ "server": "pool.ntp.org" }`
+Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "invalid_ntp_server", "details": "..." }` (server vuoto)
 
 ## MQTT (solo firmware, non simulato dal mock)
 

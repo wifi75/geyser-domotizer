@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.13.0 — 2026-07-04
+
+Server NTP configurabile, orario più leggibile, programmazione settimanale riorganizzata.
+
+- Nuova sezione "Server NTP" in Impostazioni: indirizzo modificabile dalla UI, persistito su LittleFS, applicato subito (nessun riavvio necessario) e risincronizzato automaticamente ad ogni riconnessione WiFi
+- Formato data/ora corretto: `dd/mm/aaaa hh:mm:ss` al posto dell'ISO 8601 con la "T" in mezzo
+- Programmazione settimanale: ogni giorno è ora collassabile con un riepilogo ("Nessuna partenza" / "N partenze"), i giorni senza partenze restano chiusi di default per non affollare la pagina
+
 ## v0.5.0-beta — 2026-07-04
 
 Alert di aggiornamento con changelog, configurazione IP statico/DHCP.

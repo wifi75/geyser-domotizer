@@ -64,7 +64,7 @@ void WebServerApp::handleStatus(AsyncWebServerRequest* request) {
   time_t now = time(nullptr);
   struct tm timeInfo;
   localtime_r(&now, &timeInfo);
-  strftime(timeBuf, sizeof(timeBuf), "%Y-%m-%dT%H:%M:%S", &timeInfo);
+  strftime(timeBuf, sizeof(timeBuf), "%d/%m/%Y %H:%M:%S", &timeInfo);
   doc["time"] = timeBuf;
 
   BatteryReading b = battery_.read();

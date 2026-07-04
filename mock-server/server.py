@@ -25,10 +25,11 @@ SCHEDULE_FILE = os.path.join(DATA_DIR, "schedule.json")
 CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
 NETWORK_FILE = os.path.join(DATA_DIR, "network.json")
 GPIO_FILE = os.path.join(DATA_DIR, "gpio.json")
+NTP_FILE = os.path.join(DATA_DIR, "ntp.json")
 PORT = int(os.environ.get("PORT", 8000))
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.12.1"
+MOCK_CURRENT_VERSION = "0.13.0"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 # Rispecchia l'elenco per esp32dev in firmware/src/gpio_settings.cpp
@@ -48,6 +49,8 @@ DEFAULT_CONFIG = {
 DEFAULT_NETWORK = {
     "mode": "dhcp", "ip": "", "gateway": "", "subnet": "255.255.255.0", "dns": ""
 }
+
+DEFAULT_NTP = {"server": "pool.ntp.org"}
 
 DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
@@ -76,6 +79,7 @@ class State:
         self.config = self._load_config()
         self.network = self._load_network()
         self.gpio_pin, self.gpio_active_high = self._load_gpio_pin()
+        self.ntp = self._load_ntp()
         self.ota_pending_version = None
         self.ota_pending_notes = None
         self.ota_progress = {"inProgress": False, "phase": "idle", "current": 0, "total": 0}
@@ -126,6 +130,17 @@ class State:
         self.gpio_pin = pin
         self.gpio_active_high = active_high
 
+    def _load_ntp(self):
+        if os.path.exists(NTP_FILE):
+            with open(NTP_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        return json.loads(json.dumps(DEFAULT_NTP))
+
+    def save_ntp(self, ntp):
+        with open(NTP_FILE, "w", encoding="utf-8") as f:
+            json.dump(ntp, f, indent=2)
+        self.ntp = ntp
+
     def config_public(self):
         with self.lock:
             mqtt = self.config["mqtt"]
@@ -143,7 +158,7 @@ class State:
         with self.lock:
             now = datetime.now()
             return {
-                "time": now.isoformat(timespec="seconds"),
+                "time": now.strftime("%d/%m/%Y %H:%M:%S"),
                 "battery": {
                     "voltage": round(10.5 + (self.battery_percent / 100) * 1.9, 2),
                     "percent": round(self.battery_percent),
@@ -372,6 +387,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path == "/api/gpio":
             return self._send_json({"board": "esp32dev (mock)", "current": state.gpio_pin,
                                     "activeHigh": state.gpio_active_high, "options": GPIO_OPTIONS})
+        if self.path == "/api/ntp":
+            return self._send_json(state.ntp)
         return super().do_GET()
 
     def do_POST(self):
@@ -467,6 +484,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             state.save_gpio_pin(pin, active_high)
             print(f"[gpio] pin relè impostato a {pin} (attivo {'alto' if active_high else 'basso'}, "
                   f"su un vero ESP32 qui riavvierebbe)")
+            return self._send_json({"ok": True})
+        if self.path == "/api/ntp":
+            body = self._read_json()
+            server_addr = (body.get("server") or "").strip()
+            if not server_addr:
+                return self._send_json({"ok": False, "error": "invalid_ntp_server",
+                                        "details": "il server NTP non può essere vuoto"}, status=400)
+            state.save_ntp({"server": server_addr})
+            print(f"[ntp] server NTP impostato a {server_addr}")
             return self._send_json({"ok": True})
         self.send_error(404)
 

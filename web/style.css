@@ -327,8 +327,10 @@ input[type="number"], input[type="time"], input[type="text"], input[type="passwo
   font-size: 0.9rem;
 }
 
-#card-gpio label { display: block; color: var(--muted); font-size: 0.85rem; margin-bottom: 6px; }
+#card-gpio label, #card-ntp label { display: block; color: var(--muted); font-size: 0.85rem; margin-bottom: 6px; }
 #gpio-relay-select { width: 100%; max-width: 320px; margin-bottom: 4px; }
+#ntp-server { width: 100%; max-width: 320px; }
+#card-ntp p.muted { margin-top: 0; }
 
 #manual-duration { width: 50px; text-align: center; }
 
@@ -364,12 +366,35 @@ input[type="number"], input[type="time"], input[type="text"], input[type="passwo
 .feedback.error { color: var(--danger); }
 .feedback.ok { color: var(--primary); }
 
-.day-block { margin-bottom: 14px; }
-.day-block:last-child { margin-bottom: 0; }
+.day-block { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.day-block:last-child { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
 
-.day-name { margin: 0 0 8px 0; font-size: 0.9rem; }
+.day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
 
-.day-entries { display: flex; flex-direction: column; gap: 6px; }
+.day-header-right { display: flex; align-items: center; gap: 8px; }
+
+.day-summary { font-size: 0.8rem; }
+
+.day-toggle-icon {
+  color: var(--muted);
+  font-size: 0.75rem;
+  transition: transform 0.2s ease;
+  display: inline-block;
+}
+
+.day-block.collapsed .day-toggle-icon { transform: rotate(-90deg); }
+.day-block.collapsed .day-entries,
+.day-block.collapsed .btn-add-entry { display: none; }
+
+.day-name { margin: 0; font-size: 0.9rem; }
+
+.day-entries { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
 
 .entry-row {
   display: flex;
