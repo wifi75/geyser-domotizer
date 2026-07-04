@@ -34,7 +34,10 @@ void OtaManager::handleCheck(AsyncWebServerRequest* request) {
   WiFiClientSecure client;
   client.setInsecure();
   HTTPClient https;
-  String url = String("https://api.github.com/repos/") + GITHUB_OWNER + "/" + GITHUB_REPO + "/releases";
+  // per_page=1: senza, GitHub restituisce TUTTA la cronologia delle release
+  // (già 41KB con sole 9 release, in crescita costante) — troppo per lo
+  // stream TLS dell'ESP32, causava un parsing fallito silenzioso.
+  String url = String("https://api.github.com/repos/") + GITHUB_OWNER + "/" + GITHUB_REPO + "/releases?per_page=1";
   https.begin(client, url);
   https.addHeader("User-Agent", "geyser-domotizer-esp32");
   https.addHeader("Accept", "application/vnd.github+json");

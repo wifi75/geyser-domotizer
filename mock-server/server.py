@@ -27,7 +27,7 @@ NETWORK_FILE = os.path.join(DATA_DIR, "network.json")
 PORT = int(os.environ.get("PORT", 8000))
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.8.0"
+MOCK_CURRENT_VERSION = "0.8.1"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 DEFAULT_CONFIG = {
@@ -205,7 +205,7 @@ def check_github_latest_release():
     isolato in laboratorio). Usa /releases (lista) e non /releases/latest,
     perché quest'ultimo esclude le prerelease -- e qui sono tutte beta.
     Ritorna (tag_senza_v, note_di_rilascio, errore)."""
-    url = f"https://api.github.com/repos/{GITHUB_REPO}/releases"
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/releases?per_page=1"
     req = urllib.request.Request(url, headers={
         "User-Agent": "geyser-domotizer-mock",
         "Accept": "application/vnd.github+json",
