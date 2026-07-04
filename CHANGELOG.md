@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.0-beta — 2026-07-04
+
+Primo test su hardware ESP32 reale (non più solo mock/compilazione).
+
+- Nuovo ambiente PlatformIO `esp32dev` per testare su una ESP32 DevKitV1 già disponibile, in parallelo alla XIAO ESP32-C3/C6 di riferimento per il deployment finale — pin rimappati per evitare UART0 e i pin di strapping del boot
+- `config.local.h` (ignorato da git) per tenere WiFi/MQTT reali fuori dal repo pubblico, con `config.local.h.example` come modello
+- Log di stato WiFi con scan delle reti visibili, utile per diagnosticare problemi di connessione (case-sensitivity del nome rete, reti 5GHz non viste dall'ESP32, ecc.)
+- **Firmware flashato e verificato su hardware reale**: boot, connessione WiFi, sincronizzazione ora via NTP, interfaccia web servita da LittleFS, avvio manuale con countdown reale — tutto confermato via richieste HTTP dirette alla scheda
+
 ## v0.2.0-beta — 2026-07-04
 
 Primo software funzionante: interfaccia web completa, testabile in locale senza hardware, più scheletro firmware ESP32 che compila correttamente.
