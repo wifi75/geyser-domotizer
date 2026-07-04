@@ -527,14 +527,12 @@ async function saveGpioConfig() {
       feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
       feedback.className = "feedback error";
     } else {
-      feedback.textContent = "Salvato, il dispositivo si sta riavviando...";
+      feedback.textContent = "Salvato.";
       feedback.className = "feedback ok";
-      waitForDeviceAndReload();
     }
   } catch (e) {
-    feedback.textContent = "Salvato: il dispositivo si sta riavviando...";
-    feedback.className = "feedback ok";
-    waitForDeviceAndReload();
+    feedback.textContent = "Errore di comunicazione con il dispositivo.";
+    feedback.className = "feedback error";
   }
 }
 

@@ -144,10 +144,10 @@ Elenco dei GPIO utilizzabili per il pin **IN** del relè pompa, diverso per sche
 
 ## PUT /api/gpio
 
-Cambia pin e/o logica del relè. `pin` deve essere uno di quelli in `options`. **Il dispositivo si riavvia sempre dopo aver salvato**, perché entrambi vanno reinizializzati all'avvio.
+Cambia pin e/o logica del relè. `pin` deve essere uno di quelli in `options`. **Applicato subito, senza riavviare**: il pin viene reinizializzato a caldo.
 
 Richiesta: `{ "pin": 4, "activeHigh": true }`
-Risposta (se il pin non è valido, prima di riavviare): `{ "ok": false, "error": "invalid_pin", "details": "..." }`
+Risposta: `{ "ok": false, "error": "invalid_pin", "details": "..." }` se il pin non è valido, oppure `{ "ok": false, "error": "pump_active", "details": "..." }` (HTTP 409) se un ciclo è in corso — riprova a pompa ferma.
 
 ⚠️ Il relè va ricollegato fisicamente al nuovo pin prima di salvare, altrimenti la pompa non risponderà più fino al ricollegamento.
 

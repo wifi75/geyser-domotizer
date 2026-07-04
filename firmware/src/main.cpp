@@ -94,7 +94,7 @@ void setup() {
   schedule.begin();
   mqttSettings.begin();
   networkSettings.begin(server);
-  gpioSettings.begin(server);
+  gpioSettings.begin(server, pump);
   ntpSettings.begin(server);
   pump.begin(gpioSettings.relayPin(), gpioSettings.relayActiveHigh());
 

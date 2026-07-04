@@ -17,6 +17,24 @@ void Pump::begin(int relayPin, bool activeHigh) {
   digitalWrite(PIN_BUZZER, LOW);
 }
 
+bool Pump::reconfigure(int relayPin, bool activeHigh) {
+  if (active_) return false;
+
+  // Lascia il vecchio pin in un stato neutro (input) prima di passare al
+  // nuovo, invece di lasciarlo a pilotare in uscita un relè non più
+  // collegato lì.
+  if (relayPin_ != -1 && relayPin_ != relayPin) {
+    pinMode(relayPin_, INPUT);
+  }
+
+  relayPin_ = relayPin;
+  onLevel_ = activeHigh ? HIGH : LOW;
+  offLevel_ = activeHigh ? LOW : HIGH;
+  pinMode(relayPin_, OUTPUT);
+  digitalWrite(relayPin_, offLevel_);
+  return true;
+}
+
 bool Pump::start(PumpSource source, uint32_t durationSeconds) {
   if (active_) return false;
   active_ = true;

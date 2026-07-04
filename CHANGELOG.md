@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.14.0 — 2026-07-04
+
+Cambio pin/logica del relè applicato subito, senza riavviare.
+
+- `PUT /api/gpio` non riavvia più il dispositivo: `Pump::reconfigure()` reinizializza il pin a caldo, rifiutando il cambio (errore `pump_active`, HTTP 409) se un ciclo è in corso
+- Rimosso il riavvio anche dal mock server e dalla UI ("Salva" invece di "Salva (riavvia il dispositivo)")
+
 ## v0.13.0 — 2026-07-04
 
 Server NTP configurabile, orario più leggibile, programmazione settimanale riorganizzata.

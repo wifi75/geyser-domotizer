@@ -120,10 +120,10 @@
         <option value="low">Attivo basso (jumper o scritta "low level trigger")</option>
       </select>
       <div class="schedule-actions">
-        <button id="btn-save-gpio" class="btn btn-primary">Salva (riavvia il dispositivo)</button>
+        <button id="btn-save-gpio" class="btn btn-primary">Salva</button>
         <span id="gpio-feedback" class="feedback"></span>
       </div>
-      <p class="muted">⚠️ Ricollega fisicamente il relè al nuovo pin prima di salvare, altrimenti la pompa non risponderà più finché non lo ricolleghi.</p>
+      <p class="muted">⚠️ Ricollega fisicamente il relè al nuovo pin prima di salvare, altrimenti la pompa non risponderà più finché non lo ricolleghi. Applicato subito, nessun riavvio (rifiutato se un ciclo è in corso).</p>
     </section>
 
     <section class="card" id="card-network">

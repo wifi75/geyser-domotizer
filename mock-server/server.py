@@ -29,7 +29,7 @@ NTP_FILE = os.path.join(DATA_DIR, "ntp.json")
 PORT = int(os.environ.get("PORT", 8000))
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.13.0"
+MOCK_CURRENT_VERSION = "0.14.0"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 # Rispecchia l'elenco per esp32dev in firmware/src/gpio_settings.cpp
@@ -480,10 +480,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if pin not in GPIO_VALID_PINS:
                 return self._send_json({"ok": False, "error": "invalid_pin",
                                         "details": "pin non tra quelli disponibili per questa scheda"}, status=400)
+            if state.pump_active:
+                return self._send_json({"ok": False, "error": "pump_active",
+                                        "details": "impossibile cambiare pin/logica mentre un ciclo è in corso, "
+                                                   "riprova a pompa ferma"}, status=409)
             active_high = body.get("activeHigh", True)
             state.save_gpio_pin(pin, active_high)
-            print(f"[gpio] pin relè impostato a {pin} (attivo {'alto' if active_high else 'basso'}, "
-                  f"su un vero ESP32 qui riavvierebbe)")
+            print(f"[gpio] pin relè impostato a {pin} (attivo {'alto' if active_high else 'basso'}, applicato subito)")
             return self._send_json({"ok": True})
         if self.path == "/api/ntp":
             body = self._read_json()

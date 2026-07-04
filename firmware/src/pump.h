@@ -10,6 +10,11 @@ class Pump {
   void begin(int relayPin, bool activeHigh);
   void tick();  // da chiamare ad ogni loop()
 
+  // Cambia pin/logica del relè senza riavviare il dispositivo (usato da
+  // GpioSettings). Rifiutata se un ciclo è in corso: cambiare la logica del
+  // relè mentre la pompa è accesa potrebbe lasciarla accesa per errore.
+  bool reconfigure(int relayPin, bool activeHigh);
+
   // Ritorna false se la pompa è già attiva (un solo ciclo alla volta).
   bool start(PumpSource source, uint32_t durationSeconds);
   void stop();

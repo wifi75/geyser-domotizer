@@ -1,5 +1,6 @@
 #include "gpio_settings.h"
 #include "config.h"
+#include "pump.h"
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 
@@ -38,7 +39,8 @@ static bool isValidPin(int pin) {
   return false;
 }
 
-void GpioSettings::begin(AsyncWebServer& server) {
+void GpioSettings::begin(AsyncWebServer& server, Pump& pump) {
+  pump_ = &pump;
   if (!load()) {
     relayPin_ = PIN_RELAY_PUMP;
     save();
@@ -108,13 +110,23 @@ void GpioSettings::handlePut(AsyncWebServerRequest* request, JsonVariant& body) 
     return;
   }
 
+  bool activeHigh = body["activeHigh"] | true;
+
+  if (pump_ && !pump_->reconfigure(pin, activeHigh)) {
+    JsonDocument doc;
+    doc["ok"] = false;
+    doc["error"] = "pump_active";
+    doc["details"] = "impossibile cambiare pin/logica mentre un ciclo è in corso, riprova a pompa ferma";
+    AsyncResponseStream* response = request->beginResponseStream("application/json");
+    response->setCode(409);
+    serializeJson(doc, *response);
+    request->send(response);
+    return;
+  }
+
   relayPin_ = pin;
-  relayActiveHigh_ = body["activeHigh"] | true;
+  relayActiveHigh_ = activeHigh;
   save();
 
-  AsyncWebServerResponse* response = request->beginResponse(200, "application/json", "{\"ok\":true}");
-  response->addHeader("Connection", "close");
-  request->send(response);
-  delay(500);  // tempo per far uscire la risposta prima del riavvio
-  ESP.restart();
+  request->send(200, "application/json", "{\"ok\":true}");
 }
