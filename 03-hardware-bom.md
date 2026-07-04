@@ -19,8 +19,10 @@
 
 ## Attuazione (pilotaggio diretto pompa)
 
-- 1× **relè** con contatti dimensionati per il motore da 20W/12V (~1.7A nominali, meglio abbondare: relè automotive tipo 10-20A sono economici e robusti, oppure modulo relè da 10A già pronto). In alternativa, MOSFET canale N logic-level (es. IRLZ44N) con dissipatore se si preferisce lo stato solido.
-- 1× **diodo flyback** (es. 1N5408) in parallelo ai terminali del motore, per assorbire il picco induttivo generato all'apertura del relè (protegge i contatti da usura/archi)
+- 1× **modulo relè pronto all'uso, bobina 12V** (es. basato su SRD-12VDC-SL-C), con optoisolatore, connettore a 3 pin VCC/GND/IN e morsetti a vite COM/NO/NC — tipicamente contatti 10A/250VAC-30VDC, ampio margine sopra i ~1.7A della pompa (20W/12V). **Perché 12V e non 5V**: questi moduli esistono identici in entrambe le versioni (stessa scheda, cambia solo il relè montato); con la bobina a 12V si alimenta il modulo direttamente dagli stessi 12V della batteria (stesso punto di aggancio già usato per la pompa), senza dover portare anche il rail 5V fin là. Il pin **IN** si pilota comunque direttamente con un GPIO 3.3V dell'ESP32 senza circuiti aggiuntivi: il lato logico è otticamente isolato dalla bobina e richiede solo pochi mA, indipendentemente dalla tensione VCC scelta.
+- ⚠️ Il diodo che questi moduli hanno già a bordo protegge solo la **bobina interna del relè**, non il motore della pompa: serve comunque un **diodo flyback separato** (es. 1N5408) in parallelo ai terminali del motore, per assorbire il picco induttivo generato all'apertura del relè lato pompa (protegge i contatti da usura/archi).
+- Massa comune: relè, ESP32 e batteria devono condividere lo stesso GND.
+- In alternativa al modulo relè: MOSFET canale N logic-level (es. IRLZ44N) con dissipatore, se si preferisce lo stato solido.
 - Connettori a innesto (es. morsetti rapidi o spade piggyback) per derivare i due fili del motore senza tagliarli
 - Shunt/sensore di corrente opzionale (es. INA219) per verificare che la pompa stia effettivamente lavorando (diagnostica avanzata: distingue "relè chiuso ma pompa guasta" da funzionamento normale)
 - (Opzionale) piccolo buzzer piezo pilotato da GPIO, per replicare il preavviso acustico 30s anche sugli avvii automatici
@@ -34,7 +36,11 @@
 
 ## Alimentazione elettronica di automazione
 
-Decisione presa (vedi [02-decisioni-aperte.md](02-decisioni-aperte.md)): derivazione dai 12V della batteria del nebulizzatore, tramite un secondo aggancio/Y sul connettore batteria, con step-down buck (es. modulo basato su MP1584EN, alta efficienza, bassa corrente di quiescenza) per ottenere 5V/3.3V. Stesso punto di derivazione usato anche per il positivo del relè di pilotaggio pompa.
+Decisione presa (vedi [02-decisioni-aperte.md](02-decisioni-aperte.md)): derivazione dai 12V della batteria del nebulizzatore, tramite un secondo aggancio/Y sul connettore batteria, con step-down buck (es. modulo basato su MP1584EN, alta efficienza, bassa corrente di quiescenza) per ottenere 5V. Stesso punto di derivazione usato anche per il positivo del relè (bobina 12V, vedi sopra).
+
+**Attenzione ai pin di alimentazione della XIAO** (verificato su documentazione ufficiale Seeed, valido sia per ESP32-C3 che C6): la scheda accetta **5V** sul pin USB-C/VBUS oppure **3.7V** sui pad BAT (pensati per una LiPo con chip di gestione carica integrato a bordo). Nessun pin è dichiarato per 12V diretti.
+- ✅ Uscita del buck (5V) → pin **5V/VBUS** della XIAO
+- ❌ Non collegare mai 12V (né direttamente né tramite buck) ai pad **BAT**: sono pensati specificamente per una singola cella LiPo 3.7V e un ingresso a tensione più alta rischia di danneggiare il chip di gestione carica integrato
 
 ## Contenitore
 
@@ -44,9 +50,9 @@ Decisione presa (vedi [02-decisioni-aperte.md](02-decisioni-aperte.md)): derivaz
 
 | Componente | Costo indicativo |
 |---|---|
-| ESP32-C3 Super Mini | 4–7 € |
+| Seeed XIAO ESP32-C3 o C6 | 6–9 € |
 | RTC DS3231 | 3–5 € |
-| Relè (10A+) o MOSFET + dissipatore | 2–5 € |
+| Modulo relè 12V (10A+) o MOSFET + dissipatore | 2–5 € |
 | Diodo flyback 1N5408 | <1 € |
 | Buck converter 12V→5V | 2–4 € |
 | Partitore/INA219 | 1–8 € |
