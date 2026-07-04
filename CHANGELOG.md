@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.4.0-beta — 2026-07-04
+
+Configurazione MQTT via web, stato WiFi dettagliato, aggiornamento OTA.
+
+- Configurazione MQTT (host/porta/utente/password) impostabile dall'interfaccia web, applicata a caldo senza riflashare; password mai restituita in lettura
+- Card "Connessione" con SSID, IP e intensità del segnale WiFi (barre + dBm)
+- Aggiornamento firmware via browser: upload di un file `.bin` con barra di progresso, il dispositivo si riavvia da solo
+- Aggiornamento automatico da GitHub Releases: pulsante "Controlla su GitHub" confronta la versione installata con l'ultima release pubblicata (incluse le beta), e se disponibile un aggiornamento lo scarica e flasha da sé
+- Tutto testato end-to-end sul vero ESP32 DevKitV1: config MQTT persistita, check GitHub via HTTPS reale, upload manuale con riavvio verificato
+- Compilazione verificata anche per l'ambiente `xiao-esp32c3` (scheda di riferimento per il deployment finale)
+- Allegati a questa release i binari `firmware-esp32dev.bin` e `firmware-xiao-esp32c3.bin`, necessari perché la funzione di auto-update abbia qualcosa da scaricare
+
 ## v0.3.0-beta — 2026-07-04
 
 Primo test su hardware ESP32 reale (non più solo mock/compilazione).
