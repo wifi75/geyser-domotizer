@@ -445,16 +445,25 @@ function setOtaProgressUI(phase, current, total) {
   });
 }
 
+// L'update può partire sia dal banner (visibile sulla tab Stato) sia dalla
+// card Impostazioni: scrive sempre su entrambi i feedback, cosi' il
+// messaggio è visibile indipendentemente da quale dei due pulsanti è stato
+// premuto e da quale tab è aperta al momento (un feedback scritto solo
+// nell'altra tab, nascosta, sembrava "non succede niente").
+function setOtaFeedback(text, cls) {
+  [el("ota-check-feedback"), el("banner-update-feedback")].forEach((f) => {
+    f.textContent = text;
+    f.className = `feedback ${cls}`;
+  });
+}
+
 async function applyOtaUpdate() {
-  const feedback = el("ota-check-feedback");
   const progressWraps = [el("ota-update-progress-wrap"), el("banner-update-progress-wrap")];
-  feedback.textContent = "";
-  feedback.className = "feedback";
+  setOtaFeedback("", "");
 
   const start = await api("/api/ota/update", { method: "POST" });
   if (start && start.ok === false) {
-    feedback.textContent = `Errore: ${start.error} ${start.details ?? ""}`;
-    feedback.className = "feedback error";
+    setOtaFeedback(`Errore: ${start.error} ${start.details ?? ""}`, "error");
     return;
   }
 
@@ -469,8 +478,7 @@ async function applyOtaUpdate() {
       // Il dispositivo è sparito dalla rete: si sta riavviando dopo un
       // aggiornamento riuscito (o è appena crashato, ma non c'è modo di
       // distinguere i due casi da qui).
-      feedback.textContent = "Aggiornamento completato, il dispositivo si sta riavviando...";
-      feedback.className = "feedback ok";
+      setOtaFeedback("Aggiornamento completato, il dispositivo si sta riavviando...", "ok");
       progressWraps.forEach((w) => w.classList.add("hidden"));
       waitForDeviceAndReload();
       return;
@@ -481,8 +489,7 @@ async function applyOtaUpdate() {
       // (immagine troncata che poi non passa la verifica interna), non un
       // problema permanente: nella maggior parte dei casi riprovare basta.
       const retryHint = p.error === "download_failed" ? " — riprova, spesso basta." : "";
-      feedback.textContent = `Errore: ${p.error} ${p.details ?? ""}${retryHint}`;
-      feedback.className = "feedback error";
+      setOtaFeedback(`Errore: ${p.error} ${p.details ?? ""}${retryHint}`, "error");
       progressWraps.forEach((w) => w.classList.add("hidden"));
       return;
     }
@@ -493,8 +500,7 @@ async function applyOtaUpdate() {
       // Breve pausa per far vedere lo stato "Flash in corso" (rosso) prima
       // di nascondere la barra: il dispositivo si riavvia poco dopo comunque.
       await new Promise((r) => setTimeout(r, 700));
-      feedback.textContent = "Aggiornamento completato, il dispositivo si sta riavviando...";
-      feedback.className = "feedback ok";
+      setOtaFeedback("Aggiornamento completato, il dispositivo si sta riavviando...", "ok");
       progressWraps.forEach((w) => w.classList.add("hidden"));
       waitForDeviceAndReload();
       return;

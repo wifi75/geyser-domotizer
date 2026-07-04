@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.20.2 — 2026-07-04
+
+Fix: il pulsante "Aggiorna ora" nel banner non mostrava errori (sembrava non fare nulla).
+
+- Il messaggio d'errore di un aggiornamento avviato dal banner (visibile sulla tab Stato) veniva scritto in un elemento di feedback che vive nella tab Impostazioni, nascosto se non era quella la tab aperta — risultato: un fallimento (es. nessun aggiornamento in sospeso, aggiornamento già in corso) risultava invisibile, dando l'impressione che il pulsante non facesse nulla
+- Da ora il feedback compare sia nel banner sia nella card Impostazioni, indipendentemente da quale dei due pulsanti "Aggiorna ora" è stato premuto
+
 ## v0.20.1 — 2026-07-04
 
 Più robustezza contro l'errore OTA "Could Not Activate The Firmware".
