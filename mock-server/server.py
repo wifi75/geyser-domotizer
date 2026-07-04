@@ -27,7 +27,7 @@ NETWORK_FILE = os.path.join(DATA_DIR, "network.json")
 PORT = int(os.environ.get("PORT", 8000))
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.7.0-beta"
+MOCK_CURRENT_VERSION = "0.8.0"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 DEFAULT_CONFIG = {

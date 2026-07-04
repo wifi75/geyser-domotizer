@@ -76,9 +76,9 @@ void OtaManager::handleCheck(AsyncWebServerRequest* request) {
     return;
   }
 
-  // /releases (a differenza di /releases/latest) include anche le
-  // prerelease/beta ed è ordinato dalla più recente: releases[0] è quella
-  // che ci interessa, visto che questo progetto resta in beta per ora.
+  // /releases è ordinato dalla più recente: releases[0] è quella che ci
+  // interessa (a differenza di /releases/latest, funziona anche se in
+  // futuro capitasse una prerelease più recente dell'ultima stabile).
   JsonVariant latest = releases[0];
   String tag = latest["tag_name"].as<String>();
   pendingVersion_ = tag.startsWith("v") ? tag.substring(1) : tag;
@@ -116,6 +116,10 @@ void OtaManager::handleUpdate(AsyncWebServerRequest* request) {
   // applicare anche l'eventuale aggiornamento del sito (LittleFS) prima di
   // riavviare una volta sola invece che due.
   httpUpdate.rebootOnUpdate(false);
+  // GitHub risponde con un redirect 302 verso l'URL reale del file (S3):
+  // senza seguirlo esplicitamente, HTTPUpdate lo tratta come un errore
+  // ("Wrong HTTP Code").
+  httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
 
   WiFiClientSecure firmwareClient;
   firmwareClient.setInsecure();

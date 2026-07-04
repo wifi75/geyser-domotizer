@@ -26,6 +26,10 @@
   <div id="banner-update-details" class="hidden">
     <pre id="banner-update-notes"></pre>
     <button id="btn-banner-update-now" class="btn btn-primary">Aggiorna ora</button>
+    <div id="banner-update-progress-wrap" class="hidden">
+      <div class="progress-bar-indeterminate"><div></div></div>
+      <span class="muted">Scaricamento e flash in corso, non spegnere il dispositivo...</span>
+    </div>
   </div>
 </section>
 
@@ -165,6 +169,10 @@
         <button id="btn-ota-check" class="btn btn-primary">Controlla su GitHub</button>
         <span id="ota-check-feedback" class="feedback"></span>
         <button id="btn-ota-update" class="btn btn-primary hidden">Aggiorna ora</button>
+      </div>
+      <div id="ota-update-progress-wrap" class="hidden">
+        <div class="progress-bar-indeterminate"><div></div></div>
+        <span class="muted">Scaricamento e flash in corso, non spegnere il dispositivo...</span>
       </div>
 
       <div class="ota-manual">

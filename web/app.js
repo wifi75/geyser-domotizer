@@ -307,8 +307,10 @@ async function checkOtaUpdate({ silent } = {}) {
 
 async function applyOtaUpdate() {
   const feedback = el("ota-check-feedback");
-  feedback.textContent = "Scaricamento e aggiornamento in corso, il dispositivo si riavvierà...";
+  const progressWraps = [el("ota-update-progress-wrap"), el("banner-update-progress-wrap")];
+  feedback.textContent = "";
   feedback.className = "feedback";
+  progressWraps.forEach((w) => w.classList.remove("hidden"));
   try {
     const r = await api("/api/ota/update", { method: "POST" });
     if (r && r.ok === false) {
@@ -320,6 +322,8 @@ async function applyOtaUpdate() {
     // fallire semplicemente perché non risponde più. Non è un errore.
     feedback.textContent = "Aggiornamento avviato, il dispositivo si sta riavviando...";
     feedback.className = "feedback ok";
+  } finally {
+    progressWraps.forEach((w) => w.classList.add("hidden"));
   }
 }
 
