@@ -71,7 +71,15 @@
 #define MQTT_CLIENT_ID "geyser-domotizer"
 #define MQTT_TOPIC_STATUS "geyser/status"
 #define MQTT_TOPIC_AVAILABILITY "geyser/availability"
+#define MQTT_TOPIC_COMMAND_START "geyser/command/start"
+#define MQTT_TOPIC_COMMAND_STOP "geyser/command/stop"
 #define MQTT_PUBLISH_INTERVAL_MS 15000
+#define MQTT_DEFAULT_MANUAL_DURATION_S 120
+// Home Assistant MQTT Discovery: pubblicando su questi topic ritenuti, le
+// entità compaiono da sole in HA appena il dispositivo si connette al
+// broker, senza configurazione manuale (vedi mqtt_client.cpp).
+#define MQTT_DISCOVERY_PREFIX "homeassistant"
+#define MQTT_NODE_ID "geyser_domotizer"
 // I valori sopra sono solo il default al primo avvio: da quel momento in poi
 // la configurazione MQTT reale vive in questo file su LittleFS, modificabile
 // dall'interfaccia web (sezione "Configurazione MQTT") senza dover riflashare.
@@ -97,7 +105,7 @@
 // Da bump manuale ad ogni release: deve corrispondere ESATTAMENTE al tag
 // GitHub "vX.Y.Z" (senza la "v"), il confronto è una semplice uguaglianza
 // di stringa, non un confronto semver.
-#define FIRMWARE_VERSION "0.11.1"
+#define FIRMWARE_VERSION "0.12.0"
 #define GITHUB_OWNER "wifi75"
 #define GITHUB_REPO "geyser-domotizer"
 // Nome dell'asset da cercare tra quelli allegati alla release GitHub: deve

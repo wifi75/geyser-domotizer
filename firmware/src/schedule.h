@@ -30,6 +30,9 @@ class Schedule {
   // innescata. Altrimenti ritorna 0.
   uint32_t checkTrigger(int dayIndex, const String& hhmm, const String& dateKey);
 
+  // Numero di partenze abilitate su tutta la settimana (per MQTT/diagnostica).
+  int countEnabledEntries() const;
+
  private:
   JsonDocument doc_;
   std::map<String, String> lastTriggered_;  // "day|time" -> dateKey già innescata

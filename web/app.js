@@ -128,7 +128,10 @@ async function startManual() {
 }
 
 async function stopManual() {
+  const feedback = el("manual-feedback");
   await api("/api/manual/stop", { method: "POST" });
+  feedback.textContent = "Fermata.";
+  feedback.className = "feedback ok";
   refreshStatus();
 }
 
@@ -305,18 +308,34 @@ async function checkOtaUpdate({ silent } = {}) {
   }
 }
 
+// Ping con timeout esplicito: durante il riavvio una fetch normale può
+// restare "appesa" a lungo invece di fallire subito (stato di rete
+// ambiguo mentre il dispositivo si riconnette al WiFi), impedendo di
+// rilevare in tempo utile che è tornato online.
+async function pingDevice(timeoutMs = 2500) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch("/api/ota/info", { signal: controller.signal });
+    return res.ok;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // Dopo un riavvio (OTA, upload manuale o riavvio esplicito), aspetta che il
 // dispositivo torni raggiungibile e ricarica la pagina da sola.
 async function waitForDeviceAndReload(maxAttempts = 60) {
   let sawDown = false;
   for (let i = 0; i < maxAttempts; i++) {
-    await new Promise((r) => setTimeout(r, 2000));
+    await new Promise((r) => setTimeout(r, 1500));
     try {
-      await api("/api/ota/info");
-      if (sawDown) {
+      const ok = await pingDevice();
+      if (ok && sawDown) {
         location.reload();
         return;
       }
+      if (!ok) sawDown = true;
     } catch (e) {
       sawDown = true;
     }
@@ -469,7 +488,7 @@ async function loadGpioConfig() {
     if (opt.pin === cfg.current) optionEl.selected = true;
     select.appendChild(optionEl);
   }
-  el("gpio-active-high").checked = cfg.activeHigh;
+  el("gpio-trigger-select").value = cfg.activeHigh ? "high" : "low";
 }
 
 async function saveGpioConfig() {
@@ -477,7 +496,7 @@ async function saveGpioConfig() {
   feedback.textContent = "";
   feedback.className = "feedback";
   const pin = parseInt(el("gpio-relay-select").value, 10);
-  const activeHigh = el("gpio-active-high").checked;
+  const activeHigh = el("gpio-trigger-select").value === "high";
 
   try {
     const r = await api("/api/gpio", {
@@ -582,6 +601,19 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
   btn.addEventListener("click", () => showTab(btn.dataset.tab));
 });
 showTab(localStorage.getItem("geyser-tab") || "stato");
+
+document.addEventListener("click", (e) => {
+  const stepBtn = e.target.closest(".step-up, .step-down");
+  if (!stepBtn) return;
+  const input = stepBtn.parentElement.querySelector("input[type='number']");
+  if (!input) return;
+  const step = parseInt(input.step || "1", 10);
+  const min = input.min !== "" ? parseInt(input.min, 10) : -Infinity;
+  const max = input.max !== "" ? parseInt(input.max, 10) : Infinity;
+  let val = (parseInt(input.value, 10) || 0) + (stepBtn.classList.contains("step-up") ? step : -step);
+  input.value = Math.max(min, Math.min(max, val));
+  input.dispatchEvent(new Event("change"));
+});
 
 refreshStatus();
 loadSchedule();

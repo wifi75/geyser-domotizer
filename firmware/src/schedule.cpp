@@ -90,3 +90,14 @@ uint32_t Schedule::checkTrigger(int dayIndex, const String& hhmm, const String& 
   }
   return 0;
 }
+
+int Schedule::countEnabledEntries() const {
+  int count = 0;
+  for (int i = 0; i < 7; i++) {
+    JsonArrayConst entries = doc_[DAY_KEYS[i]].as<JsonArrayConst>();
+    for (JsonVariantConst entry : entries) {
+      if (entry["enabled"].as<bool>()) count++;
+    }
+  }
+  return count;
+}

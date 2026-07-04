@@ -122,7 +122,7 @@ void setup() {
   webApp.begin();
   ota.begin(server);
   server.begin();
-  mqtt.begin(mqttSettings);
+  mqtt.begin(mqttSettings, pump);
 
   Serial.printf("Geyser Domotizer v%s avviato\n", FIRMWARE_VERSION);
 }
@@ -134,5 +134,5 @@ void loop() {
 
   mqttConnectedFlag = mqtt.connected();
   mqtt.loop();
-  mqtt.publishStatusIfDue(pump, battery);
+  mqtt.publishStatusIfDue(pump, battery, schedule);
 }

@@ -60,7 +60,11 @@
       <p id="pump-remaining-wrap" class="hidden">Tempo rimanente: <strong id="pump-remaining">--</strong></p>
       <div class="manual-controls">
         <label for="manual-duration">Durata (minuti)</label>
-        <input type="number" id="manual-duration" min="1" max="30" value="2" step="1">
+        <div class="stepper">
+          <button type="button" class="btn btn-small step-down">−</button>
+          <input type="number" id="manual-duration" min="1" max="30" value="2" step="1">
+          <button type="button" class="btn btn-small step-up">+</button>
+        </div>
         <button id="btn-start" class="btn btn-primary">Avvia ora</button>
         <button id="btn-stop" class="btn btn-danger" disabled>Ferma</button>
       </div>
@@ -109,11 +113,11 @@
       <p class="muted">Scheda rilevata: <strong id="gpio-board">--</strong></p>
       <label for="gpio-relay-select">Pin IN del relè</label>
       <select id="gpio-relay-select"></select>
-      <label class="network-mode-row" style="margin-top:10px">
-        <input type="checkbox" id="gpio-active-high" checked>
-        Relè attivo alto (la maggior parte dei moduli)
-      </label>
-      <p class="muted">Se il tuo modulo ha scritto "low level trigger" o un jumper simile, deseleziona questa casella.</p>
+      <label for="gpio-trigger-select" style="margin-top:10px">Logica del relè</label>
+      <select id="gpio-trigger-select">
+        <option value="high">Attivo alto (la maggior parte dei moduli)</option>
+        <option value="low">Attivo basso (jumper o scritta "low level trigger")</option>
+      </select>
       <div class="schedule-actions">
         <button id="btn-save-gpio" class="btn btn-primary">Salva (riavvia il dispositivo)</button>
         <span id="gpio-feedback" class="feedback"></span>
@@ -230,7 +234,11 @@
   <div class="entry-row">
     <input type="checkbox" class="entry-enabled" checked title="Abilitata">
     <input type="time" class="entry-time" value="06:30">
-    <input type="number" class="entry-duration" min="1" max="30" value="2" title="Durata (minuti)">
+    <div class="stepper">
+      <button type="button" class="btn btn-small step-down">−</button>
+      <input type="number" class="entry-duration" min="1" max="30" value="2" title="Durata (minuti)">
+      <button type="button" class="btn btn-small step-up">+</button>
+    </div>
     <span class="entry-unit">min</span>
     <button class="btn btn-small btn-danger entry-remove" title="Rimuovi">✕</button>
   </div>

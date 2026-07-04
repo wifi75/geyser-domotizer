@@ -1,9 +1,13 @@
 #include "mqtt_client.h"
 #include "config.h"
-#include <ArduinoJson.h>
 
-void MqttClientWrapper::begin(MqttSettings& settings) {
+static MqttClientWrapper* s_instance = nullptr;
+
+void MqttClientWrapper::begin(MqttSettings& settings, Pump& pump) {
   settings_ = &settings;
+  pump_ = &pump;
+  s_instance = this;
+  client_.setCallback(staticCallback);
   applySettings();
 }
 
@@ -12,7 +16,7 @@ void MqttClientWrapper::applySettings() {
   const MqttSettingsData& d = settings_->data();
   if (!d.enabled || d.host.isEmpty()) return;
   client_.setServer(d.host.c_str(), d.port);
-  client_.setBufferSize(512);
+  client_.setBufferSize(768);  // i payload di discovery sono più grandi dello stato
   lastReconnectAttemptMs_ = 0;  // riprova subito con i nuovi parametri
 }
 
@@ -27,6 +31,9 @@ bool MqttClientWrapper::reconnect() {
       MQTT_TOPIC_AVAILABILITY, 0, true, "offline");
   if (ok) {
     client_.publish(MQTT_TOPIC_AVAILABILITY, "online", true);
+    client_.subscribe(MQTT_TOPIC_COMMAND_START);
+    client_.subscribe(MQTT_TOPIC_COMMAND_STOP);
+    publishDiscovery();
   }
   return ok;
 }
@@ -49,7 +56,115 @@ void MqttClientWrapper::loop() {
   client_.loop();
 }
 
-void MqttClientWrapper::publishStatusIfDue(Pump& pump, Battery& battery) {
+void MqttClientWrapper::staticCallback(char* topic, uint8_t* payload, unsigned int length) {
+  if (s_instance) s_instance->handleMessage(topic, payload, length);
+}
+
+void MqttClientWrapper::handleMessage(char* topic, uint8_t* payload, unsigned int length) {
+  (void)payload;
+  (void)length;
+  if (!pump_) return;
+  String t(topic);
+  if (t == MQTT_TOPIC_COMMAND_START) {
+    pump_->start(PumpSource::MANUAL, MQTT_DEFAULT_MANUAL_DURATION_S);
+  } else if (t == MQTT_TOPIC_COMMAND_STOP) {
+    pump_->stop();
+  }
+}
+
+void MqttClientWrapper::publishEntityConfig(const char* component, const char* objectId, JsonDocument& doc) {
+  JsonObject device = doc["device"].to<JsonObject>();
+  JsonArray ids = device["identifiers"].to<JsonArray>();
+  ids.add(MQTT_NODE_ID);
+  device["name"] = "Geyser Domotizer";
+  device["manufacturer"] = "DIY";
+  device["model"] = "ESP32";
+  device["sw_version"] = FIRMWARE_VERSION;
+
+  char payload[768];
+  size_t len = serializeJson(doc, payload, sizeof(payload));
+  char topic[128];
+  snprintf(topic, sizeof(topic), "%s/%s/%s/%s/config", MQTT_DISCOVERY_PREFIX, component, MQTT_NODE_ID, objectId);
+  client_.publish(topic, (const uint8_t*)payload, len, true);
+}
+
+void MqttClientWrapper::publishDiscovery() {
+  JsonDocument doc;
+
+  doc.clear();
+  doc["name"] = "Batteria";
+  doc["unique_id"] = MQTT_NODE_ID "_battery_percent";
+  doc["state_topic"] = MQTT_TOPIC_STATUS;
+  doc["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
+  doc["value_template"] = "{{ value_json.battery_percent }}";
+  doc["unit_of_measurement"] = "%";
+  doc["device_class"] = "battery";
+  publishEntityConfig("sensor", "battery_percent", doc);
+
+  doc.clear();
+  doc["name"] = "Tensione batteria";
+  doc["unique_id"] = MQTT_NODE_ID "_battery_voltage";
+  doc["state_topic"] = MQTT_TOPIC_STATUS;
+  doc["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
+  doc["value_template"] = "{{ value_json.battery_voltage }}";
+  doc["unit_of_measurement"] = "V";
+  publishEntityConfig("sensor", "battery_voltage", doc);
+
+  doc.clear();
+  doc["name"] = "Pompa attiva";
+  doc["unique_id"] = MQTT_NODE_ID "_pump_active";
+  doc["state_topic"] = MQTT_TOPIC_STATUS;
+  doc["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
+  doc["value_template"] = "{{ 'ON' if value_json.pump_active else 'OFF' }}";
+  doc["payload_on"] = "ON";
+  doc["payload_off"] = "OFF";
+  publishEntityConfig("binary_sensor", "pump_active", doc);
+
+  doc.clear();
+  doc["name"] = "Secondi rimanenti";
+  doc["unique_id"] = MQTT_NODE_ID "_pump_remaining";
+  doc["state_topic"] = MQTT_TOPIC_STATUS;
+  doc["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
+  doc["value_template"] = "{{ value_json.pump_remaining_seconds }}";
+  doc["unit_of_measurement"] = "s";
+  publishEntityConfig("sensor", "pump_remaining", doc);
+
+  doc.clear();
+  doc["name"] = "Partenze programmate attive";
+  doc["unique_id"] = MQTT_NODE_ID "_schedule_count";
+  doc["state_topic"] = MQTT_TOPIC_STATUS;
+  doc["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
+  doc["value_template"] = "{{ value_json.schedule_entries_count }}";
+  doc["icon"] = "mdi:calendar-clock";
+  publishEntityConfig("sensor", "schedule_count", doc);
+
+  doc.clear();
+  doc["name"] = "Online";
+  doc["unique_id"] = MQTT_NODE_ID "_online";
+  doc["state_topic"] = MQTT_TOPIC_AVAILABILITY;
+  doc["payload_on"] = "online";
+  doc["payload_off"] = "offline";
+  doc["device_class"] = "connectivity";
+  publishEntityConfig("binary_sensor", "online", doc);
+
+  doc.clear();
+  doc["name"] = "Avvia";
+  doc["unique_id"] = MQTT_NODE_ID "_start";
+  doc["command_topic"] = MQTT_TOPIC_COMMAND_START;
+  doc["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
+  doc["icon"] = "mdi:play";
+  publishEntityConfig("button", "start", doc);
+
+  doc.clear();
+  doc["name"] = "Ferma";
+  doc["unique_id"] = MQTT_NODE_ID "_stop";
+  doc["command_topic"] = MQTT_TOPIC_COMMAND_STOP;
+  doc["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
+  doc["icon"] = "mdi:stop";
+  publishEntityConfig("button", "stop", doc);
+}
+
+void MqttClientWrapper::publishStatusIfDue(Pump& pump, Battery& battery, Schedule& schedule) {
   if (!connected()) return;
   uint32_t now = millis();
   if (now - lastPublishMs_ < MQTT_PUBLISH_INTERVAL_MS) return;
@@ -61,6 +176,7 @@ void MqttClientWrapper::publishStatusIfDue(Pump& pump, Battery& battery) {
   doc["battery_voltage"] = b.voltage;
   doc["pump_active"] = pump.isActive();
   doc["pump_remaining_seconds"] = pump.remainingSeconds();
+  doc["schedule_entries_count"] = schedule.countEnabledEntries();
 
   char payload[256];
   size_t len = serializeJson(doc, payload, sizeof(payload));

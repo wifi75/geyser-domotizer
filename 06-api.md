@@ -184,6 +184,15 @@ Risposta (se la validazione fallisce, prima di riavviare): `{ "ok": false, "erro
 
 ⚠️ Se l'IP statico scelto è sbagliato o già occupato da un altro dispositivo sulla rete, il dispositivo potrebbe diventare irraggiungibile dalla UI: in tal caso serve ricollegarlo via USB e correggere manualmente (cancellare `/network_config.json` da LittleFS, o riflashare).
 
+## MQTT (solo firmware, non simulato dal mock)
+
+Con MQTT abilitato (vedi `PUT /api/config`), il firmware pubblica su Home Assistant MQTT Discovery: appena connesso al broker, crea da solo le entità (nessuna configurazione manuale in HA).
+
+- `geyser/status` (JSON, ogni 15s): `battery_percent`, `battery_voltage`, `pump_active`, `pump_remaining_seconds`, `schedule_entries_count`
+- `geyser/availability`: `online`/`offline` (retained, Last Will), usato come `availability_topic` da tutte le entità
+- `geyser/command/start` / `geyser/command/stop`: sottoscritti dal dispositivo, qualunque messaggio pubblicato qui avvia (durata fissa `MQTT_DEFAULT_MANUAL_DURATION_S`, 120s) o ferma la pompa
+- Discovery: `homeassistant/<component>/geyser_domotizer/<object_id>/config` (retained) per sensor batteria %/V, binary_sensor pompa attiva, sensor secondi rimanenti, sensor partenze programmate attive, binary_sensor online, button avvia/ferma
+
 ## Note di validazione (condivise da mock e firmware)
 
 - Al massimo 8 partenze per giorno
