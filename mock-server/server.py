@@ -20,7 +20,12 @@ from datetime import datetime
 WEB_DIR = os.path.join(os.path.dirname(__file__), "..", "web")
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 SCHEDULE_FILE = os.path.join(DATA_DIR, "schedule.json")
+CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
 PORT = int(os.environ.get("PORT", 8000))
+
+DEFAULT_CONFIG = {
+    "mqtt": {"enabled": False, "host": "", "port": 1883, "user": "", "password": None}
+}
 
 DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
@@ -46,6 +51,7 @@ class State:
         self._last_triggered = {}  # (day, time) -> "HH:MM" already fired this minute
         os.makedirs(DATA_DIR, exist_ok=True)
         self.schedule = self._load_schedule()
+        self.config = self._load_config()
 
     def _load_schedule(self):
         if os.path.exists(SCHEDULE_FILE):
@@ -57,6 +63,30 @@ class State:
         with open(SCHEDULE_FILE, "w", encoding="utf-8") as f:
             json.dump(schedule, f, indent=2)
         self.schedule = schedule
+
+    def _load_config(self):
+        if os.path.exists(CONFIG_FILE):
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        return json.loads(json.dumps(DEFAULT_CONFIG))
+
+    def save_config(self, config):
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=2)
+        self.config = config
+
+    def config_public(self):
+        with self.lock:
+            mqtt = self.config["mqtt"]
+            return {
+                "mqtt": {
+                    "enabled": mqtt["enabled"],
+                    "host": mqtt["host"],
+                    "port": mqtt["port"],
+                    "user": mqtt["user"],
+                    "hasPassword": bool(mqtt.get("password")),
+                }
+            }
 
     def status(self):
         with self.lock:
@@ -73,8 +103,8 @@ class State:
                     "remainingSeconds": self.pump_remaining,
                     "source": self.pump_source,
                 },
-                "wifi": {"connected": True, "rssi": -55},
-                "mqtt": {"connected": True},
+                "wifi": {"connected": True, "ssid": "WiFi (mock)", "ip": "192.168.1.50", "rssi": -55},
+                "mqtt": {"connected": bool(self.config["mqtt"]["enabled"] and self.config["mqtt"]["host"])},
             }
 
     def start_manual(self, duration_seconds):
@@ -161,6 +191,20 @@ def validate_schedule(schedule):
     return None
 
 
+def validate_config(config):
+    if not isinstance(config, dict) or "mqtt" not in config:
+        return "config deve contenere 'mqtt'"
+    mqtt = config["mqtt"]
+    if not isinstance(mqtt, dict):
+        return "mqtt deve essere un oggetto"
+    if mqtt.get("enabled") and not mqtt.get("host"):
+        return "host obbligatorio se mqtt è abilitato"
+    port = mqtt.get("port", 1883)
+    if not isinstance(port, int) or not (1 <= port <= 65535):
+        return "porta non valida"
+    return None
+
+
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=WEB_DIR, **kwargs)
@@ -184,6 +228,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self._send_json(state.status())
         if self.path == "/api/schedule":
             return self._send_json(state.schedule)
+        if self.path == "/api/config":
+            return self._send_json(state.config_public())
         return super().do_GET()
 
     def do_POST(self):
@@ -204,6 +250,22 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if error:
                 return self._send_json({"ok": False, "error": "invalid_schedule", "details": error}, status=400)
             state.save_schedule(body)
+            return self._send_json({"ok": True})
+        if self.path == "/api/config":
+            body = self._read_json()
+            error = validate_config(body)
+            if error:
+                return self._send_json({"ok": False, "error": "invalid_config", "details": error}, status=400)
+
+            mqtt = dict(state.config["mqtt"])
+            incoming = body["mqtt"]
+            mqtt["enabled"] = incoming.get("enabled", mqtt["enabled"])
+            mqtt["host"] = incoming.get("host", mqtt["host"])
+            mqtt["port"] = incoming.get("port", mqtt["port"])
+            mqtt["user"] = incoming.get("user", mqtt["user"])
+            if "password" in incoming:
+                mqtt["password"] = incoming["password"] or None
+            state.save_config({"mqtt": mqtt})
             return self._send_json({"ok": True})
         self.send_error(404)
 

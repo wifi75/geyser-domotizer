@@ -2,16 +2,28 @@
 #include "config.h"
 #include <ArduinoJson.h>
 
-void MqttClientWrapper::begin() {
-  if (!MQTT_ENABLED) return;
-  client_.setServer(MQTT_HOST, MQTT_PORT);
+void MqttClientWrapper::begin(MqttSettings& settings) {
+  settings_ = &settings;
+  applySettings();
+}
+
+void MqttClientWrapper::applySettings() {
+  if (client_.connected()) client_.disconnect();
+  const MqttSettingsData& d = settings_->data();
+  if (!d.enabled || d.host.isEmpty()) return;
+  client_.setServer(d.host.c_str(), d.port);
   client_.setBufferSize(512);
+  lastReconnectAttemptMs_ = 0;  // riprova subito con i nuovi parametri
 }
 
 bool MqttClientWrapper::reconnect() {
+  const MqttSettingsData& d = settings_->data();
+  const char* user = d.user.length() ? d.user.c_str() : nullptr;
+  const char* password = d.password.length() ? d.password.c_str() : nullptr;
+
   bool ok = client_.connect(
       MQTT_CLIENT_ID,
-      MQTT_USER, MQTT_PASSWORD,
+      user, password,
       MQTT_TOPIC_AVAILABILITY, 0, true, "offline");
   if (ok) {
     client_.publish(MQTT_TOPIC_AVAILABILITY, "online", true);
@@ -20,11 +32,11 @@ bool MqttClientWrapper::reconnect() {
 }
 
 bool MqttClientWrapper::connected() {
-  return MQTT_ENABLED && client_.connected();
+  return settings_ && settings_->data().enabled && client_.connected();
 }
 
 void MqttClientWrapper::loop() {
-  if (!MQTT_ENABLED) return;
+  if (!settings_ || !settings_->data().enabled || settings_->data().host.isEmpty()) return;
 
   if (!client_.connected()) {
     uint32_t now = millis();

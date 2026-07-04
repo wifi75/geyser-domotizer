@@ -11,12 +11,13 @@ Stato corrente del dispositivo, interrogato dal frontend ogni 2-3 secondi.
   "time": "2026-07-04T18:32:10",
   "battery": { "voltage": 12.4, "percent": 82, "low": false },
   "pump": { "active": false, "remainingSeconds": 0, "source": null },
-  "wifi": { "connected": true, "rssi": -58 },
+  "wifi": { "connected": true, "ssid": "WiFi", "ip": "192.168.1.235", "rssi": -58 },
   "mqtt": { "connected": true }
 }
 ```
 
 `pump.source` è `"manual"` o `"schedule"` quando `active` è `true`, altrimenti `null`.
+`wifi.ssid`/`wifi.ip` sono stringa vuota quando `wifi.connected` è `false`. La qualità del segnale (barre/percentuale) è calcolata lato frontend da `rssi`, non serve un campo dedicato.
 
 ## POST /api/manual/start
 
@@ -53,6 +54,37 @@ Programmazione settimanale corrente.
 Sostituisce l'intera programmazione (stesso formato di GET), validata e persistita (LittleFS su firmware, file JSON su mock).
 
 Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "invalid_schedule", "details": "..." }`
+
+## GET /api/config
+
+Configurazione MQTT corrente. La password non viene mai restituita (write-only), solo se è impostata o no.
+
+```json
+{
+  "mqtt": {
+    "enabled": true,
+    "host": "192.168.1.10",
+    "port": 1883,
+    "user": "homeassistant",
+    "hasPassword": true
+  }
+}
+```
+
+## PUT /api/config
+
+Aggiorna la configurazione MQTT, persistita (LittleFS su firmware, file JSON su mock) e applicata subito, senza bisogno di riflashare.
+
+Richiesta:
+```json
+{ "mqtt": { "enabled": true, "host": "192.168.1.10", "port": 1883, "user": "homeassistant", "password": "..." } }
+```
+
+- `password` è opzionale: se omessa o vuota, resta quella già salvata; per cancellarla esplicitamente inviare `"password": null`.
+- `host` non può essere vuoto se `enabled` è `true`.
+- `port` tra 1 e 65535.
+
+Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "invalid_config", "details": "..." }`
 
 ## Note di validazione (condivise da mock e firmware)
 

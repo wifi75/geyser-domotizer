@@ -9,6 +9,7 @@
 #include "schedule.h"
 #include "webserver.h"
 #include "mqtt_client.h"
+#include "mqtt_settings.h"
 
 // NOTA su consumo energetico: questa v1 del firmware resta sempre sveglia
 // (niente deep-sleep) cosi' l'interfaccia web e l'avvio manuale rispondono
@@ -21,9 +22,10 @@
 Battery battery;
 Pump pump;
 Schedule schedule;
+MqttSettings mqttSettings;
 bool mqttConnectedFlag = false;
-WebServerApp webApp(pump, battery, schedule, mqttConnectedFlag);
 MqttClientWrapper mqtt;
+WebServerApp webApp(pump, battery, schedule, mqttConnectedFlag, mqttSettings, mqtt);
 
 uint32_t lastWifiAttemptMs = 0;
 String lastCheckedMinuteKey = "";
@@ -81,6 +83,7 @@ void setup() {
   battery.begin();
   pump.begin();
   schedule.begin();
+  mqttSettings.begin();
 
   WiFi.mode(WIFI_STA);
 
@@ -95,7 +98,7 @@ void setup() {
   configTzTime(TZ_INFO, NTP_SERVER);
 
   webApp.begin();
-  mqtt.begin();
+  mqtt.begin(mqttSettings);
 
   Serial.println("Geyser Domotizer avviato");
 }

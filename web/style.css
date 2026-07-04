@@ -103,6 +103,65 @@ main {
 
 .battery-voltage { color: var(--muted); font-size: 0.9rem; min-width: 55px; text-align: right; }
 
+.muted { color: var(--muted); font-size: 0.85rem; }
+
+.wifi-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.wifi-signal-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 22px;
+}
+
+.wifi-signal-bars span {
+  width: 6px;
+  background: var(--border);
+  border-radius: 2px;
+  display: block;
+}
+
+.wifi-signal-bars span:nth-child(1) { height: 25%; }
+.wifi-signal-bars span:nth-child(2) { height: 50%; }
+.wifi-signal-bars span:nth-child(3) { height: 75%; }
+.wifi-signal-bars span:nth-child(4) { height: 100%; }
+
+.wifi-signal-bars span.on { background: var(--primary); }
+.wifi-signal-bars.weak span.on { background: var(--warn); }
+.wifi-signal-bars.offline span.on { background: var(--danger); }
+
+.wifi-details { font-size: 0.9rem; }
+.wifi-details > div { margin-bottom: 2px; }
+
+.mqtt-form { display: flex; flex-direction: column; gap: 12px; }
+
+.mqtt-enabled-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.mqtt-fields {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 10px;
+  align-items: center;
+}
+
+.mqtt-fields label { color: var(--muted); font-size: 0.85rem; }
+.mqtt-fields input[type="text"],
+.mqtt-fields input[type="number"],
+.mqtt-fields input[type="password"] {
+  width: 100%;
+}
+
+.mqtt-password-hint { grid-column: 2; margin-top: -4px; }
+
 .manual-controls {
   display: flex;
   align-items: center;

@@ -32,6 +32,19 @@
     </div>
   </section>
 
+  <section class="card" id="card-wifi">
+    <h2>Connessione</h2>
+    <div class="wifi-row">
+      <div class="wifi-signal-bars" id="wifi-signal-bars" title="">
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <div class="wifi-details">
+        <div><strong id="wifi-ssid">--</strong> <span id="wifi-rssi" class="muted">--</span></div>
+        <div class="muted">IP: <span id="wifi-ip">--</span></div>
+      </div>
+    </div>
+  </section>
+
   <section class="card" id="card-pump">
     <h2>Nebulizzazione</h2>
     <p id="pump-state">Stato: <strong id="pump-state-text">--</strong></p>
@@ -51,6 +64,34 @@
     <div class="schedule-actions">
       <button id="btn-save-schedule" class="btn btn-primary">Salva programmazione</button>
       <span id="schedule-feedback" class="feedback"></span>
+    </div>
+  </section>
+
+  <section class="card" id="card-mqtt">
+    <h2>Configurazione MQTT</h2>
+    <div class="mqtt-form">
+      <label class="mqtt-enabled-row">
+        <input type="checkbox" id="mqtt-enabled">
+        Abilitato (Home Assistant / broker MQTT)
+      </label>
+      <div class="mqtt-fields" id="mqtt-fields">
+        <label for="mqtt-host">Host/IP broker</label>
+        <input type="text" id="mqtt-host" placeholder="192.168.1.10">
+
+        <label for="mqtt-port">Porta</label>
+        <input type="number" id="mqtt-port" min="1" max="65535" value="1883">
+
+        <label for="mqtt-user">Utente</label>
+        <input type="text" id="mqtt-user" placeholder="(opzionale)">
+
+        <label for="mqtt-password">Password</label>
+        <input type="password" id="mqtt-password" placeholder="lascia vuoto per non cambiarla">
+        <span id="mqtt-password-hint" class="muted mqtt-password-hint"></span>
+      </div>
+      <div class="schedule-actions">
+        <button id="btn-save-mqtt" class="btn btn-primary">Salva configurazione MQTT</button>
+        <span id="mqtt-feedback" class="feedback"></span>
+      </div>
     </div>
   </section>
 

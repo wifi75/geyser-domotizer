@@ -23,6 +23,33 @@ function setBadge(elm, connected) {
   elm.classList.toggle("ok", !!connected);
 }
 
+function renderWifi(wifi) {
+  const bars = el("wifi-signal-bars");
+  const spans = bars.querySelectorAll("span");
+  bars.classList.remove("weak", "offline");
+
+  if (!wifi.connected) {
+    spans.forEach((s) => s.classList.remove("on"));
+    bars.classList.add("offline");
+    bars.title = "Non connesso";
+    el("wifi-ssid").textContent = "Non connesso";
+    el("wifi-rssi").textContent = "";
+    el("wifi-ip").textContent = "--";
+    return;
+  }
+
+  // Soglie tipiche RSSI (dBm) -> numero di barre attive su 4
+  const rssi = wifi.rssi;
+  let activeBars = rssi >= -60 ? 4 : rssi >= -67 ? 3 : rssi >= -75 ? 2 : rssi >= -85 ? 1 : 0;
+  if (activeBars <= 1) bars.classList.add("weak");
+  spans.forEach((s, i) => s.classList.toggle("on", i < activeBars));
+  bars.title = `${rssi} dBm`;
+
+  el("wifi-ssid").textContent = wifi.ssid || "--";
+  el("wifi-rssi").textContent = `${rssi} dBm`;
+  el("wifi-ip").textContent = wifi.ip || "--";
+}
+
 async function refreshStatus() {
   try {
     const s = await api("/api/status");
@@ -36,6 +63,7 @@ async function refreshStatus() {
 
     setBadge(el("badge-wifi"), s.wifi.connected);
     setBadge(el("badge-mqtt"), s.mqtt.connected);
+    renderWifi(s.wifi);
 
     el("device-time").textContent = s.time;
 
@@ -157,10 +185,64 @@ async function saveSchedule() {
   }
 }
 
+function updateMqttFieldsVisibility() {
+  el("mqtt-fields").classList.toggle("hidden", !el("mqtt-enabled").checked);
+}
+
+async function loadMqttConfig() {
+  const cfg = await api("/api/config");
+  el("mqtt-enabled").checked = cfg.mqtt.enabled;
+  el("mqtt-host").value = cfg.mqtt.host || "";
+  el("mqtt-port").value = cfg.mqtt.port || 1883;
+  el("mqtt-user").value = cfg.mqtt.user || "";
+  el("mqtt-password").value = "";
+  el("mqtt-password-hint").textContent = cfg.mqtt.hasPassword
+    ? "Password già impostata: lascia vuoto per non cambiarla."
+    : "Nessuna password impostata.";
+  updateMqttFieldsVisibility();
+}
+
+async function saveMqttConfig() {
+  const feedback = el("mqtt-feedback");
+  feedback.textContent = "";
+  feedback.className = "feedback";
+
+  const mqtt = {
+    enabled: el("mqtt-enabled").checked,
+    host: el("mqtt-host").value.trim(),
+    port: parseInt(el("mqtt-port").value, 10) || 1883,
+    user: el("mqtt-user").value.trim()
+  };
+  const password = el("mqtt-password").value;
+  if (password) mqtt.password = password;
+
+  try {
+    const r = await api("/api/config", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mqtt })
+    });
+    if (r.ok) {
+      feedback.textContent = "Configurazione MQTT salvata.";
+      feedback.className = "feedback ok";
+      loadMqttConfig();
+    } else {
+      feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+      feedback.className = "feedback error";
+    }
+  } catch (e) {
+    feedback.textContent = "Errore di comunicazione con il dispositivo.";
+    feedback.className = "feedback error";
+  }
+}
+
 el("btn-start").addEventListener("click", startManual);
 el("btn-stop").addEventListener("click", stopManual);
 el("btn-save-schedule").addEventListener("click", saveSchedule);
+el("btn-save-mqtt").addEventListener("click", saveMqttConfig);
+el("mqtt-enabled").addEventListener("change", updateMqttFieldsVisibility);
 
 refreshStatus();
 loadSchedule();
+loadMqttConfig();
 setInterval(refreshStatus, 2000);

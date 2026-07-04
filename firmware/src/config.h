@@ -72,6 +72,10 @@
 #define MQTT_TOPIC_STATUS "geyser/status"
 #define MQTT_TOPIC_AVAILABILITY "geyser/availability"
 #define MQTT_PUBLISH_INTERVAL_MS 15000
+// I valori sopra sono solo il default al primo avvio: da quel momento in poi
+// la configurazione MQTT reale vive in questo file su LittleFS, modificabile
+// dall'interfaccia web (sezione "Configurazione MQTT") senza dover riflashare.
+#define MQTT_CONFIG_FILE "/mqtt_config.json"
 
 // --- Programmazione ---
 #define MAX_ENTRIES_PER_DAY 8
