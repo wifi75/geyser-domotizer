@@ -10,7 +10,7 @@ Progetto di "domotizzazione" non invasiva dello **Stocker Geyser 12L** (nebulizz
 
 ## Stato del progetto
 
-🛠️ **Software in sviluppo** — interfaccia web e logica (batteria, pompa, programmazione) scritte e testate in locale con un mock server (vedi [mock-server/](mock-server/)). Il firmware ESP32 ([firmware/](firmware/)) implementa lo stesso contratto API ma non è ancora stato provato su hardware reale: la Fase 0 hands-on sul dispositivo fisico è ancora da fare.
+✅ **Firmware funzionante su hardware reale** (v0.9.1): web UI, batteria, programmazione, MQTT, configurazione IP e aggiornamento OTA (da GitHub o upload manuale) testati end-to-end su una ESP32 DevKitV1. La Fase 0 hands-on sul dispositivo Geyser vero (individuare dove derivare i fili di motore e batteria) resta da fare prima del montaggio definitivo.
 
 ## Struttura del progetto
 
@@ -20,9 +20,10 @@ Progetto di "domotizzazione" non invasiva dello **Stocker Geyser 12L** (nebulizz
 - [04-roadmap.md](04-roadmap.md) — fasi di implementazione
 - [05-fase0-guida-apertura.md](05-fase0-guida-apertura.md) — guida operativa per la ricognizione hands-on del dispositivo
 - [06-api.md](06-api.md) — contratto API REST, usato sia dal mock server sia dal firmware
+- [07-schema-collegamento.md](07-schema-collegamento.md) — schema di cablaggio (batteria → step-down → ESP32 → relè → pompa) e mappa pin
 - [web/](web/) — interfaccia web condivisa (HTML/CSS/JS vanilla), usata sia dal mock che embeddata nel firmware
 - [mock-server/](mock-server/) — server Python per testare la UI in locale senza hardware
-- [firmware/](firmware/) — progetto PlatformIO per ESP32 (Seeed XIAO ESP32-C3)
+- [firmware/](firmware/) — progetto PlatformIO per ESP32 (XIAO ESP32-C3/C6 e ESP32 DevKitV1)
 
 ## Test locale della UI (senza hardware)
 
