@@ -12,6 +12,7 @@ class OtaManager {
  private:
   String pendingVersion_;
   String pendingAssetUrl_;
+  String pendingLittlefsAssetUrl_;  // vuoto se la release non ha un asset del sito
 
   void handleInfo(AsyncWebServerRequest* request);
   void handleCheck(AsyncWebServerRequest* request);

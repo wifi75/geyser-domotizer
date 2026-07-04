@@ -83,10 +83,13 @@ void OtaManager::handleCheck(AsyncWebServerRequest* request) {
   String tag = latest["tag_name"].as<String>();
   pendingVersion_ = tag.startsWith("v") ? tag.substring(1) : tag;
   pendingAssetUrl_ = "";
+  pendingLittlefsAssetUrl_ = "";
   for (JsonVariant asset : latest["assets"].as<JsonArray>()) {
-    if (String(asset["name"].as<const char*>()) == OTA_ASSET_NAME) {
+    String name = asset["name"].as<const char*>();
+    if (name == OTA_ASSET_NAME) {
       pendingAssetUrl_ = asset["browser_download_url"].as<String>();
-      break;
+    } else if (name == OTA_LITTLEFS_ASSET_NAME) {
+      pendingLittlefsAssetUrl_ = asset["browser_download_url"].as<String>();
     }
   }
 
@@ -109,20 +112,44 @@ void OtaManager::handleUpdate(AsyncWebServerRequest* request) {
     return;
   }
 
-  WiFiClientSecure client;
-  client.setInsecure();
-  httpUpdate.rebootOnUpdate(true);
-  t_httpUpdate_return ret = httpUpdate.update(client, pendingAssetUrl_);
+  // rebootOnUpdate(false): il riavvio lo gestiamo noi qui sotto, per poter
+  // applicare anche l'eventuale aggiornamento del sito (LittleFS) prima di
+  // riavviare una volta sola invece che due.
+  httpUpdate.rebootOnUpdate(false);
 
-  // Se il flash ha successo il dispositivo si è già riavviato da sé dentro
-  // httpUpdate.update(): il codice sotto viene eseguito solo in caso di errore.
-  JsonDocument doc;
-  doc["ok"] = false;
-  doc["error"] = ret == HTTP_UPDATE_NO_UPDATES ? "no_update_needed" : "download_failed";
-  doc["details"] = httpUpdate.getLastErrorString();
-  AsyncResponseStream* response = request->beginResponseStream("application/json");
-  serializeJson(doc, *response);
+  WiFiClientSecure firmwareClient;
+  firmwareClient.setInsecure();
+  t_httpUpdate_return ret = httpUpdate.update(firmwareClient, pendingAssetUrl_);
+
+  if (ret != HTTP_UPDATE_OK) {
+    JsonDocument doc;
+    doc["ok"] = false;
+    doc["error"] = ret == HTTP_UPDATE_NO_UPDATES ? "no_update_needed" : "download_failed";
+    doc["details"] = httpUpdate.getLastErrorString();
+    AsyncResponseStream* response = request->beginResponseStream("application/json");
+    serializeJson(doc, *response);
+    request->send(response);
+    return;
+  }
+
+  // Il firmware è già scritto sulla partizione OTA. Se la release ha anche
+  // un asset per il sito, lo applichiamo prima di riavviare: un fallimento
+  // qui non è bloccante, il firmware nuovo comunque parte al riavvio.
+  if (!pendingLittlefsAssetUrl_.isEmpty()) {
+    WiFiClientSecure littlefsClient;
+    littlefsClient.setInsecure();
+    t_httpUpdate_return fsRet = httpUpdate.updateSpiffs(littlefsClient, pendingLittlefsAssetUrl_);
+    if (fsRet != HTTP_UPDATE_OK) {
+      Serial.printf("Aggiornamento sito fallito (%s), procedo comunque col firmware\n",
+                    httpUpdate.getLastErrorString().c_str());
+    }
+  }
+
+  AsyncWebServerResponse* response = request->beginResponse(200, "application/json", "{\"ok\":true}");
+  response->addHeader("Connection", "close");
   request->send(response);
+  delay(500);  // tempo per far uscire la risposta prima del riavvio
+  ESP.restart();
 }
 
 void OtaManager::handleUploadChunk(AsyncWebServerRequest* request, String filename, size_t index,

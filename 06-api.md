@@ -102,9 +102,9 @@ Il frontend chiama questo endpoint automaticamente al caricamento della pagina (
 
 ## POST /api/ota/update
 
-Scarica dall'ultima release GitHub controllata (va chiamato `/api/ota/check` prima) il binario corrispondente alla scheda in uso e lo flasha. Se ha successo il dispositivo si riavvia da solo — la richiesta HTTP potrebbe non ricevere risposta perché il riavvio parte subito dopo.
+Scarica dall'ultima release GitHub controllata (va chiamato `/api/ota/check` prima) il binario del firmware corrispondente alla scheda in uso e lo flasha. Se la release ha **anche** un asset del sito (`littlefs-esp32dev.bin` / `littlefs-xiao-esp32c3.bin`), aggiorna pure quello prima di riavviare — un fallimento solo su questa seconda parte non blocca l'aggiornamento del firmware, che parte comunque al riavvio. Se tutto va a buon fine il dispositivo si riavvia da solo — la richiesta HTTP potrebbe non ricevere risposta perché il riavvio parte subito dopo.
 
-Risposta (se fallisce prima di riavviare): `{ "ok": false, "error": "no_pending_update" | "download_failed", "details": "..." }`
+Risposta (se il firmware fallisce prima di riavviare): `{ "ok": false, "error": "no_pending_update" | "download_failed", "details": "..." }`
 
 ## POST /api/ota/upload
 
