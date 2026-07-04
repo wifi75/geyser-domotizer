@@ -1,10 +1,17 @@
-# PlatformIO / Arduino (firmware verrà aggiunto nelle fasi successive)
+# PlatformIO / Arduino
 .pio/
 .vscode/
 build/
 *.bin
 *.elf
+# generato automaticamente da tools/sync_web_assets.py a partire da ../web
+firmware/data/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Mock server: stato runtime generato durante i test locali
+mock-server/data/
+__pycache__/
+*.pyc

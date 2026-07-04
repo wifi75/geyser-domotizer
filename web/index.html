@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Geyser Domotizer</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>🌿 Geyser Domotizer</h1>
+  <div id="conn-badges">
+    <span id="badge-wifi" class="badge">WiFi</span>
+    <span id="badge-mqtt" class="badge">MQTT</span>
+  </div>
+</header>
+
+<main>
+
+  <section id="banner-low-battery" class="banner banner-warn hidden">
+    ⚠️ Batteria scarica: la programmazione automatica potrebbe non completarsi.
+  </section>
+
+  <section class="card" id="card-battery">
+    <h2>Batteria</h2>
+    <div class="battery-row">
+      <div class="battery-percent"><span id="battery-percent">--</span>%</div>
+      <div class="battery-bar-wrap">
+        <div id="battery-bar" class="battery-bar"></div>
+      </div>
+      <div class="battery-voltage"><span id="battery-voltage">--</span> V</div>
+    </div>
+  </section>
+
+  <section class="card" id="card-pump">
+    <h2>Nebulizzazione</h2>
+    <p id="pump-state">Stato: <strong id="pump-state-text">--</strong></p>
+    <p id="pump-remaining-wrap" class="hidden">Tempo rimanente: <strong id="pump-remaining">--</strong></p>
+    <div class="manual-controls">
+      <label for="manual-duration">Durata (minuti)</label>
+      <input type="number" id="manual-duration" min="1" max="30" value="2" step="1">
+      <button id="btn-start" class="btn btn-primary">Avvia ora</button>
+      <button id="btn-stop" class="btn btn-danger" disabled>Ferma</button>
+    </div>
+    <p id="manual-feedback" class="feedback"></p>
+  </section>
+
+  <section class="card" id="card-schedule">
+    <h2>Programmazione settimanale</h2>
+    <div id="schedule-days"></div>
+    <div class="schedule-actions">
+      <button id="btn-save-schedule" class="btn btn-primary">Salva programmazione</button>
+      <span id="schedule-feedback" class="feedback"></span>
+    </div>
+  </section>
+
+  <footer>
+    <span id="device-time">--</span>
+  </footer>
+
+</main>
+
+<template id="tpl-day">
+  <div class="day-block">
+    <h3 class="day-name"></h3>
+    <div class="day-entries"></div>
+    <button class="btn btn-small btn-add-entry">+ Aggiungi partenza</button>
+  </div>
+</template>
+
+<template id="tpl-entry">
+  <div class="entry-row">
+    <input type="checkbox" class="entry-enabled" checked title="Abilitata">
+    <input type="time" class="entry-time" value="06:30">
+    <input type="number" class="entry-duration" min="1" max="30" value="2" title="Durata (minuti)">
+    <span class="entry-unit">min</span>
+    <button class="btn btn-small btn-danger entry-remove" title="Rimuovi">✕</button>
+  </div>
+</template>
+
+<script src="app.js"></script>
+</body>
+</html>
