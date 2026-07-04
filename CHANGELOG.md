@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.19.0 — 2026-07-04
+
+Programmazione: "+ Aggiungi partenza" incolla se hai già copiato un giorno, nuove partenze partono da 06:00/1 minuto.
+
+- Con qualcosa già copiato (pulsante "📋 Copia"), cliccare "+ Aggiungi partenza" incolla direttamente le partenze copiate invece di aggiungere una riga vuota — un click in meno per il caso più comune
+- Default di una nuova partenza vuota: 06:00, 1 minuto (prima 06:30, 2 minuti)
+
 ## v0.18.0 — 2026-07-04
 
 Versione app in testata, torna sempre su Stato dopo un riavvio, etichetta OTA più chiara per l'interfaccia web.

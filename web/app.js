@@ -139,8 +139,8 @@ function addEntryRow(container, entry) {
   const tpl = el("tpl-entry");
   const node = tpl.content.firstElementChild.cloneNode(true);
   node.querySelector(".entry-enabled").checked = entry?.enabled ?? true;
-  node.querySelector(".entry-time").value = entry?.time ?? "06:30";
-  node.querySelector(".entry-duration").value = entry ? Math.round(entry.durationSeconds / 60) : 2;
+  node.querySelector(".entry-time").value = entry?.time ?? "06:00";
+  node.querySelector(".entry-duration").value = entry ? Math.round(entry.durationSeconds / 60) : 1;
   node.querySelector(".entry-remove").addEventListener("click", () => {
     const dayBlock = node.closest(".day-block");
     node.remove();
@@ -191,14 +191,31 @@ function renderSchedule(schedule) {
     dayNode.querySelector(".day-header").addEventListener("click", () => {
       dayNode.classList.toggle("collapsed");
     });
-    dayNode.querySelector(".btn-add-entry").addEventListener("click", () => {
-      addEntryRow(entriesWrap);
-      updateDaySummary(dayNode);
-    });
 
     const copyBtn = dayNode.querySelector(".btn-copy-day");
     const pasteBtn = dayNode.querySelector(".btn-paste-day");
     pasteBtn.disabled = copiedDayEntries === null;
+
+    const pasteInto = (feedbackBtn) => {
+      entriesWrap.innerHTML = "";
+      copiedDayEntries.forEach((entry) => addEntryRow(entriesWrap, entry));
+      dayNode.classList.remove("collapsed");
+      updateDaySummary(dayNode);
+      flashButtonLabel(feedbackBtn, "Incollato!");
+    };
+
+    // Con qualcosa già copiato, "+ Aggiungi partenza" incolla direttamente
+    // invece di aggiungere una riga vuota — un click in meno per il caso
+    // più comune (copiare un giorno su un altro).
+    dayNode.querySelector(".btn-add-entry").addEventListener("click", (e) => {
+      if (copiedDayEntries) {
+        pasteInto(e.currentTarget);
+      } else {
+        addEntryRow(entriesWrap);
+        updateDaySummary(dayNode);
+      }
+    });
+
     copyBtn.addEventListener("click", () => {
       copiedDayEntries = readDayEntries(dayNode);
       document.querySelectorAll(".btn-paste-day").forEach((b) => { b.disabled = false; });
@@ -206,11 +223,7 @@ function renderSchedule(schedule) {
     });
     pasteBtn.addEventListener("click", () => {
       if (!copiedDayEntries) return;
-      entriesWrap.innerHTML = "";
-      copiedDayEntries.forEach((entry) => addEntryRow(entriesWrap, entry));
-      dayNode.classList.remove("collapsed");
-      updateDaySummary(dayNode);
-      flashButtonLabel(pasteBtn, "Incollato!");
+      pasteInto(pasteBtn);
     });
 
     wrap.appendChild(dayNode);
