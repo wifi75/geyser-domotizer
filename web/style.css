@@ -29,7 +29,7 @@ header {
 
 header h1 { grid-column: 2; text-align: center; font-size: 1.2rem; margin: 0; }
 
-#conn-badges { grid-column: 3; justify-self: end; display: flex; gap: 8px; }
+#conn-badges { display: flex; gap: 8px; }
 
 .badge {
   font-size: 0.75rem;
