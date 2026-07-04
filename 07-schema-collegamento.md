@@ -4,6 +4,11 @@ Riferimento rapido per il cablaggio: batteria → step-down 5V → ESP32 → rel
 
 ## Diagramma
 
+![Schema di collegamento: batteria, step-down, ESP32, relè, pompa](schema-collegamento.svg)
+
+<details>
+<summary>Versione Mermaid (testuale, utile per modifiche future)</summary>
+
 ```mermaid
 graph LR
     BATT["Batteria 12V Geyser<br/>(attacco rapido + Y-connector)"]
@@ -26,6 +31,8 @@ graph LR
     BATT -->|"percorso originale, invariato"| ORIG
     ORIG --> MOTOR
 ```
+
+</details>
 
 Il percorso originale (batteria → scheda → pulsante → pompa) resta fisicamente separato e non modificato: il relè si collega **direttamente ai terminali del motore**, non alla scheda originale (vedi 01-analisi-fattibilita.md per il perché di questa scelta).
 
