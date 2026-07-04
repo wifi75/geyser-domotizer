@@ -241,30 +241,53 @@ async function loadOtaInfo() {
   el("ota-current-version").textContent = `v${info.currentVersion}`;
 }
 
-async function checkOtaUpdate() {
+function showUpdateBanner(latestVersion, releaseNotes) {
+  el("banner-update-version").textContent = `v${latestVersion}`;
+  el("banner-update-notes").textContent = releaseNotes || "(nessuna nota di rilascio)";
+  el("banner-update").classList.remove("hidden");
+  el("banner-update-details").classList.add("hidden");
+}
+
+function hideUpdateBanner() {
+  el("banner-update").classList.add("hidden");
+}
+
+async function checkOtaUpdate({ silent } = {}) {
   const feedback = el("ota-check-feedback");
   const updateBtn = el("btn-ota-update");
-  feedback.textContent = "Controllo in corso...";
-  feedback.className = "feedback";
+  if (!silent) {
+    feedback.textContent = "Controllo in corso...";
+    feedback.className = "feedback";
+  }
   updateBtn.classList.add("hidden");
   try {
     const r = await api("/api/ota/check", { method: "POST" });
     if (!r.ok) {
-      feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
-      feedback.className = "feedback error";
+      if (!silent) {
+        feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+        feedback.className = "feedback error";
+      }
       return;
     }
     if (r.updateAvailable) {
-      feedback.textContent = `Disponibile: v${r.latestVersion}`;
-      feedback.className = "feedback ok";
-      updateBtn.classList.remove("hidden");
+      if (!silent) {
+        feedback.textContent = `Disponibile: v${r.latestVersion}`;
+        feedback.className = "feedback ok";
+        updateBtn.classList.remove("hidden");
+      }
+      showUpdateBanner(r.latestVersion, r.releaseNotes);
     } else {
-      feedback.textContent = "Sei già aggiornato.";
-      feedback.className = "feedback ok";
+      if (!silent) {
+        feedback.textContent = "Sei già aggiornato.";
+        feedback.className = "feedback ok";
+      }
+      hideUpdateBanner();
     }
   } catch (e) {
-    feedback.textContent = "Errore di comunicazione con il dispositivo.";
-    feedback.className = "feedback error";
+    if (!silent) {
+      feedback.textContent = "Errore di comunicazione con il dispositivo.";
+      feedback.className = "feedback error";
+    }
   }
 }
 
@@ -331,17 +354,76 @@ function uploadFirmwareFile() {
   xhr.send(formData);
 }
 
+function updateNetworkFieldsVisibility() {
+  const isStatic = el("network-mode-static").checked;
+  el("network-fields").classList.toggle("hidden", !isStatic);
+}
+
+async function loadNetworkConfig() {
+  const cfg = await api("/api/network");
+  el("network-mode-dhcp").checked = cfg.mode === "dhcp";
+  el("network-mode-static").checked = cfg.mode === "static";
+  el("network-ip").value = cfg.ip || "";
+  el("network-gateway").value = cfg.gateway || "";
+  el("network-subnet").value = cfg.subnet || "255.255.255.0";
+  el("network-dns").value = cfg.dns || "";
+  updateNetworkFieldsVisibility();
+}
+
+async function saveNetworkConfig() {
+  const feedback = el("network-feedback");
+  feedback.textContent = "";
+  feedback.className = "feedback";
+
+  const mode = el("network-mode-static").checked ? "static" : "dhcp";
+  const body = { mode };
+  if (mode === "static") {
+    body.ip = el("network-ip").value.trim();
+    body.gateway = el("network-gateway").value.trim();
+    body.subnet = el("network-subnet").value.trim();
+    body.dns = el("network-dns").value.trim();
+  }
+
+  try {
+    const r = await api("/api/network", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    if (r && r.ok === false) {
+      feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+      feedback.className = "feedback error";
+    } else {
+      feedback.textContent = "Salvato, il dispositivo si sta riavviando...";
+      feedback.className = "feedback ok";
+    }
+  } catch (e) {
+    feedback.textContent = "Salvato: il dispositivo si sta riavviando (potrebbe cambiare IP).";
+    feedback.className = "feedback ok";
+  }
+}
+
 el("btn-start").addEventListener("click", startManual);
 el("btn-stop").addEventListener("click", stopManual);
 el("btn-save-schedule").addEventListener("click", saveSchedule);
 el("btn-save-mqtt").addEventListener("click", saveMqttConfig);
 el("mqtt-enabled").addEventListener("change", updateMqttFieldsVisibility);
-el("btn-ota-check").addEventListener("click", checkOtaUpdate);
+el("btn-ota-check").addEventListener("click", () => checkOtaUpdate());
 el("btn-ota-update").addEventListener("click", applyOtaUpdate);
+el("btn-banner-update-now").addEventListener("click", applyOtaUpdate);
 el("btn-ota-upload").addEventListener("click", uploadFirmwareFile);
+el("network-mode-dhcp").addEventListener("change", updateNetworkFieldsVisibility);
+el("network-mode-static").addEventListener("change", updateNetworkFieldsVisibility);
+el("btn-save-network").addEventListener("click", saveNetworkConfig);
+
+el("banner-update-summary").addEventListener("click", () => {
+  el("banner-update-details").classList.toggle("hidden");
+});
 
 refreshStatus();
 loadSchedule();
 loadMqttConfig();
 loadOtaInfo();
+loadNetworkConfig();
+checkOtaUpdate({ silent: true });
 setInterval(refreshStatus, 2000);

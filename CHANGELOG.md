@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.5.0-beta — 2026-07-04
+
+Alert di aggiornamento con changelog, configurazione IP statico/DHCP.
+
+- Banner automatico ("Nuova versione disponibile") controllato al caricamento della pagina, cliccabile per vedere le note di rilascio della release GitHub prima di aggiornare
+- `/api/ota/check` ora restituisce anche `releaseNotes` (corpo della release, troncato a 2000 caratteri)
+- Nuova sezione "Configurazione IP" nella card Connessione: DHCP (default) o IP statico (indirizzo, gateway, subnet, DNS opzionale), persistito e applicato con `WiFi.config()` prima della connessione; il dispositivo si riavvia da solo per applicare
+- Corretta l'etichetta dell'IP nel mock server (era `192.168.1.50`, facilmente scambiabile per un IP reale): ora usa un indirizzo del blocco RFC 5737 riservato alla documentazione, non instradabile su nessuna rete reale
+- Testato end-to-end sul vero ESP32: IP statico applicato e verificato raggiungibile al nuovo indirizzo, poi ripristinato DHCP
+
 ## v0.4.0-beta — 2026-07-04
 
 Configurazione MQTT via web, stato WiFi dettagliato, aggiornamento OTA.

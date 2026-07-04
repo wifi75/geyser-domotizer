@@ -57,6 +57,7 @@ void OtaManager::handleCheck(AsyncWebServerRequest* request) {
   // molti più campi di quelli che ci servono.
   JsonDocument filter;
   filter[0]["tag_name"] = true;
+  filter[0]["body"] = true;
   filter[0]["assets"][0]["name"] = true;
   filter[0]["assets"][0]["browser_download_url"] = true;
 
@@ -89,9 +90,13 @@ void OtaManager::handleCheck(AsyncWebServerRequest* request) {
     }
   }
 
+  String notes = latest["body"].as<String>();
+  if (notes.length() > 2000) notes = notes.substring(0, 2000) + "...";
+
   doc["ok"] = true;
   doc["updateAvailable"] = pendingVersion_ != FIRMWARE_VERSION;
   doc["latestVersion"] = pendingVersion_;
+  doc["releaseNotes"] = notes;
   AsyncResponseStream* response = request->beginResponseStream("application/json");
   serializeJson(doc, *response);
   request->send(response);

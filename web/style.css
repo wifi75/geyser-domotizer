@@ -72,6 +72,23 @@ main {
 }
 
 .banner-warn { background: #4a3a1a; color: var(--warn); }
+.banner-info { background: #1a3a4a; color: #7ec8e8; }
+
+.banner-clickable { cursor: pointer; }
+.banner-link { text-decoration: underline; }
+
+#banner-update-details { margin-top: 10px; }
+#banner-update-notes {
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 0.85rem;
+  background: rgba(0,0,0,0.15);
+  padding: 10px;
+  border-radius: 6px;
+  margin: 0 0 10px 0;
+  max-height: 240px;
+  overflow-y: auto;
+}
 
 .hidden { display: none !important; }
 
@@ -137,6 +154,40 @@ main {
 .wifi-details { font-size: 0.9rem; }
 .wifi-details > div { margin-bottom: 2px; }
 
+.network-form {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.network-form h3 {
+  margin: 0 0 4px 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.network-mode-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.network-fields {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 10px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.network-fields label { color: var(--muted); font-size: 0.85rem; }
+
 .mqtt-form { display: flex; flex-direction: column; gap: 12px; }
 
 .mqtt-enabled-row {
@@ -197,7 +248,7 @@ main {
 
 .manual-controls label { color: var(--muted); font-size: 0.85rem; }
 
-input[type="number"], input[type="time"] {
+input[type="number"], input[type="time"], input[type="text"], input[type="password"] {
   background: #0d151c;
   border: 1px solid var(--border);
   color: var(--text);

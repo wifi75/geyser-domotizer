@@ -21,6 +21,16 @@
     ⚠️ Batteria scarica: la programmazione automatica potrebbe non completarsi.
   </section>
 
+  <section id="banner-update" class="banner banner-info hidden">
+    <div id="banner-update-summary" class="banner-clickable">
+      🔔 Nuova versione disponibile: <strong id="banner-update-version">--</strong> — <span class="banner-link">vedi novità</span>
+    </div>
+    <div id="banner-update-details" class="hidden">
+      <pre id="banner-update-notes"></pre>
+      <button id="btn-banner-update-now" class="btn btn-primary">Aggiorna ora</button>
+    </div>
+  </section>
+
   <section class="card" id="card-battery">
     <h2>Batteria</h2>
     <div class="battery-row">
@@ -40,7 +50,36 @@
       </div>
       <div class="wifi-details">
         <div><strong id="wifi-ssid">--</strong> <span id="wifi-rssi" class="muted">--</span></div>
-        <div class="muted">IP: <span id="wifi-ip">--</span></div>
+        <div class="muted">IP attuale: <span id="wifi-ip">--</span></div>
+      </div>
+    </div>
+
+    <div class="network-form">
+      <h3>Configurazione IP</h3>
+      <label class="network-mode-row">
+        <input type="radio" name="network-mode" id="network-mode-dhcp" value="dhcp" checked>
+        DHCP automatico (consigliato)
+      </label>
+      <label class="network-mode-row">
+        <input type="radio" name="network-mode" id="network-mode-static" value="static">
+        IP statico
+      </label>
+      <div class="network-fields hidden" id="network-fields">
+        <label for="network-ip">Indirizzo IP</label>
+        <input type="text" id="network-ip" placeholder="192.168.1.50">
+
+        <label for="network-gateway">Gateway</label>
+        <input type="text" id="network-gateway" placeholder="192.168.1.1">
+
+        <label for="network-subnet">Subnet mask</label>
+        <input type="text" id="network-subnet" placeholder="255.255.255.0">
+
+        <label for="network-dns">DNS (opzionale)</label>
+        <input type="text" id="network-dns" placeholder="192.168.1.1">
+      </div>
+      <div class="schedule-actions">
+        <button id="btn-save-network" class="btn btn-primary">Salva (riavvia il dispositivo)</button>
+        <span id="network-feedback" class="feedback"></span>
       </div>
     </div>
   </section>

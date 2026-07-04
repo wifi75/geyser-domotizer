@@ -11,6 +11,7 @@
 #include "mqtt_client.h"
 #include "mqtt_settings.h"
 #include "ota.h"
+#include "network_settings.h"
 
 // NOTA su consumo energetico: questa v1 del firmware resta sempre sveglia
 // (niente deep-sleep) cosi' l'interfaccia web e l'avvio manuale rispondono
@@ -29,6 +30,7 @@ bool mqttConnectedFlag = false;
 MqttClientWrapper mqtt;
 WebServerApp webApp(server, pump, battery, schedule, mqttConnectedFlag, mqttSettings, mqtt);
 OtaManager ota;
+NetworkSettings networkSettings;
 
 uint32_t lastWifiAttemptMs = 0;
 String lastCheckedMinuteKey = "";
@@ -87,8 +89,22 @@ void setup() {
   pump.begin();
   schedule.begin();
   mqttSettings.begin();
+  networkSettings.begin(server);
 
   WiFi.mode(WIFI_STA);
+
+  if (networkSettings.data().mode == NetworkMode::STATIC_IP) {
+    IPAddress ip, gateway, subnet, dns;
+    ip.fromString(networkSettings.data().ip);
+    gateway.fromString(networkSettings.data().gateway);
+    subnet.fromString(networkSettings.data().subnet);
+    if (networkSettings.data().dns.length()) dns.fromString(networkSettings.data().dns);
+    if (!WiFi.config(ip, gateway, subnet, dns)) {
+      Serial.println("Configurazione IP statico non valida, uso DHCP");
+    } else {
+      Serial.printf("IP statico configurato: %s\n", networkSettings.data().ip.c_str());
+    }
+  }
 
   Serial.println("Reti WiFi visibili (2.4GHz, l'ESP32 non vede il 5GHz):");
   int n = WiFi.scanNetworks();

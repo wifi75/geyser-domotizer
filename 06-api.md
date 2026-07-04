@@ -96,7 +96,9 @@ Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "invalid_config", "de
 
 Interroga le release GitHub del progetto e confronta con la versione attuale. Il risultato resta memorizzato lato dispositivo per il successivo `/api/ota/update`.
 
-Risposta: `{ "ok": true, "updateAvailable": true, "latestVersion": "0.5.0" }` oppure `{ "ok": false, "error": "network_error", "details": "..." }`
+Risposta: `{ "ok": true, "updateAvailable": true, "latestVersion": "0.5.0", "releaseNotes": "testo delle note di rilascio (troncato oltre 2000 caratteri)" }` oppure `{ "ok": false, "error": "network_error", "details": "..." }`
+
+Il frontend chiama questo endpoint automaticamente al caricamento della pagina (oltre che a richiesta manuale): se `updateAvailable` è `true` mostra un banner cliccabile con `latestVersion` e, in un pannello a comparsa, `releaseNotes`.
 
 ## POST /api/ota/update
 
@@ -111,6 +113,28 @@ Aggiornamento manuale: upload diretto di un file `.bin` (`multipart/form-data`, 
 Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "flash_failed" }`
 
 ⚠️ Il binario caricato **deve** corrispondere esattamente alla scheda in uso (es. `firmware-esp32dev.bin` vs `firmware-xiao-esp32c3.bin`, non sono intercambiabili: architetture di chip diverse).
+
+## GET /api/network
+
+```json
+{ "mode": "dhcp", "ip": "", "gateway": "", "subnet": "", "dns": "" }
+```
+
+oppure, con IP statico attivo:
+
+```json
+{ "mode": "static", "ip": "192.168.1.50", "gateway": "192.168.1.1", "subnet": "255.255.255.0", "dns": "192.168.1.1" }
+```
+
+## PUT /api/network
+
+Cambia modalità DHCP/IP statico. Se `mode` è `"static"`, `ip`/`gateway`/`subnet` sono obbligatori e devono essere indirizzi IPv4 validi; `dns` è opzionale (se omesso il dispositivo usa il gateway come DNS).
+
+**Il dispositivo si riavvia sempre dopo aver salvato**, per riapplicare la configurazione di rete dall'avvio — la richiesta potrebbe non ricevere risposta per lo stesso motivo di `/api/ota/upload`.
+
+Risposta (se la validazione fallisce, prima di riavviare): `{ "ok": false, "error": "invalid_network_config", "details": "..." }`
+
+⚠️ Se l'IP statico scelto è sbagliato o già occupato da un altro dispositivo sulla rete, il dispositivo potrebbe diventare irraggiungibile dalla UI: in tal caso serve ricollegarlo via USB e correggere manualmente (cancellare `/network_config.json` da LittleFS, o riflashare).
 
 ## Note di validazione (condivise da mock e firmware)
 

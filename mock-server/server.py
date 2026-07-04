@@ -23,14 +23,19 @@ WEB_DIR = os.path.join(os.path.dirname(__file__), "..", "web")
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 SCHEDULE_FILE = os.path.join(DATA_DIR, "schedule.json")
 CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
+NETWORK_FILE = os.path.join(DATA_DIR, "network.json")
 PORT = int(os.environ.get("PORT", 8000))
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.4.0"
+MOCK_CURRENT_VERSION = "0.5.0-beta"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 DEFAULT_CONFIG = {
     "mqtt": {"enabled": False, "host": "", "port": 1883, "user": "", "password": None}
+}
+
+DEFAULT_NETWORK = {
+    "mode": "dhcp", "ip": "", "gateway": "", "subnet": "255.255.255.0", "dns": ""
 }
 
 DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
@@ -58,7 +63,9 @@ class State:
         os.makedirs(DATA_DIR, exist_ok=True)
         self.schedule = self._load_schedule()
         self.config = self._load_config()
+        self.network = self._load_network()
         self.ota_pending_version = None
+        self.ota_pending_notes = None
 
     def _load_schedule(self):
         if os.path.exists(SCHEDULE_FILE):
@@ -81,6 +88,17 @@ class State:
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2)
         self.config = config
+
+    def _load_network(self):
+        if os.path.exists(NETWORK_FILE):
+            with open(NETWORK_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        return json.loads(json.dumps(DEFAULT_NETWORK))
+
+    def save_network(self, network):
+        with open(NETWORK_FILE, "w", encoding="utf-8") as f:
+            json.dump(network, f, indent=2)
+        self.network = network
 
     def config_public(self):
         with self.lock:
@@ -110,7 +128,11 @@ class State:
                     "remainingSeconds": self.pump_remaining,
                     "source": self.pump_source,
                 },
-                "wifi": {"connected": True, "ssid": "WiFi (mock)", "ip": "192.168.1.50", "rssi": -55},
+                # IP in blocco RFC 5737 (riservato alla documentazione): non è
+                # instradabile su nessuna rete reale, per non farlo scambiare
+                # per un vero indirizzo LAN. Sul firmware vero questo campo è
+                # il risultato di WiFi.localIP(), l'indirizzo DHCP reale.
+                "wifi": {"connected": True, "ssid": "WiFi (mock, non reale)", "ip": "203.0.113.50", "rssi": -55},
                 "mqtt": {"connected": bool(self.config["mqtt"]["enabled"] and self.config["mqtt"]["host"])},
             }
 
@@ -175,7 +197,7 @@ def check_github_latest_release():
     PC dello sviluppatore, che ha accesso a internet, a differenza dell'ESP32
     isolato in laboratorio). Usa /releases (lista) e non /releases/latest,
     perché quest'ultimo esclude le prerelease -- e qui sono tutte beta.
-    Ritorna (tag_senza_v, errore)."""
+    Ritorna (tag_senza_v, note_di_rilascio, errore)."""
     url = f"https://api.github.com/repos/{GITHUB_REPO}/releases"
     req = urllib.request.Request(url, headers={
         "User-Agent": "geyser-domotizer-mock",
@@ -185,13 +207,15 @@ def check_github_latest_release():
         with urllib.request.urlopen(req, timeout=5) as resp:
             releases = json.load(resp)
         if not releases:
-            return None, "nessuna release pubblicata su GitHub"
+            return None, None, "nessuna release pubblicata su GitHub"
         tag = releases[0].get("tag_name", "")
-        return tag[1:] if tag.startswith("v") else tag, None
+        version = tag[1:] if tag.startswith("v") else tag
+        notes = (releases[0].get("body") or "")[:2000]
+        return version, notes, None
     except urllib.error.HTTPError as e:
-        return None, f"errore HTTP {e.code}"
+        return None, None, f"errore HTTP {e.code}"
     except Exception as e:
-        return None, str(e)
+        return None, None, str(e)
 
 
 def ticker_loop():
@@ -219,6 +243,32 @@ def validate_schedule(schedule):
             seen_times.add(t)
             if not isinstance(d, int) or not (5 <= d <= 1800):
                 return f"{day}: durata non valida per {t}"
+    return None
+
+
+def _is_valid_ipv4(s):
+    parts = s.split(".")
+    if len(parts) != 4:
+        return False
+    try:
+        return all(0 <= int(p) <= 255 for p in parts)
+    except ValueError:
+        return False
+
+
+def validate_network(config):
+    if not isinstance(config, dict):
+        return "network deve essere un oggetto"
+    mode = config.get("mode")
+    if mode not in ("dhcp", "static"):
+        return "mode deve essere 'dhcp' o 'static'"
+    if mode == "static":
+        for field in ("ip", "gateway", "subnet"):
+            if not _is_valid_ipv4(config.get(field, "")):
+                return f"{field} non valido"
+        dns = config.get("dns", "")
+        if dns and not _is_valid_ipv4(dns):
+            return "dns non valido"
     return None
 
 
@@ -263,6 +313,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self._send_json(state.config_public())
         if self.path == "/api/ota/info":
             return self._send_json({"currentVersion": MOCK_CURRENT_VERSION})
+        if self.path == "/api/network":
+            return self._send_json(state.network)
         return super().do_GET()
 
     def do_POST(self):
@@ -275,14 +327,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             state.stop()
             return self._send_json({"ok": True})
         if self.path == "/api/ota/check":
-            latest, error = check_github_latest_release()
+            latest, notes, error = check_github_latest_release()
             if error:
                 return self._send_json({"ok": False, "error": "network_error", "details": error})
             state.ota_pending_version = latest
+            state.ota_pending_notes = notes
             return self._send_json({
                 "ok": True,
                 "updateAvailable": latest != MOCK_CURRENT_VERSION,
                 "latestVersion": latest,
+                "releaseNotes": notes,
             })
         if self.path == "/api/ota/update":
             if not state.ota_pending_version:
@@ -327,6 +381,21 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if "password" in incoming:
                 mqtt["password"] = incoming["password"] or None
             state.save_config({"mqtt": mqtt})
+            return self._send_json({"ok": True})
+        if self.path == "/api/network":
+            body = self._read_json()
+            error = validate_network(body)
+            if error:
+                return self._send_json({"ok": False, "error": "invalid_network_config", "details": error}, status=400)
+            network = {
+                "mode": body["mode"],
+                "ip": body.get("ip", "") if body["mode"] == "static" else "",
+                "gateway": body.get("gateway", "") if body["mode"] == "static" else "",
+                "subnet": body.get("subnet", "255.255.255.0") if body["mode"] == "static" else "255.255.255.0",
+                "dns": body.get("dns", "") if body["mode"] == "static" else "",
+            }
+            state.save_network(network)
+            print(f"[network] configurazione salvata: {network} (su un vero ESP32 qui riavvierebbe)")
             return self._send_json({"ok": True})
         self.send_error(404)
 
