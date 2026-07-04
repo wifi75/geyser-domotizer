@@ -104,6 +104,18 @@
 
   <div class="tab-panel hidden" data-tab="impostazioni">
 
+    <section class="card" id="card-gpio">
+      <h2>Pin GPIO relè pompa</h2>
+      <p class="muted">Scheda rilevata: <strong id="gpio-board">--</strong></p>
+      <label for="gpio-relay-select">Pin IN del relè</label>
+      <select id="gpio-relay-select"></select>
+      <div class="schedule-actions">
+        <button id="btn-save-gpio" class="btn btn-primary">Salva (riavvia il dispositivo)</button>
+        <span id="gpio-feedback" class="feedback"></span>
+      </div>
+      <p class="muted">⚠️ Ricollega fisicamente il relè al nuovo pin prima di salvare, altrimenti la pompa non risponderà più finché non lo ricolleghi.</p>
+    </section>
+
     <section class="card" id="card-network">
       <h2>Configurazione IP</h2>
       <label class="network-mode-row">

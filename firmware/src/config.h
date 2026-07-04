@@ -80,6 +80,9 @@
 // --- Rete (DHCP / IP statico) ---
 #define NETWORK_CONFIG_FILE "/network_config.json"
 
+// --- Selezione GPIO relè pompa (elenco candidati in gpio_settings.cpp) ---
+#define GPIO_CONFIG_FILE "/gpio_config.json"
+
 // --- Programmazione ---
 #define MAX_ENTRIES_PER_DAY 8
 #define SCHEDULE_FILE "/schedule.json"
@@ -94,7 +97,7 @@
 // Da bump manuale ad ogni release: deve corrispondere ESATTAMENTE al tag
 // GitHub "vX.Y.Z" (senza la "v"), il confronto è una semplice uguaglianza
 // di stringa, non un confronto semver.
-#define FIRMWARE_VERSION "0.9.2"
+#define FIRMWARE_VERSION "0.10.0"
 #define GITHUB_OWNER "wifi75"
 #define GITHUB_REPO "geyser-domotizer"
 // Nome dell'asset da cercare tra quelli allegati alla release GitHub: deve

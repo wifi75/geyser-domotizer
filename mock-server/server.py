@@ -24,11 +24,22 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 SCHEDULE_FILE = os.path.join(DATA_DIR, "schedule.json")
 CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
 NETWORK_FILE = os.path.join(DATA_DIR, "network.json")
+GPIO_FILE = os.path.join(DATA_DIR, "gpio.json")
 PORT = int(os.environ.get("PORT", 8000))
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.9.2"
+MOCK_CURRENT_VERSION = "0.10.0"
 GITHUB_REPO = "wifi75/geyser-domotizer"
+
+# Rispecchia l'elenco per esp32dev in firmware/src/gpio_settings.cpp
+GPIO_OPTIONS = [
+    {"pin": 4, "label": "GPIO4"}, {"pin": 13, "label": "GPIO13"}, {"pin": 14, "label": "GPIO14"},
+    {"pin": 16, "label": "GPIO16"}, {"pin": 17, "label": "GPIO17"}, {"pin": 18, "label": "GPIO18"},
+    {"pin": 19, "label": "GPIO19"}, {"pin": 21, "label": "GPIO21"}, {"pin": 22, "label": "GPIO22"},
+    {"pin": 23, "label": "GPIO23"}, {"pin": 25, "label": "GPIO25"}, {"pin": 26, "label": "GPIO26 (default)"},
+    {"pin": 27, "label": "GPIO27"}, {"pin": 32, "label": "GPIO32"}, {"pin": 33, "label": "GPIO33"},
+]
+GPIO_VALID_PINS = {o["pin"] for o in GPIO_OPTIONS}
 
 DEFAULT_CONFIG = {
     "mqtt": {"enabled": False, "host": "", "port": 1883, "user": "", "password": None}
@@ -64,6 +75,7 @@ class State:
         self.schedule = self._load_schedule()
         self.config = self._load_config()
         self.network = self._load_network()
+        self.gpio_pin = self._load_gpio_pin()
         self.ota_pending_version = None
         self.ota_pending_notes = None
         self.ota_progress = {"inProgress": False, "phase": "idle", "current": 0, "total": 0}
@@ -100,6 +112,17 @@ class State:
         with open(NETWORK_FILE, "w", encoding="utf-8") as f:
             json.dump(network, f, indent=2)
         self.network = network
+
+    def _load_gpio_pin(self):
+        if os.path.exists(GPIO_FILE):
+            with open(GPIO_FILE, "r", encoding="utf-8") as f:
+                return json.load(f).get("relayPin", 26)
+        return 26
+
+    def save_gpio_pin(self, pin):
+        with open(GPIO_FILE, "w", encoding="utf-8") as f:
+            json.dump({"relayPin": pin}, f, indent=2)
+        self.gpio_pin = pin
 
     def config_public(self):
         with self.lock:
@@ -344,6 +367,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self._send_json(state.ota_progress)
         if self.path == "/api/network":
             return self._send_json(state.network)
+        if self.path == "/api/gpio":
+            return self._send_json({"board": "esp32dev (mock)", "current": state.gpio_pin, "options": GPIO_OPTIONS})
         return super().do_GET()
 
     def do_POST(self):
@@ -428,6 +453,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             }
             state.save_network(network)
             print(f"[network] configurazione salvata: {network} (su un vero ESP32 qui riavvierebbe)")
+            return self._send_json({"ok": True})
+        if self.path == "/api/gpio":
+            body = self._read_json()
+            pin = body.get("pin")
+            if pin not in GPIO_VALID_PINS:
+                return self._send_json({"ok": False, "error": "invalid_pin",
+                                        "details": "pin non tra quelli disponibili per questa scheda"}, status=400)
+            state.save_gpio_pin(pin)
+            print(f"[gpio] pin relè impostato a {pin} (su un vero ESP32 qui riavvierebbe)")
             return self._send_json({"ok": True})
         self.send_error(404)
 

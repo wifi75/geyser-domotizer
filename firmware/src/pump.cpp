@@ -7,9 +7,10 @@
 // relè, con relativa estensione del contratto API/stato: rimandato a una
 // versione successiva, vedi 01-analisi-fattibilita.md).
 
-void Pump::begin() {
-  pinMode(PIN_RELAY_PUMP, OUTPUT);
-  digitalWrite(PIN_RELAY_PUMP, LOW);
+void Pump::begin(int relayPin) {
+  relayPin_ = relayPin;
+  pinMode(relayPin_, OUTPUT);
+  digitalWrite(relayPin_, LOW);
   pinMode(PIN_BUZZER, OUTPUT);
   digitalWrite(PIN_BUZZER, LOW);
 }
@@ -20,7 +21,7 @@ bool Pump::start(PumpSource source, uint32_t durationSeconds) {
   source_ = source;
   startedAtMs_ = millis();
   durationMs_ = durationSeconds * 1000UL;
-  digitalWrite(PIN_RELAY_PUMP, HIGH);
+  digitalWrite(relayPin_, HIGH);
 
   digitalWrite(PIN_BUZZER, HIGH);
   delay(150);
@@ -32,7 +33,7 @@ bool Pump::start(PumpSource source, uint32_t durationSeconds) {
 void Pump::stop() {
   active_ = false;
   source_ = PumpSource::NONE;
-  digitalWrite(PIN_RELAY_PUMP, LOW);
+  digitalWrite(relayPin_, LOW);
 }
 
 void Pump::tick() {

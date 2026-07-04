@@ -448,6 +448,47 @@ function uploadFirmwareFile() {
   xhr.send(formData);
 }
 
+async function loadGpioConfig() {
+  const cfg = await api("/api/gpio");
+  el("gpio-board").textContent = cfg.board;
+  const select = el("gpio-relay-select");
+  select.innerHTML = "";
+  for (const opt of cfg.options) {
+    const optionEl = document.createElement("option");
+    optionEl.value = opt.pin;
+    optionEl.textContent = opt.label;
+    if (opt.pin === cfg.current) optionEl.selected = true;
+    select.appendChild(optionEl);
+  }
+}
+
+async function saveGpioConfig() {
+  const feedback = el("gpio-feedback");
+  feedback.textContent = "";
+  feedback.className = "feedback";
+  const pin = parseInt(el("gpio-relay-select").value, 10);
+
+  try {
+    const r = await api("/api/gpio", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin })
+    });
+    if (r && r.ok === false) {
+      feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+      feedback.className = "feedback error";
+    } else {
+      feedback.textContent = "Salvato, il dispositivo si sta riavviando...";
+      feedback.className = "feedback ok";
+      waitForDeviceAndReload();
+    }
+  } catch (e) {
+    feedback.textContent = "Salvato: il dispositivo si sta riavviando...";
+    feedback.className = "feedback ok";
+    waitForDeviceAndReload();
+  }
+}
+
 function updateNetworkFieldsVisibility() {
   const isStatic = el("network-mode-static").checked;
   el("network-fields").classList.toggle("hidden", !isStatic);
@@ -510,6 +551,7 @@ el("network-mode-dhcp").addEventListener("change", updateNetworkFieldsVisibility
 el("network-mode-static").addEventListener("change", updateNetworkFieldsVisibility);
 el("btn-save-network").addEventListener("click", saveNetworkConfig);
 el("btn-restart").addEventListener("click", restartDevice);
+el("btn-save-gpio").addEventListener("click", saveGpioConfig);
 
 el("banner-update-summary").addEventListener("click", () => {
   el("banner-update-details").classList.toggle("hidden");
@@ -535,5 +577,6 @@ loadSchedule();
 loadMqttConfig();
 loadOtaInfo();
 loadNetworkConfig();
+loadGpioConfig();
 checkOtaUpdate({ silent: true });
 setInterval(refreshStatus, 2000);

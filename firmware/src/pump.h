@@ -5,7 +5,7 @@ enum class PumpSource { NONE, MANUAL, SCHEDULE };
 
 class Pump {
  public:
-  void begin();
+  void begin(int relayPin);
   void tick();  // da chiamare ad ogni loop()
 
   // Ritorna false se la pompa è già attiva (un solo ciclo alla volta).
@@ -17,6 +17,7 @@ class Pump {
   uint32_t remainingSeconds() const;
 
  private:
+  int relayPin_ = -1;
   bool active_ = false;
   PumpSource source_ = PumpSource::NONE;
   uint32_t startedAtMs_ = 0;

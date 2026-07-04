@@ -299,7 +299,7 @@ main {
 
 .manual-controls label { color: var(--muted); font-size: 0.85rem; }
 
-input[type="number"], input[type="time"], input[type="text"], input[type="password"] {
+input[type="number"], input[type="time"], input[type="text"], input[type="password"], select {
   background: #0d151c;
   border: 1px solid var(--border);
   color: var(--text);
@@ -307,6 +307,9 @@ input[type="number"], input[type="time"], input[type="text"], input[type="passwo
   padding: 6px 8px;
   font-size: 0.9rem;
 }
+
+#card-gpio label { display: block; color: var(--muted); font-size: 0.85rem; margin-bottom: 6px; }
+#gpio-relay-select { width: 100%; max-width: 320px; margin-bottom: 4px; }
 
 #manual-duration { width: 70px; }
 

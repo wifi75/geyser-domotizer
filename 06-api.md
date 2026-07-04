@@ -123,6 +123,30 @@ Da interrogare (polling, es. ogni 500ms) mentre `/api/ota/update` è in corso.
 
 `phase` è `idle` (nessun aggiornamento in corso), `firmware`, `littlefs`, `done` (sta per riavviarsi) o `error` (in questo caso la risposta include anche `error`/`details`, stessi codici di `/api/ota/update`). Quando il dispositivo si riavvia la richiesta smette di rispondere: è il segnale per il frontend di aspettare che torni online e ricaricare la pagina.
 
+## GET /api/gpio
+
+Elenco dei GPIO utilizzabili per il pin **IN** del relè pompa, diverso per scheda (esclude UART0, pin di boot/strapping, pin input-only), e scelta corrente.
+
+```json
+{
+  "board": "esp32dev",
+  "current": 26,
+  "options": [
+    { "pin": 4, "label": "GPIO4" },
+    { "pin": 26, "label": "GPIO26 (default)" }
+  ]
+}
+```
+
+## PUT /api/gpio
+
+Cambia il pin usato per il relè. `pin` deve essere uno di quelli in `options`. **Il dispositivo si riavvia sempre dopo aver salvato**, perché il pin va reinizializzato all'avvio.
+
+Richiesta: `{ "pin": 4 }`
+Risposta (se il pin non è valido, prima di riavviare): `{ "ok": false, "error": "invalid_pin", "details": "..." }`
+
+⚠️ Il relè va ricollegato fisicamente al nuovo pin prima di salvare, altrimenti la pompa non risponderà più fino al ricollegamento.
+
 ## POST /api/system/restart
 
 Riavvia il dispositivo subito (nessuna conferma lato server). Risposta: `{ "ok": true }`, poi il dispositivo si riavvia — la richiesta potrebbe non ricevere risposta per lo stesso motivo di `/api/ota/update`.

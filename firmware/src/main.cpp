@@ -12,6 +12,7 @@
 #include "mqtt_settings.h"
 #include "ota.h"
 #include "network_settings.h"
+#include "gpio_settings.h"
 
 // NOTA su consumo energetico: questa v1 del firmware resta sempre sveglia
 // (niente deep-sleep) cosi' l'interfaccia web e l'avvio manuale rispondono
@@ -31,6 +32,7 @@ MqttClientWrapper mqtt;
 WebServerApp webApp(server, pump, battery, schedule, mqttConnectedFlag, mqttSettings, mqtt);
 OtaManager ota;
 NetworkSettings networkSettings;
+GpioSettings gpioSettings;
 
 uint32_t lastWifiAttemptMs = 0;
 String lastCheckedMinuteKey = "";
@@ -86,10 +88,11 @@ void setup() {
   }
 
   battery.begin();
-  pump.begin();
   schedule.begin();
   mqttSettings.begin();
   networkSettings.begin(server);
+  gpioSettings.begin(server);
+  pump.begin(gpioSettings.relayPin());
 
   WiFi.mode(WIFI_STA);
 
