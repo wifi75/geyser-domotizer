@@ -10,9 +10,11 @@ class GpioSettings {
  public:
   void begin(AsyncWebServer& server);
   int relayPin() const { return relayPin_; }
+  bool relayActiveHigh() const { return relayActiveHigh_; }
 
  private:
   int relayPin_;
+  bool relayActiveHigh_ = true;  // true = maggior parte dei moduli relè
   bool load();
   bool save();
   void handleGet(AsyncWebServerRequest* request);

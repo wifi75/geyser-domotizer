@@ -109,6 +109,11 @@
       <p class="muted">Scheda rilevata: <strong id="gpio-board">--</strong></p>
       <label for="gpio-relay-select">Pin IN del relè</label>
       <select id="gpio-relay-select"></select>
+      <label class="network-mode-row" style="margin-top:10px">
+        <input type="checkbox" id="gpio-active-high" checked>
+        Relè attivo alto (la maggior parte dei moduli)
+      </label>
+      <p class="muted">Se il tuo modulo ha scritto "low level trigger" o un jumper simile, deseleziona questa casella.</p>
       <div class="schedule-actions">
         <button id="btn-save-gpio" class="btn btn-primary">Salva (riavvia il dispositivo)</button>
         <span id="gpio-feedback" class="feedback"></span>

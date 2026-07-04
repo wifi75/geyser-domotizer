@@ -28,7 +28,7 @@ GPIO_FILE = os.path.join(DATA_DIR, "gpio.json")
 PORT = int(os.environ.get("PORT", 8000))
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.10.0"
+MOCK_CURRENT_VERSION = "0.11.0"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 # Rispecchia l'elenco per esp32dev in firmware/src/gpio_settings.cpp
@@ -75,7 +75,7 @@ class State:
         self.schedule = self._load_schedule()
         self.config = self._load_config()
         self.network = self._load_network()
-        self.gpio_pin = self._load_gpio_pin()
+        self.gpio_pin, self.gpio_active_high = self._load_gpio_pin()
         self.ota_pending_version = None
         self.ota_pending_notes = None
         self.ota_progress = {"inProgress": False, "phase": "idle", "current": 0, "total": 0}
@@ -116,13 +116,15 @@ class State:
     def _load_gpio_pin(self):
         if os.path.exists(GPIO_FILE):
             with open(GPIO_FILE, "r", encoding="utf-8") as f:
-                return json.load(f).get("relayPin", 26)
-        return 26
+                data = json.load(f)
+                return data.get("relayPin", 26), data.get("relayActiveHigh", True)
+        return 26, True
 
-    def save_gpio_pin(self, pin):
+    def save_gpio_pin(self, pin, active_high):
         with open(GPIO_FILE, "w", encoding="utf-8") as f:
-            json.dump({"relayPin": pin}, f, indent=2)
+            json.dump({"relayPin": pin, "relayActiveHigh": active_high}, f, indent=2)
         self.gpio_pin = pin
+        self.gpio_active_high = active_high
 
     def config_public(self):
         with self.lock:
@@ -368,7 +370,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path == "/api/network":
             return self._send_json(state.network)
         if self.path == "/api/gpio":
-            return self._send_json({"board": "esp32dev (mock)", "current": state.gpio_pin, "options": GPIO_OPTIONS})
+            return self._send_json({"board": "esp32dev (mock)", "current": state.gpio_pin,
+                                    "activeHigh": state.gpio_active_high, "options": GPIO_OPTIONS})
         return super().do_GET()
 
     def do_POST(self):
@@ -460,8 +463,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if pin not in GPIO_VALID_PINS:
                 return self._send_json({"ok": False, "error": "invalid_pin",
                                         "details": "pin non tra quelli disponibili per questa scheda"}, status=400)
-            state.save_gpio_pin(pin)
-            print(f"[gpio] pin relè impostato a {pin} (su un vero ESP32 qui riavvierebbe)")
+            active_high = body.get("activeHigh", True)
+            state.save_gpio_pin(pin, active_high)
+            print(f"[gpio] pin relè impostato a {pin} (attivo {'alto' if active_high else 'basso'}, "
+                  f"su un vero ESP32 qui riavvierebbe)")
             return self._send_json({"ok": True})
         self.send_error(404)
 

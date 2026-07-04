@@ -460,6 +460,7 @@ async function loadGpioConfig() {
     if (opt.pin === cfg.current) optionEl.selected = true;
     select.appendChild(optionEl);
   }
+  el("gpio-active-high").checked = cfg.activeHigh;
 }
 
 async function saveGpioConfig() {
@@ -467,12 +468,13 @@ async function saveGpioConfig() {
   feedback.textContent = "";
   feedback.className = "feedback";
   const pin = parseInt(el("gpio-relay-select").value, 10);
+  const activeHigh = el("gpio-active-high").checked;
 
   try {
     const r = await api("/api/gpio", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pin })
+      body: JSON.stringify({ pin, activeHigh })
     });
     if (r && r.ok === false) {
       feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;

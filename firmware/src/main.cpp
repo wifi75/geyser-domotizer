@@ -92,7 +92,7 @@ void setup() {
   mqttSettings.begin();
   networkSettings.begin(server);
   gpioSettings.begin(server);
-  pump.begin(gpioSettings.relayPin());
+  pump.begin(gpioSettings.relayPin(), gpioSettings.relayActiveHigh());
 
   WiFi.mode(WIFI_STA);
 

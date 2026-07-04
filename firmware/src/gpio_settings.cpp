@@ -63,12 +63,14 @@ bool GpioSettings::load() {
 
   int pin = doc["relayPin"] | PIN_RELAY_PUMP;
   relayPin_ = isValidPin(pin) ? pin : PIN_RELAY_PUMP;
+  relayActiveHigh_ = doc["relayActiveHigh"] | true;
   return true;
 }
 
 bool GpioSettings::save() {
   JsonDocument doc;
   doc["relayPin"] = relayPin_;
+  doc["relayActiveHigh"] = relayActiveHigh_;
   File f = LittleFS.open(GPIO_CONFIG_FILE, "w");
   if (!f) return false;
   serializeJson(doc, f);
@@ -80,6 +82,7 @@ void GpioSettings::handleGet(AsyncWebServerRequest* request) {
   JsonDocument doc;
   doc["board"] = BOARD_NAME;
   doc["current"] = relayPin_;
+  doc["activeHigh"] = relayActiveHigh_;
   JsonArray options = doc["options"].to<JsonArray>();
   for (int i = 0; i < OPTIONS_COUNT; i++) {
     JsonObject o = options.add<JsonObject>();
@@ -106,6 +109,7 @@ void GpioSettings::handlePut(AsyncWebServerRequest* request, JsonVariant& body) 
   }
 
   relayPin_ = pin;
+  relayActiveHigh_ = body["activeHigh"] | true;
   save();
 
   AsyncWebServerResponse* response = request->beginResponse(200, "application/json", "{\"ok\":true}");

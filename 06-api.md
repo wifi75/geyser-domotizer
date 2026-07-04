@@ -131,6 +131,7 @@ Elenco dei GPIO utilizzabili per il pin **IN** del relè pompa, diverso per sche
 {
   "board": "esp32dev",
   "current": 26,
+  "activeHigh": true,
   "options": [
     { "pin": 4, "label": "GPIO4" },
     { "pin": 26, "label": "GPIO26 (default)" }
@@ -138,11 +139,13 @@ Elenco dei GPIO utilizzabili per il pin **IN** del relè pompa, diverso per sche
 }
 ```
 
+`activeHigh` indica la logica del relè: `true` se si attiva con IN a livello alto (la maggior parte dei moduli), `false` se si attiva a livello basso (verificare il jumper/la sigla stampata sul modulo, es. "low level trigger").
+
 ## PUT /api/gpio
 
-Cambia il pin usato per il relè. `pin` deve essere uno di quelli in `options`. **Il dispositivo si riavvia sempre dopo aver salvato**, perché il pin va reinizializzato all'avvio.
+Cambia pin e/o logica del relè. `pin` deve essere uno di quelli in `options`. **Il dispositivo si riavvia sempre dopo aver salvato**, perché entrambi vanno reinizializzati all'avvio.
 
-Richiesta: `{ "pin": 4 }`
+Richiesta: `{ "pin": 4, "activeHigh": true }`
 Risposta (se il pin non è valido, prima di riavviare): `{ "ok": false, "error": "invalid_pin", "details": "..." }`
 
 ⚠️ Il relè va ricollegato fisicamente al nuovo pin prima di salvare, altrimenti la pompa non risponderà più fino al ricollegamento.
