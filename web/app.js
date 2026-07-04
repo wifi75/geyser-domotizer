@@ -305,26 +305,99 @@ async function checkOtaUpdate({ silent } = {}) {
   }
 }
 
+// Dopo un riavvio (OTA, upload manuale o riavvio esplicito), aspetta che il
+// dispositivo torni raggiungibile e ricarica la pagina da sola.
+async function waitForDeviceAndReload(maxAttempts = 60) {
+  let sawDown = false;
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    try {
+      await api("/api/ota/info");
+      if (sawDown) {
+        location.reload();
+        return;
+      }
+    } catch (e) {
+      sawDown = true;
+    }
+  }
+}
+
+function setOtaProgressUI(phase, current, total) {
+  const percent = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+  const phaseLabel = phase === "firmware" ? "Firmware" : phase === "littlefs" ? "Sito" : phase;
+  const label = total > 0 ? `${phaseLabel}: ${percent}%` : `${phaseLabel}...`;
+  [
+    ["ota-update-progress-bar", "ota-update-progress-label"],
+    ["banner-update-progress-bar", "banner-update-progress-label"]
+  ].forEach(([barId, labelId]) => {
+    el(barId).style.width = `${percent}%`;
+    el(labelId).textContent = label;
+  });
+}
+
 async function applyOtaUpdate() {
   const feedback = el("ota-check-feedback");
   const progressWraps = [el("ota-update-progress-wrap"), el("banner-update-progress-wrap")];
   feedback.textContent = "";
   feedback.className = "feedback";
-  progressWraps.forEach((w) => w.classList.remove("hidden"));
-  try {
-    const r = await api("/api/ota/update", { method: "POST" });
-    if (r && r.ok === false) {
-      feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
-      feedback.className = "feedback error";
-    }
-  } catch (e) {
-    // Il dispositivo si riavvia subito dopo il flash: la richiesta può
-    // fallire semplicemente perché non risponde più. Non è un errore.
-    feedback.textContent = "Aggiornamento avviato, il dispositivo si sta riavviando...";
-    feedback.className = "feedback ok";
-  } finally {
-    progressWraps.forEach((w) => w.classList.add("hidden"));
+
+  const start = await api("/api/ota/update", { method: "POST" });
+  if (start && start.ok === false) {
+    feedback.textContent = `Errore: ${start.error} ${start.details ?? ""}`;
+    feedback.className = "feedback error";
+    return;
   }
+
+  progressWraps.forEach((w) => w.classList.remove("hidden"));
+  setOtaProgressUI("firmware", 0, 0);
+
+  while (true) {
+    let p;
+    try {
+      p = await api("/api/ota/progress");
+    } catch (e) {
+      // Il dispositivo è sparito dalla rete: si sta riavviando dopo un
+      // aggiornamento riuscito (o è appena crashato, ma non c'è modo di
+      // distinguere i due casi da qui).
+      feedback.textContent = "Aggiornamento completato, il dispositivo si sta riavviando...";
+      feedback.className = "feedback ok";
+      progressWraps.forEach((w) => w.classList.add("hidden"));
+      waitForDeviceAndReload();
+      return;
+    }
+
+    if (p.phase === "error") {
+      feedback.textContent = `Errore: ${p.error} ${p.details ?? ""}`;
+      feedback.className = "feedback error";
+      progressWraps.forEach((w) => w.classList.add("hidden"));
+      return;
+    }
+
+    setOtaProgressUI(p.phase, p.current, p.total);
+
+    if (p.phase === "done") {
+      feedback.textContent = "Aggiornamento completato, il dispositivo si sta riavviando...";
+      feedback.className = "feedback ok";
+      progressWraps.forEach((w) => w.classList.add("hidden"));
+      waitForDeviceAndReload();
+      return;
+    }
+
+    await new Promise((r) => setTimeout(r, 600));
+  }
+}
+
+async function restartDevice() {
+  const feedback = el("restart-feedback");
+  feedback.textContent = "Riavvio in corso...";
+  feedback.className = "feedback";
+  try {
+    await api("/api/system/restart", { method: "POST" });
+  } catch (e) {
+    // atteso: il dispositivo si riavvia e la connessione cade
+  }
+  waitForDeviceAndReload();
 }
 
 function uploadFirmwareFile() {
@@ -356,6 +429,7 @@ function uploadFirmwareFile() {
       if (r.ok) {
         feedback.textContent = "Caricato, il dispositivo si sta riavviando...";
         feedback.className = "feedback ok";
+        waitForDeviceAndReload();
       } else {
         feedback.textContent = `Errore: ${r.error}`;
         feedback.className = "feedback error";
@@ -363,11 +437,13 @@ function uploadFirmwareFile() {
     } catch (e) {
       feedback.textContent = "Caricato, il dispositivo si sta riavviando...";
       feedback.className = "feedback ok";
+      waitForDeviceAndReload();
     }
   };
   xhr.onerror = () => {
     feedback.textContent = "Caricato: il dispositivo potrebbe essersi già riavviato.";
     feedback.className = "feedback ok";
+    waitForDeviceAndReload();
   };
   xhr.send(formData);
 }
@@ -433,6 +509,7 @@ el("btn-ota-upload").addEventListener("click", uploadFirmwareFile);
 el("network-mode-dhcp").addEventListener("change", updateNetworkFieldsVisibility);
 el("network-mode-static").addEventListener("change", updateNetworkFieldsVisibility);
 el("btn-save-network").addEventListener("click", saveNetworkConfig);
+el("btn-restart").addEventListener("click", restartDevice);
 
 el("banner-update-summary").addEventListener("click", () => {
   el("banner-update-details").classList.toggle("hidden");

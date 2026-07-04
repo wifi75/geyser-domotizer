@@ -27,7 +27,7 @@ NETWORK_FILE = os.path.join(DATA_DIR, "network.json")
 PORT = int(os.environ.get("PORT", 8000))
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.8.2"
+MOCK_CURRENT_VERSION = "0.9.0"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 DEFAULT_CONFIG = {
@@ -66,6 +66,7 @@ class State:
         self.network = self._load_network()
         self.ota_pending_version = None
         self.ota_pending_notes = None
+        self.ota_progress = {"inProgress": False, "phase": "idle", "current": 0, "total": 0}
 
     def _load_schedule(self):
         if os.path.exists(SCHEDULE_FILE):
@@ -142,6 +143,25 @@ class State:
                     "fsUsedBytes": 5200, "fsTotalBytes": 1441792,
                 },
             }
+
+    def start_simulated_update(self):
+        def run():
+            total = 1_100_000
+            self.ota_progress = {"inProgress": True, "phase": "firmware", "current": 0, "total": total}
+            for pct in range(0, 101, 5):
+                time.sleep(0.15)
+                self.ota_progress = {"inProgress": True, "phase": "firmware",
+                                     "current": int(total * pct / 100), "total": total}
+            self.ota_progress = {"inProgress": True, "phase": "littlefs", "current": 0, "total": total}
+            for pct in range(0, 101, 10):
+                time.sleep(0.1)
+                self.ota_progress = {"inProgress": True, "phase": "littlefs",
+                                     "current": int(total * pct / 100), "total": total}
+            self.ota_progress = {"inProgress": False, "phase": "done", "current": total, "total": total}
+            print(f"[ota] simulazione completata: v{self.ota_pending_version} "
+                  f"(su un vero ESP32 qui si riavvierebbe)")
+
+        threading.Thread(target=run, daemon=True).start()
 
     def start_manual(self, duration_seconds):
         with self.lock:
@@ -320,6 +340,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self._send_json(state.config_public())
         if self.path == "/api/ota/info":
             return self._send_json({"currentVersion": MOCK_CURRENT_VERSION})
+        if self.path == "/api/ota/progress":
+            return self._send_json(state.ota_progress)
         if self.path == "/api/network":
             return self._send_json(state.network)
         return super().do_GET()
@@ -348,9 +370,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path == "/api/ota/update":
             if not state.ota_pending_version:
                 return self._send_json({"ok": False, "error": "no_pending_update"})
-            print(f"[ota] simulazione aggiornamento a v{state.ota_pending_version} "
-                  f"(su un vero ESP32 qui scaricherebbe il binario e si riavvierebbe)")
-            time.sleep(1.5)
+            if state.ota_progress.get("inProgress"):
+                return self._send_json({"ok": False, "error": "update_already_in_progress"})
+            state.start_simulated_update()
+            return self._send_json({"ok": True, "started": True})
+        if self.path == "/api/system/restart":
+            print("[system] richiesto riavvio (simulato: il mock resta acceso)")
             return self._send_json({"ok": True})
         if self.path == "/api/ota/upload":
             length = int(self.headers.get("Content-Length", 0))

@@ -27,8 +27,8 @@
     <pre id="banner-update-notes"></pre>
     <button id="btn-banner-update-now" class="btn btn-primary">Aggiorna ora</button>
     <div id="banner-update-progress-wrap" class="hidden">
-      <div class="progress-bar-indeterminate"><div></div></div>
-      <span class="muted">Scaricamento e flash in corso, non spegnere il dispositivo...</span>
+      <div class="battery-bar-wrap"><div id="banner-update-progress-bar" class="battery-bar" style="width:0%"></div></div>
+      <span id="banner-update-progress-label" class="muted">--</span>
     </div>
   </div>
 </section>
@@ -171,8 +171,8 @@
         <button id="btn-ota-update" class="btn btn-primary hidden">Aggiorna ora</button>
       </div>
       <div id="ota-update-progress-wrap" class="hidden">
-        <div class="progress-bar-indeterminate"><div></div></div>
-        <span class="muted">Scaricamento e flash in corso, non spegnere il dispositivo...</span>
+        <div class="battery-bar-wrap"><div id="ota-update-progress-bar" class="battery-bar" style="width:0%"></div></div>
+        <span id="ota-update-progress-label" class="muted">--</span>
       </div>
 
       <div class="ota-manual">
@@ -184,6 +184,12 @@
           <div class="battery-bar-wrap"><div id="ota-upload-progress" class="battery-bar"></div></div>
         </div>
         <span id="ota-upload-feedback" class="feedback"></span>
+      </div>
+
+      <div class="ota-manual">
+        <h3>Riavvio</h3>
+        <button id="btn-restart" class="btn btn-danger">Riavvia dispositivo</button>
+        <span id="restart-feedback" class="feedback"></span>
       </div>
     </section>
 

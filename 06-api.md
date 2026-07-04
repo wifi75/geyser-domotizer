@@ -109,9 +109,23 @@ Il frontend chiama questo endpoint automaticamente al caricamento della pagina (
 
 ## POST /api/ota/update
 
-Scarica dall'ultima release GitHub controllata (va chiamato `/api/ota/check` prima) il binario del firmware corrispondente alla scheda in uso e lo flasha. Se la release ha **anche** un asset del sito (`littlefs-esp32dev.bin` / `littlefs-xiao-esp32c3.bin`), aggiorna pure quello prima di riavviare — un fallimento solo su questa seconda parte non blocca l'aggiornamento del firmware, che parte comunque al riavvio. Se tutto va a buon fine il dispositivo si riavvia da solo — la richiesta HTTP potrebbe non ricevere risposta perché il riavvio parte subito dopo.
+Avvia (in background, su un task separato) il download e il flash dell'ultima release GitHub controllata (va chiamato `/api/ota/check` prima): il binario del firmware corrispondente alla scheda in uso e, se presente, l'asset del sito (`littlefs-esp32dev.bin` / `littlefs-xiao-esp32c3.bin`). Un fallimento sul solo sito non blocca l'aggiornamento del firmware, che parte comunque al riavvio.
 
-Risposta (se il firmware fallisce prima di riavviare): `{ "ok": false, "error": "no_pending_update" | "download_failed", "details": "..." }`
+**Risponde subito**, senza aspettare che il download finisca (che richiede 20-40 secondi): `{ "ok": true, "started": true }` oppure, se non c'è un aggiornamento in sospeso o uno è già in corso, `{ "ok": false, "error": "no_pending_update" | "update_already_in_progress" }`. Usa `/api/ota/progress` per seguire l'avanzamento reale. Se tutto va a buon fine il dispositivo si riavvia da solo al termine.
+
+## GET /api/ota/progress
+
+Da interrogare (polling, es. ogni 500ms) mentre `/api/ota/update` è in corso.
+
+```json
+{ "inProgress": true, "phase": "firmware", "current": 583200, "total": 1112064 }
+```
+
+`phase` è `idle` (nessun aggiornamento in corso), `firmware`, `littlefs`, `done` (sta per riavviarsi) o `error` (in questo caso la risposta include anche `error`/`details`, stessi codici di `/api/ota/update`). Quando il dispositivo si riavvia la richiesta smette di rispondere: è il segnale per il frontend di aspettare che torni online e ricaricare la pagina.
+
+## POST /api/system/restart
+
+Riavvia il dispositivo subito (nessuna conferma lato server). Risposta: `{ "ok": true }`, poi il dispositivo si riavvia — la richiesta potrebbe non ricevere risposta per lo stesso motivo di `/api/ota/update`.
 
 ## POST /api/ota/upload
 

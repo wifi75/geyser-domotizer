@@ -284,31 +284,10 @@ main {
 
 #ota-update-progress-wrap, #banner-update-progress-wrap {
   margin-top: 10px;
+  max-width: 300px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.progress-bar-indeterminate {
-  width: 100%;
-  max-width: 300px;
-  height: 8px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-bar-indeterminate > div {
-  width: 40%;
-  height: 100%;
-  background: var(--primary);
-  border-radius: 4px;
-  animation: progress-indeterminate 1.2s ease-in-out infinite;
-}
-
-@keyframes progress-indeterminate {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(350%); }
 }
 
 .manual-controls {

@@ -17,6 +17,8 @@ void OtaManager::begin(AsyncWebServer& server) {
   server.on("/api/ota/info", HTTP_GET, [this](AsyncWebServerRequest* r) { handleInfo(r); });
   server.on("/api/ota/check", HTTP_POST, [this](AsyncWebServerRequest* r) { handleCheck(r); });
   server.on("/api/ota/update", HTTP_POST, [this](AsyncWebServerRequest* r) { handleUpdate(r); });
+  server.on("/api/ota/progress", HTTP_GET, [this](AsyncWebServerRequest* r) { handleProgress(r); });
+  server.on("/api/system/restart", HTTP_POST, [this](AsyncWebServerRequest* r) { handleRestart(r); });
 
   server.on(
       "/api/ota/upload", HTTP_POST,
@@ -114,8 +116,34 @@ void OtaManager::handleUpdate(AsyncWebServerRequest* request) {
                   "{\"ok\":false,\"error\":\"no_pending_update\"}");
     return;
   }
+  if (updateInProgress_) {
+    request->send(200, "application/json",
+                  "{\"ok\":false,\"error\":\"update_already_in_progress\"}");
+    return;
+  }
 
-  // rebootOnUpdate(false): il riavvio lo gestiamo noi qui sotto, per poter
+  updateInProgress_ = true;
+  progressPhase_ = "firmware";
+  progressCurrent_ = 0;
+  progressTotal_ = 0;
+  // Il download+flash vero e proprio gira in un task separato: tenerlo
+  // dentro questo handler bloccava l'AsyncWebServer per i 20-40 secondi
+  // necessari a scaricare firmware+sito, e la connessione cadeva prima che
+  // l'aggiornamento finisse davvero (sintomo: "riavviato" ma la versione
+  // restava quella vecchia). Qui rispondiamo subito; il progresso si legge
+  // da /api/ota/progress via polling.
+  xTaskCreate(updateTaskEntry, "ota_update", 8192, this, 1, nullptr);
+
+  request->send(200, "application/json", "{\"ok\":true,\"started\":true}");
+}
+
+void OtaManager::updateTaskEntry(void* param) {
+  static_cast<OtaManager*>(param)->runUpdateTask();
+  vTaskDelete(nullptr);
+}
+
+void OtaManager::runUpdateTask() {
+  // rebootOnUpdate(false): il riavvio lo gestiamo noi in fondo, per poter
   // applicare anche l'eventuale aggiornamento del sito (LittleFS) prima di
   // riavviare una volta sola invece che due.
   httpUpdate.rebootOnUpdate(false);
@@ -123,19 +151,21 @@ void OtaManager::handleUpdate(AsyncWebServerRequest* request) {
   // senza seguirlo esplicitamente, HTTPUpdate lo tratta come un errore
   // ("Wrong HTTP Code").
   httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
+  httpUpdate.onProgress([this](int cur, int total) {
+    progressCurrent_ = cur;
+    progressTotal_ = total;
+  });
 
   WiFiClientSecure firmwareClient;
   firmwareClient.setInsecure();
+  progressPhase_ = "firmware";
   t_httpUpdate_return ret = httpUpdate.update(firmwareClient, pendingAssetUrl_);
 
   if (ret != HTTP_UPDATE_OK) {
-    JsonDocument doc;
-    doc["ok"] = false;
-    doc["error"] = ret == HTTP_UPDATE_NO_UPDATES ? "no_update_needed" : "download_failed";
-    doc["details"] = httpUpdate.getLastErrorString();
-    AsyncResponseStream* response = request->beginResponseStream("application/json");
-    serializeJson(doc, *response);
-    request->send(response);
+    lastErrorCode_ = ret == HTTP_UPDATE_NO_UPDATES ? "no_update_needed" : "download_failed";
+    lastErrorDetails_ = httpUpdate.getLastErrorString();
+    progressPhase_ = "error";
+    updateInProgress_ = false;
     return;
   }
 
@@ -143,6 +173,9 @@ void OtaManager::handleUpdate(AsyncWebServerRequest* request) {
   // un asset per il sito, lo applichiamo prima di riavviare: un fallimento
   // qui non è bloccante, il firmware nuovo comunque parte al riavvio.
   if (!pendingLittlefsAssetUrl_.isEmpty()) {
+    progressPhase_ = "littlefs";
+    progressCurrent_ = 0;
+    progressTotal_ = 0;
     WiFiClientSecure littlefsClient;
     littlefsClient.setInsecure();
     t_httpUpdate_return fsRet = httpUpdate.updateSpiffs(littlefsClient, pendingLittlefsAssetUrl_);
@@ -152,10 +185,31 @@ void OtaManager::handleUpdate(AsyncWebServerRequest* request) {
     }
   }
 
+  progressPhase_ = "done";
+  delay(500);  // tempo per far leggere lo stato "done" al frontend
+  ESP.restart();
+}
+
+void OtaManager::handleProgress(AsyncWebServerRequest* request) {
+  JsonDocument doc;
+  doc["inProgress"] = updateInProgress_;
+  doc["phase"] = progressPhase_;
+  doc["current"] = progressCurrent_;
+  doc["total"] = progressTotal_;
+  if (progressPhase_ == "error") {
+    doc["error"] = lastErrorCode_;
+    doc["details"] = lastErrorDetails_;
+  }
+  AsyncResponseStream* response = request->beginResponseStream("application/json");
+  serializeJson(doc, *response);
+  request->send(response);
+}
+
+void OtaManager::handleRestart(AsyncWebServerRequest* request) {
   AsyncWebServerResponse* response = request->beginResponse(200, "application/json", "{\"ok\":true}");
   response->addHeader("Connection", "close");
   request->send(response);
-  delay(500);  // tempo per far uscire la risposta prima del riavvio
+  delay(500);
   ESP.restart();
 }
 
