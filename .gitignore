@@ -1,0 +1,10 @@
+# PlatformIO / Arduino (firmware verrà aggiunto nelle fasi successive)
+.pio/
+.vscode/
+build/
+*.bin
+*.elf
+
+# OS
+.DS_Store
+Thumbs.db
