@@ -539,6 +539,7 @@ async function saveGpioConfig() {
 async function loadNtpConfig() {
   const cfg = await api("/api/ntp");
   el("ntp-server").value = cfg.server || "";
+  el("ntp-interval").value = cfg.intervalHours || 6;
 }
 
 async function saveNtpConfig() {
@@ -546,12 +547,13 @@ async function saveNtpConfig() {
   feedback.textContent = "";
   feedback.className = "feedback";
   const server = el("ntp-server").value.trim();
+  const intervalHours = parseInt(el("ntp-interval").value, 10) || 6;
 
   try {
     const r = await api("/api/ntp", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ server })
+      body: JSON.stringify({ server, intervalHours })
     });
     if (r && r.ok === false) {
       feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;

@@ -188,15 +188,16 @@ Risposta (se la validazione fallisce, prima di riavviare): `{ "ok": false, "erro
 ## GET /api/ntp
 
 ```json
-{ "server": "pool.ntp.org" }
+{ "server": "pool.ntp.org", "intervalHours": 6 }
 ```
 
 ## PUT /api/ntp
 
-Cambia il server NTP usato per sincronizzare l'orologio. Applicato **subito, senza riavviare** (a differenza di `/api/gpio` e `/api/network`): il dispositivo richiama la sincronizzazione con il nuovo server appena salvato, e anche automaticamente ogni volta che si riconnette al WiFi.
+Cambia server NTP e/o intervallo di risincronizzazione. Applicato **subito, senza riavviare** (a differenza di `/api/gpio` e `/api/network`): il dispositivo richiama la sincronizzazione con il nuovo server appena salvato, e anche automaticamente ogni volta che si riconnette al WiFi. L'intervallo scelto è gestito autonomamente dal firmware (non affidato al timer interno di SNTP): allo scadere risincronizza da solo, senza bisogno che la pagina web sia aperta.
 
-Richiesta: `{ "server": "pool.ntp.org" }`
-Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "invalid_ntp_server", "details": "..." }` (server vuoto)
+Richiesta: `{ "server": "pool.ntp.org", "intervalHours": 6 }`
+`intervalHours` tra 1 e 168 (una settimana).
+Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "invalid_ntp_config", "details": "..." }` (server vuoto o intervallo fuori range)
 
 ## MQTT (solo firmware, non simulato dal mock)
 

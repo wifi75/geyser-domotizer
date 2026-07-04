@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.15.0 — 2026-07-04
+
+Intervallo di risincronizzazione NTP configurabile.
+
+- Nuovo campo "Risincronizza ogni (ore)" nella sezione Server NTP: da 1 a 168 ore, applicato subito senza riavviare
+- L'intervallo è gestito autonomamente dal firmware (non affidato al timer interno di SNTP): allo scadere risincronizza da solo, oltre alla risincronizzazione già esistente ad ogni riconnessione WiFi
+
 ## v0.14.0 — 2026-07-04
 
 Cambio pin/logica del relè applicato subito, senza riavviare.

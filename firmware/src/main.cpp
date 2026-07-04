@@ -37,6 +37,7 @@ GpioSettings gpioSettings;
 NtpSettings ntpSettings;
 
 uint32_t lastWifiAttemptMs = 0;
+uint32_t lastNtpResyncMs = 0;
 String lastCheckedMinuteKey = "";
 bool wifiWasConnected = false;
 
@@ -48,6 +49,7 @@ void connectWifiIfNeeded() {
       Serial.print("WiFi connesso, IP: ");
       Serial.println(WiFi.localIP());
       ntpSettings.resync();  // riallinea subito l'orologio dopo ogni riconnessione
+      lastNtpResyncMs = millis();
     } else {
       Serial.println("WiFi disconnesso");
     }
@@ -58,6 +60,18 @@ void connectWifiIfNeeded() {
   lastWifiAttemptMs = now;
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+}
+
+// Risincronizza l'orologio ogni ntpSettings.intervalHours(), gestito qui a
+// mano invece di affidarsi al timer interno di SNTP: cosi' l'intervallo
+// resta esattamente quello scelto dall'utente in UI, anche se cambiato a
+// caldo, e non richiede di richiamare configTzTime() ad ogni giro di loop().
+void checkNtpResync() {
+  if (WiFi.status() != WL_CONNECTED) return;
+  uint32_t intervalMs = ntpSettings.intervalHours() * 3600000UL;
+  if (millis() - lastNtpResyncMs < intervalMs) return;
+  ntpSettings.resync();
+  lastNtpResyncMs = millis();
 }
 
 void checkScheduleTrigger() {
@@ -131,6 +145,7 @@ void setup() {
 
 void loop() {
   connectWifiIfNeeded();
+  checkNtpResync();
   pump.tick();
   checkScheduleTrigger();
 

@@ -104,12 +104,15 @@
 #define NTP_SERVER "pool.ntp.org"
 #define TZ_INFO "CET-1CEST,M3.5.0,M10.5.0/3"
 #define NTP_CONFIG_FILE "/ntp_config.json"
+#define NTP_DEFAULT_INTERVAL_HOURS 6
+#define NTP_MIN_INTERVAL_HOURS 1
+#define NTP_MAX_INTERVAL_HOURS 168
 
 // --- OTA (aggiornamento firmware) ---
 // Da bump manuale ad ogni release: deve corrispondere ESATTAMENTE al tag
 // GitHub "vX.Y.Z" (senza la "v"), il confronto è una semplice uguaglianza
 // di stringa, non un confronto semver.
-#define FIRMWARE_VERSION "0.14.0"
+#define FIRMWARE_VERSION "0.15.0"
 #define GITHUB_OWNER "wifi75"
 #define GITHUB_REPO "geyser-domotizer"
 // Nome dell'asset da cercare tra quelli allegati alla release GitHub: deve

@@ -29,7 +29,7 @@ NTP_FILE = os.path.join(DATA_DIR, "ntp.json")
 PORT = int(os.environ.get("PORT", 8000))
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.14.0"
+MOCK_CURRENT_VERSION = "0.15.0"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 # Rispecchia l'elenco per esp32dev in firmware/src/gpio_settings.cpp
@@ -50,7 +50,7 @@ DEFAULT_NETWORK = {
     "mode": "dhcp", "ip": "", "gateway": "", "subnet": "255.255.255.0", "dns": ""
 }
 
-DEFAULT_NTP = {"server": "pool.ntp.org"}
+DEFAULT_NTP = {"server": "pool.ntp.org", "intervalHours": 6}
 
 DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
@@ -491,10 +491,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path == "/api/ntp":
             body = self._read_json()
             server_addr = (body.get("server") or "").strip()
-            if not server_addr:
-                return self._send_json({"ok": False, "error": "invalid_ntp_server",
-                                        "details": "il server NTP non può essere vuoto"}, status=400)
-            state.save_ntp({"server": server_addr})
+            try:
+                interval_hours = int(body.get("intervalHours", state.ntp.get("intervalHours", 6)))
+            except (TypeError, ValueError):
+                interval_hours = -1
+            if not server_addr or not (1 <= interval_hours <= 168):
+                return self._send_json({"ok": False, "error": "invalid_ntp_config",
+                                        "details": "server vuoto o intervallo fuori range (1-168 ore)"}, status=400)
+            state.save_ntp({"server": server_addr, "intervalHours": interval_hours})
             print(f"[ntp] server NTP impostato a {server_addr}")
             return self._send_json({"ok": True})
         self.send_error(404)

@@ -160,6 +160,12 @@
       <p class="muted">L'orologio si sincronizza sempre da qui, anche dopo ogni riconnessione WiFi.</p>
       <label for="ntp-server">Indirizzo server NTP</label>
       <input type="text" id="ntp-server" placeholder="pool.ntp.org">
+      <label for="ntp-interval" style="margin-top:10px">Risincronizza ogni (ore)</label>
+      <div class="stepper">
+        <button type="button" class="btn btn-small step-down">−</button>
+        <input type="number" id="ntp-interval" min="1" max="168" value="6" step="1">
+        <button type="button" class="btn btn-small step-up">+</button>
+      </div>
       <div class="schedule-actions">
         <button id="btn-save-ntp" class="btn btn-primary">Salva</button>
         <span id="ntp-feedback" class="feedback"></span>
