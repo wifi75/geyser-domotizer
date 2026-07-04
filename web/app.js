@@ -155,6 +155,25 @@ function updateDaySummary(dayNode) {
     count === 0 ? "Nessuna partenza" : `${count} partenz${count === 1 ? "a" : "e"}`;
 }
 
+function readDayEntries(dayNode) {
+  return Array.from(dayNode.querySelectorAll(".entry-row")).map((row) => ({
+    time: row.querySelector(".entry-time").value,
+    durationSeconds: (parseInt(row.querySelector(".entry-duration").value, 10) || 1) * 60,
+    enabled: row.querySelector(".entry-enabled").checked
+  }));
+}
+
+// Copia/incolla partenze tra giorni: copia salva un istantanea in memoria
+// (non nel dispositivo), incolla la applica solo lato UI — va comunque
+// premuto "Salva programmazione" per renderla definitiva.
+let copiedDayEntries = null;
+
+function flashButtonLabel(button, text) {
+  const original = button.textContent;
+  button.textContent = text;
+  setTimeout(() => { button.textContent = original; }, 1200);
+}
+
 function renderSchedule(schedule) {
   const wrap = el("schedule-days");
   wrap.innerHTML = "";
@@ -176,6 +195,24 @@ function renderSchedule(schedule) {
       addEntryRow(entriesWrap);
       updateDaySummary(dayNode);
     });
+
+    const copyBtn = dayNode.querySelector(".btn-copy-day");
+    const pasteBtn = dayNode.querySelector(".btn-paste-day");
+    pasteBtn.disabled = copiedDayEntries === null;
+    copyBtn.addEventListener("click", () => {
+      copiedDayEntries = readDayEntries(dayNode);
+      document.querySelectorAll(".btn-paste-day").forEach((b) => { b.disabled = false; });
+      flashButtonLabel(copyBtn, "Copiato!");
+    });
+    pasteBtn.addEventListener("click", () => {
+      if (!copiedDayEntries) return;
+      entriesWrap.innerHTML = "";
+      copiedDayEntries.forEach((entry) => addEntryRow(entriesWrap, entry));
+      dayNode.classList.remove("collapsed");
+      updateDaySummary(dayNode);
+      flashButtonLabel(pasteBtn, "Incollato!");
+    });
+
     wrap.appendChild(dayNode);
   }
 }
@@ -261,7 +298,7 @@ async function saveMqttConfig() {
     if (r.ok) {
       feedback.textContent = "Configurazione MQTT salvata.";
       feedback.className = "feedback ok";
-      loadMqttConfig();
+      reloadPageSoon();
     } else {
       feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
       feedback.className = "feedback error";
@@ -359,6 +396,14 @@ async function waitForDeviceAndReload(maxAttempts = 60) {
       sawDown = true;
     }
   }
+}
+
+// Ricarica la pagina poco dopo un salvataggio riuscito, cosi' ogni campo
+// mostra subito il valore realmente applicato dal dispositivo invece di
+// restare con quello digitato (utile perché diversi salvataggi ora si
+// applicano a caldo, senza passare da un riavvio che lo farebbe comunque).
+function reloadPageSoon(delayMs = 900) {
+  setTimeout(() => location.reload(), delayMs);
 }
 
 function setOtaProgressUI(phase, current, total) {
@@ -532,6 +577,7 @@ async function saveGpioConfig() {
     } else {
       feedback.textContent = "Salvato.";
       feedback.className = "feedback ok";
+      reloadPageSoon();
     }
   } catch (e) {
     feedback.textContent = "Errore di comunicazione con il dispositivo.";
@@ -564,6 +610,7 @@ async function saveNtpConfig() {
     } else {
       feedback.textContent = "Salvato, orologio risincronizzato.";
       feedback.className = "feedback ok";
+      reloadPageSoon();
     }
   } catch (e) {
     feedback.textContent = "Errore di comunicazione con il dispositivo.";
@@ -613,10 +660,16 @@ async function saveNetworkConfig() {
     } else {
       feedback.textContent = "Salvato, il dispositivo si sta riavviando...";
       feedback.className = "feedback ok";
+      // Se l'IP non cambia (es. si torna a DHCP con lo stesso indirizzo di
+      // prima) la pagina si ricarica da sola; se l'IP cambia davvero, questa
+      // pagina resta comunque puntata al vecchio indirizzo e va riaperta
+      // manualmente al nuovo (vedi avviso sopra al form).
+      waitForDeviceAndReload();
     }
   } catch (e) {
     feedback.textContent = "Salvato: il dispositivo si sta riavviando (potrebbe cambiare IP).";
     feedback.className = "feedback ok";
+    waitForDeviceAndReload();
   }
 }
 

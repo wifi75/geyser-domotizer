@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.17.0 — 2026-07-04
+
+Pagina che si ricarica da sola dopo un salvataggio, copia/incolla partenze tra giorni.
+
+- GPIO, server NTP e configurazione MQTT: dopo un salvataggio riuscito la pagina si ricarica da sola poco dopo, cosi' ogni campo mostra subito il valore realmente applicato invece di quello digitato
+- Configurazione IP: ora aspetta davvero il riavvio del dispositivo e ricarica la pagina (prima non lo faceva); se l'IP cambia per davvero la pagina resta comunque sul vecchio indirizzo, va riaperta manualmente al nuovo
+- Programmazione settimanale: nuovi pulsanti "📋 Copia" / "📥 Incolla" su ogni giorno, per copiare le partenze di un giorno e incollarle su un altro (solo lato pagina: va comunque premuto "Salva programmazione" per renderlo definitivo)
+
 ## v0.16.0 — 2026-07-04
 
 Fix: la configurazione non si perde più dopo un aggiornamento firmware; discovery MQTT riparata; etichette di progresso OTA più chiare.
