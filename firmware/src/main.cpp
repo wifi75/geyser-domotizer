@@ -27,9 +27,20 @@ MqttClientWrapper mqtt;
 
 uint32_t lastWifiAttemptMs = 0;
 String lastCheckedMinuteKey = "";
+bool wifiWasConnected = false;
 
 void connectWifiIfNeeded() {
-  if (WiFi.status() == WL_CONNECTED) return;
+  bool isConnected = WiFi.status() == WL_CONNECTED;
+  if (isConnected != wifiWasConnected) {
+    wifiWasConnected = isConnected;
+    if (isConnected) {
+      Serial.print("WiFi connesso, IP: ");
+      Serial.println(WiFi.localIP());
+    } else {
+      Serial.println("WiFi disconnesso");
+    }
+  }
+  if (isConnected) return;
   uint32_t now = millis();
   if (now - lastWifiAttemptMs < WIFI_RECONNECT_INTERVAL_MS) return;
   lastWifiAttemptMs = now;
@@ -72,6 +83,13 @@ void setup() {
   schedule.begin();
 
   WiFi.mode(WIFI_STA);
+
+  Serial.println("Reti WiFi visibili (2.4GHz, l'ESP32 non vede il 5GHz):");
+  int n = WiFi.scanNetworks();
+  for (int i = 0; i < n; i++) {
+    Serial.printf("  [%d] '%s' (RSSI %d)\n", i, WiFi.SSID(i).c_str(), WiFi.RSSI(i));
+  }
+  Serial.printf("Provo a connettermi a '%s'...\n", WIFI_SSID);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   configTzTime(TZ_INFO, NTP_SERVER);

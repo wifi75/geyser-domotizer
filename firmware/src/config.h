@@ -1,14 +1,34 @@
 #pragma once
 
+// Se presente, config.local.h sovrascrive i #define sottostanti (WiFi, MQTT,
+// ecc.) con i valori reali. È in .gitignore: le credenziali vere non finiscono
+// mai nel repo pubblico. Vedi config.local.h.example per il modello da copiare.
+#if __has_include("config.local.h")
+#include "config.local.h"
+#endif
+
 // ============================================================================
 // TODO(Fase 0): tutti i pin qui sotto sono PLACEHOLDER. Vanno confermati/
 // corretti dopo l'apertura del dispositivo (vedi ../../05-fase0-guida-apertura.md)
 // e dopo aver scelto dove derivare fisicamente i fili del motore e della batteria.
 // ============================================================================
 
-#define PIN_RELAY_PUMP   2   // GPIO che pilota il relè in parallelo ai fili del motore/pompa
-#define PIN_BUZZER       3   // opzionale: preavviso acustico sugli avvii automatici
-#define PIN_BATTERY_ADC  4   // ADC sul partitore resistivo collegato ai 12V della batteria
+#if defined(BOARD_ESP32DEV)
+  // Pin per ESP32 DevKitV1 (test da banco): scelti per evitare UART0
+  // (GPIO1/3, usati dal monitor seriale) e i pin di strapping del boot
+  // (GPIO0/2/5/12/15, che possono impedire l'avvio se tenuti in uno stato
+  // sbagliato all'accensione). GPIO34 è input-only: perfetto per l'ADC,
+  // inutilizzabile come uscita (per questo non è tra i pin di output sopra).
+  #define PIN_RELAY_PUMP   26
+  #define PIN_BUZZER       27
+  #define PIN_BATTERY_ADC  34
+#else
+  // Pin per Seeed XIAO ESP32-C3/C6 (scheda di riferimento per il
+  // deployment finale a batteria, vedi ../../03-hardware-bom.md)
+  #define PIN_RELAY_PUMP   2   // GPIO che pilota il relè in parallelo ai fili del motore/pompa
+  #define PIN_BUZZER       3   // opzionale: preavviso acustico sugli avvii automatici
+  #define PIN_BATTERY_ADC  4   // ADC sul partitore resistivo collegato ai 12V della batteria
+#endif
 
 // Partitore resistivo Vbatt -> ADC: Vadc = Vbatt * R2/(R1+R2).
 // Valori di esempio (vedi 03-hardware-bom.md); da ricalibrare con un
@@ -25,16 +45,29 @@
 #define BATTERY_LOW_PERCENT 20
 
 // --- WiFi ---
+// Valori reali da mettere in config.local.h (ignorato da git), non qui.
+#ifndef WIFI_SSID
 #define WIFI_SSID "CAMBIAMI"
+#endif
+#ifndef WIFI_PASSWORD
 #define WIFI_PASSWORD "CAMBIAMI"
+#endif
 #define WIFI_RECONNECT_INTERVAL_MS 10000
 
 // --- MQTT / Home Assistant ---
+#ifndef MQTT_ENABLED
 #define MQTT_ENABLED true
+#endif
+#ifndef MQTT_HOST
 #define MQTT_HOST "192.168.1.10"
+#endif
 #define MQTT_PORT 1883
+#ifndef MQTT_USER
 #define MQTT_USER ""
+#endif
+#ifndef MQTT_PASSWORD
 #define MQTT_PASSWORD ""
+#endif
 #define MQTT_CLIENT_ID "geyser-domotizer"
 #define MQTT_TOPIC_STATUS "geyser/status"
 #define MQTT_TOPIC_AVAILABILITY "geyser/availability"

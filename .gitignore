@@ -6,6 +6,8 @@ build/
 *.elf
 # generato automaticamente da tools/sync_web_assets.py a partire da ../web
 firmware/data/
+# credenziali reali (WiFi/MQTT), mai nel repo pubblico: vedi config.local.h.example
+firmware/src/config.local.h
 
 # OS
 .DS_Store

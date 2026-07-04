@@ -1,0 +1,11 @@
+// Copia questo file in config.local.h (stessa cartella) e inserisci i valori
+// reali. config.local.h è in .gitignore: non finisce mai nel repo pubblico.
+#pragma once
+
+#define WIFI_SSID "il-tuo-ssid"
+#define WIFI_PASSWORD "la-tua-password"
+
+#define MQTT_ENABLED false
+// #define MQTT_HOST "192.168.1.X"
+// #define MQTT_USER "utente"
+// #define MQTT_PASSWORD "password-mqtt"
