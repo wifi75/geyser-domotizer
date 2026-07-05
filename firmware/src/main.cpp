@@ -63,6 +63,7 @@ uint32_t lastNtpResyncMs = 0;
 String lastCheckedMinuteKey = "";
 bool wifiWasConnected = false;
 bool everConnectedSTA = false;
+bool wifiJustDisconnected = false;
 
 void connectWifiIfNeeded() {
   bool isConnected = WiFi.status() == WL_CONNECTED;
@@ -70,12 +71,14 @@ void connectWifiIfNeeded() {
     wifiWasConnected = isConnected;
     if (isConnected) {
       everConnectedSTA = true;
+      wifiJustDisconnected = false;  // WiFi riconnesso, disattiva il flag
       Serial.print("WiFi connesso, IP: ");
       Serial.println(WiFi.localIP());
       eventLogAdd("wifi", String("connesso: ") + WiFi.localIP().toString());
       ntpSettings.resync();  // riallinea subito l'orologio dopo ogni riconnessione
       lastNtpResyncMs = millis();
     } else {
+      wifiJustDisconnected = true;  // WiFi disconnesso, attiva il flag per AP di emergenza
       Serial.println("WiFi disconnesso");
       eventLogAdd("wifi", "disconnesso");
     }
@@ -89,12 +92,14 @@ void connectWifiIfNeeded() {
 
 // Tiene accesa/spenta l'Access Point (WIFI_AP_STA, in parallelo alla STA
 // normale): attiva se l'utente l'ha abilitata in modo permanente da web,
-// oppure da sola come rete di soccorso se la STA non si è mai connessa
+// oppure da sola come rete di soccorso se (1) la STA non si è mai connessa
 // entro AP_AUTO_FALLBACK_MS dal boot (SSID/password sbagliati, rete assente,
-// ecc.) — così c'è sempre un modo di raggiungere il dispositivo da browser.
+// ecc.) o (2) il WiFi era connesso e si è disconnesso — così c'è sempre un
+// modo di raggiungere il dispositivo da browser.
 void updateApState() {
   bool shouldBeActive = wifiSettings.data().apEnabled;
   if (!everConnectedSTA && millis() > AP_AUTO_FALLBACK_MS) shouldBeActive = true;
+  if (wifiJustDisconnected) shouldBeActive = true;  // Attiva AP di emergenza se WiFi si disconnette
 
   if (shouldBeActive && !apActiveFlag) {
     uint8_t mac[6];
@@ -109,6 +114,7 @@ void updateApState() {
   } else if (!shouldBeActive && apActiveFlag) {
     WiFi.softAPdisconnect(true);
     apActiveFlag = false;
+    wifiJustDisconnected = false;  // Reset il flag quando AP si disattiva
     eventLogAdd("wifi", "AP disattivata");
   }
 }

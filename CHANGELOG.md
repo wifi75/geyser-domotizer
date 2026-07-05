@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.37.0 — 2026-07-05
+
+Access Point di emergenza si attiva automaticamente quando il WiFi si disconnette.
+
+- Quando il WiFi ERA connesso e poi si disconnette (es. rete assente, credenziali cambiate, fuori portata), l'Access Point si attiva automaticamente come rete di soccorso — così puoi comunque accedere al dispositivo da browser anche se non riesci a connetterti alla rete principale. L'AP rimane attivo finché il WiFi non si riconnette
+- La logica rimane: attiva se (1) mai connesso entro 60s dal boot, oppure (2) WiFi si è disconnesso, oppure (3) attivata manualmente da UI. Si disattiva quando il WiFi si riconnette (a meno che non sia stata attivata manualmente da UI)
+
 ## v0.36.0 — 2026-07-05
 
 Semplificato il LED di stato: solo automatico, nessun controllo manuale.
