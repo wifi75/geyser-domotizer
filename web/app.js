@@ -4,6 +4,7 @@ const DAYS = [
 ];
 
 const el = (id) => document.getElementById(id);
+let otaBusy = false;
 
 function fmtRemaining(seconds) {
   const m = Math.floor(seconds / 60);
@@ -518,15 +519,41 @@ function setOtaFeedback(text, cls) {
   });
 }
 
+function setOtaBusy(busy) {
+  otaBusy = busy;
+  [
+    "btn-ota-check",
+    "btn-ota-update",
+    "btn-banner-update-now",
+    "btn-ota-upload",
+    "btn-restart"
+  ].forEach((id) => {
+    const node = el(id);
+    if (node) node.disabled = busy;
+  });
+}
+
 async function applyOtaUpdate() {
+  if (otaBusy) return;
   const progressWraps = [el("ota-update-progress-wrap"), el("banner-update-progress-wrap")];
   setOtaFeedback("", "");
+  setOtaBusy(true);
 
-  const bootRef = await captureBootReference();
-  const versionBefore = el("ota-current-version").textContent.replace(/^v/, "");
-  const start = await api("/api/ota/update", { method: "POST" });
+  let bootRef;
+  let versionBefore;
+  let start;
+  try {
+    bootRef = await captureBootReference();
+    versionBefore = el("ota-current-version").textContent.replace(/^v/, "");
+    start = await api("/api/ota/update", { method: "POST" });
+  } catch (e) {
+    setOtaFeedback("Errore di comunicazione con il dispositivo.", "error");
+    setOtaBusy(false);
+    return;
+  }
   if (start && start.ok === false) {
     setOtaFeedback(`Errore: ${start.error} ${start.details ?? ""}`, "error");
+    setOtaBusy(false);
     return;
   }
 
@@ -558,6 +585,7 @@ async function applyOtaUpdate() {
       const retryHint = p.error === "download_failed" ? " — riprova, spesso basta." : "";
       setOtaFeedback(`Errore: ${p.error} ${p.details ?? ""}${retryHint}`, "error");
       progressWraps.forEach((w) => w.classList.add("hidden"));
+      setOtaBusy(false);
       return;
     }
 
@@ -583,6 +611,7 @@ async function applyOtaUpdate() {
           "error"
         );
         progressWraps.forEach((w) => w.classList.add("hidden"));
+        setOtaBusy(false);
         return;
       }
       setOtaFeedback("Aggiornamento completato, il dispositivo si è riavviato...", "ok");
@@ -616,6 +645,7 @@ async function applyOtaUpdate() {
         "aspetta ancora un po' e ricarica la pagina a mano, oppure riprova più tardi.",
         "error"
       );
+      setOtaBusy(false);
       return;
     }
 
@@ -624,6 +654,7 @@ async function applyOtaUpdate() {
 }
 
 async function restartDevice() {
+  if (otaBusy) return;
   const feedback = el("restart-feedback");
   feedback.textContent = "Riavvio in corso...";
   feedback.className = "feedback";
@@ -637,6 +668,7 @@ async function restartDevice() {
 }
 
 async function uploadFirmwareFile() {
+  if (otaBusy) return;
   const feedback = el("ota-upload-feedback");
   const fileInput = el("ota-file-input");
   const progressWrap = el("ota-upload-progress-wrap");
@@ -650,6 +682,7 @@ async function uploadFirmwareFile() {
     return;
   }
 
+  setOtaBusy(true);
   const bootRef = await captureBootReference();
 
   const formData = new FormData();
@@ -671,6 +704,7 @@ async function uploadFirmwareFile() {
       } else {
         feedback.textContent = `Errore: ${r.error}`;
         feedback.className = "feedback error";
+        setOtaBusy(false);
       }
     } catch (e) {
       feedback.textContent = "Caricato, il dispositivo si sta riavviando...";

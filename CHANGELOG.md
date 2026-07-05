@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.28.3 — 2026-07-05
+
+Protezione UI: blocca riavvio e azioni OTA concorrenti mentre un aggiornamento e' in corso.
+
+- Durante OTA da GitHub o upload manuale, la UI disabilita "Riavvia dispositivo", "Aggiorna ora", "Controlla su GitHub" e "Carica e aggiorna"
+- Se l'aggiornamento fallisce in modo gestito, i pulsanti vengono riabilitati; se il dispositivo sta riavviando, restano bloccati fino al reload automatico della pagina
+
 ## v0.28.2 — 2026-07-05
 
 Fix: impedito al fallback statico di toccare LittleFS per le rotte API durante OTA.
