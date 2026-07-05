@@ -610,6 +610,13 @@ function reloadPageSoon(delayMs = 900) {
 
 function setOtaProgressUI(phase, current, total) {
   const isFlashing = phase === "done";
+  // Nessun dato di progresso ancora arrivato (total 0): tipico per asset
+  // piccoli come littlefs.bin, che scaricano/scrivono così in fretta che
+  // il polling (ogni 600ms) spesso non fa in tempo a leggere un valore
+  // intermedio. Senza un indicatore "indeterminato" la barra resterebbe a
+  // 0% larghezza per tutta la (breve) durata della fase, sembrando
+  // bloccata anche se in realtà procede troppo in fretta da vederlo.
+  const isIndeterminate = !isFlashing && total === 0;
   const percent = isFlashing ? 100 : total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
   // "firmware"/"littlefs": scaricamento e scrittura in flash avvengono
   // insieme in streaming (non c'è un passo di "download" separato da uno
@@ -626,7 +633,8 @@ function setOtaProgressUI(phase, current, total) {
     ["banner-update-progress-bar", "banner-update-progress-label"]
   ].forEach(([barId, labelId]) => {
     const bar = el(barId);
-    bar.style.width = `${percent}%`;
+    bar.classList.toggle("phase-indeterminate", isIndeterminate);
+    if (!isIndeterminate) bar.style.width = `${percent}%`;
     bar.classList.toggle("phase-flash", isFlashing);
     el(labelId).textContent = label;
   });

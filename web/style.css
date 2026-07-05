@@ -431,6 +431,22 @@ main {
 
 .ota-progress-fill.phase-flash { background: var(--danger); }
 
+/* Asset piccoli (es. littlefs.bin) possono scaricare/scrivere così in
+   fretta che il polling (ogni 600ms) non fa mai in tempo a leggere un
+   valore intermedio: senza questo la barra resterebbe a 0% larghezza per
+   tutta la (breve) durata della fase, sembrando bloccata. */
+.ota-progress-fill.phase-indeterminate {
+  width: 100% !important;
+  background: linear-gradient(90deg, var(--primary) 0%, rgba(255, 255, 255, 0.15) 50%, var(--primary) 100%);
+  background-size: 200% 100%;
+  animation: ota-indeterminate 1.2s linear infinite;
+}
+
+@keyframes ota-indeterminate {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 .manual-controls {
   display: flex;
   align-items: center;

@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.35.0 — 2026-07-05
+
+Fix cosmetico UI: barra di progresso OTA "bloccata" durante la fase LittleFS.
+
+- L'asset `littlefs.bin` (~524KB) scarica/scrive così in fretta che il polling della UI (ogni 600ms) spesso non fa in tempo a leggere un valore intermedio di progresso, restando a 0% per tutta la (breve) durata della fase — non un blocco reale, solo un artefatto della granularità del polling rispetto alla dimensione ridotta dell'asset. La barra ora mostra un'animazione "indeterminata" (gradiente in movimento) quando non c'è ancora un valore di progresso reale, invece di restare ferma a 0% larghezza
+
 ## v0.34.0 — 2026-07-05
 
 Comportamento automatico per il LED di stato sulla C6, durata manuale in minuti+secondi.
