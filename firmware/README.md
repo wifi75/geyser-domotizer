@@ -15,6 +15,8 @@ La Fase 0 sullo Stocker Geyser reale (ricognizione interna del dispositivo) non 
 - `src/schedule.*` — programmazione settimanale persistita in NVS, validazione, trigger orario
 - `src/webserver.*` — endpoint REST (stesso contratto del mock server), serve gli asset da LittleFS
 - `src/*_settings.*` — configurazioni runtime persistite in NVS (MQTT, rete, GPIO, NTP, sensore corrente)
+- `src/config_backup.*` — export/import JSON della configurazione NVS
+- `src/event_log.*` — ring buffer RAM degli eventi recenti, esposto alla UI
 - `src/mqtt_client.*` — pubblicazione stato su MQTT per Home Assistant
 - `tools/sync_web_assets.py` — copia gli asset da [../web](../web) in `data/` prima della build, cosi il frontend è identico a quello testato in locale
 

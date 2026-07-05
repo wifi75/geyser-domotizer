@@ -3,8 +3,11 @@
 ## Stato attuale
 
 Il firmware e la web UI esistono gia' e sono stati verificati end-to-end su
-ESP32 DevKit V1 in test da banco: dashboard web, avvio manuale, programmazione,
-MQTT/Home Assistant Discovery, configurazioni runtime e OTA. La Seeed XIAO
+ESP32 DevKit V1 in test da banco per le funzioni principali: dashboard web,
+avvio manuale, programmazione, MQTT/Home Assistant Discovery, configurazioni
+runtime e OTA. Backup/ripristino configurazione, eventi recenti, rollback rete
+e supporto UI alla misura di autonomia sono stati integrati e compilati, ma
+vanno ancora provati con una sessione hardware dedicata. La Seeed XIAO
 ESP32-C3 compila ed e' la scheda di riferimento per il montaggio finale a
 batteria, ma non e' ancora stata provata fisicamente.
 
@@ -29,3 +32,4 @@ confermare.
 - Contenitore stagno definitivo, cablaggio ordinato
 - Buzzer piezo per replicare il preavviso acustico 30s sugli avvii automatici (opzionale)
 - Test di autonomia con elettronica di automazione attiva, verifica impatto reale sulla batteria originale
+- Validazione reale del sensore INA219 e taratura soglia serbatoio vuoto su pompa/serbatoio effettivi

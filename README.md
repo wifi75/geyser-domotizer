@@ -6,11 +6,13 @@ Progetto di "domotizzazione" non invasiva dello **Stocker Geyser 12L** (nebulizz
 - Monitoraggio e notifica stato batteria
 - Programmazione settimanale con più partenze giornaliere, ciascuna con durata impostabile
 - Avvio manuale da remoto
+- Aggiornamenti OTA da GitHub o upload manuale, con protezioni contro azioni concorrenti durante il flash
+- Backup/ripristino della configurazione, eventi recenti e misura pratica dell'autonomia batteria
 - **Convivenza totale con il sistema originale**, senza modifiche irreversibili né rischio di comprometterne il funzionamento
 
 ## Stato del progetto
 
-✅ **Testato su hardware reale: ESP32 DevKit V1.** Web UI, batteria, programmazione, MQTT (con Home Assistant Discovery), configurazione IP/GPIO e aggiornamento OTA (da GitHub o upload manuale) verificati end-to-end su una ESP32 DevKit V1 fisica — vedi [boards/esp32dev.md](boards/esp32dev.md). La XIAO ESP32-C3/C6 (scheda di riferimento per il deployment finale a batteria) compila correttamente ma non è ancora stata provata fisicamente, vedi [boards/xiao-esp32c3.md](boards/xiao-esp32c3.md). La Fase 0 hands-on sul dispositivo Geyser vero (individuare dove derivare i fili di motore e batteria) resta da fare prima del montaggio definitivo.
+✅ **Testato su hardware reale: ESP32 DevKit V1.** Web UI, batteria, programmazione, MQTT (con Home Assistant Discovery), configurazione IP/GPIO e aggiornamento OTA sono stati verificati end-to-end su una ESP32 DevKit V1 fisica — vedi [boards/esp32dev.md](boards/esp32dev.md). Le funzioni più recenti (backup configurazione, eventi recenti, rollback rete e misura autonomia UI) sono allineate nel firmware/mock server e compilate nel flusso release, ma vanno ancora provate con una sessione hardware dedicata. La XIAO ESP32-C3/C6 (scheda di riferimento per il deployment finale a batteria) compila correttamente ma non è ancora stata provata fisicamente, vedi [boards/xiao-esp32c3.md](boards/xiao-esp32c3.md). La Fase 0 hands-on sul dispositivo Geyser vero (individuare dove derivare i fili di motore e batteria) resta da fare prima del montaggio definitivo.
 
 ## Struttura del progetto
 
