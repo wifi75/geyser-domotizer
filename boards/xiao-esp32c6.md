@@ -44,6 +44,26 @@ GPIO15 è il `LED_BUILTIN` di questa scheda: puramente automatico (nessun comand
 
 Se il relè non scatta sul pin di default (D2/GPIO2) ma il modulo relè è verificato funzionante (testato con successo su un'altra scheda, alimentazione e logica attivo-alto/basso corrette, e la UI conferma "Attiva" quando avvii la pompa), prova un pin diverso dal menu "Pin GPIO relè pompa" (Impostazioni) — es. **D3/GPIO21**, applicato subito senza riavvio. Riscontrato almeno un esemplare con GPIO2 apparentemente non funzionante isolatamente (probabile difetto di saldatura del singolo pin), risolto passando a GPIO21.
 
+## Troubleshooting: AP non raggiungibile / non assegna IP via DHCP
+
+Riscontrato su un esemplare (dopo diversi cicli di flash/test): al boot il log seriale mostrava ripetutamente `[E][Preferences.cpp:47] begin(): nvs_open failed: NOT_FOUND` per tutti i moduli (`WifiSettings`, `GpioSettings`, ecc.), e l'Access Point risultava visibile via scan ma non assegnava indirizzi IP ai client che tentavano di connettersi — sintomo di una partizione NVS corrotta (non un bug del codice AP/DHCP). Risolto con un erase completo della flash e reflash da zero:
+
+```
+python -m esptool --port COMx erase-flash
+pio run -e xiao-esp32c6 -t upload --upload-port COMx
+pio run -e xiao-esp32c6 -t uploadfs --upload-port COMx
+```
+
+Dopo il reflash gli errori NVS sparivano dal log di boot e l'AP (`ESP-Geyser`, password `geyser1234` di default — vedi `AP_PASSWORD` in `config.h`/`config.local.h`) tornava raggiungibile e assegnava correttamente gli IP via DHCP. Se ti ritrovi in questa situazione, verifica prima il log seriale (`pio device monitor -p COMx -b 115200`) per lo stesso errore `nvs_open failed` prima di sospettare un problema hardware o di rete.
+
+## Troubleshooting: relè che clicca ad ogni riavvio/reflash (attenuato da v0.40.0, rinforzato da v0.41.0)
+
+Prima della v0.40.0, `Pump::begin()`/`Pump::reconfigure()` chiamavano `pinMode(relayPin, OUTPUT)` **prima** di `digitalWrite(relayPin, offLevel)`: su ESP32 il pin, appena passato a OUTPUT, parte per un istante a LOW prima che `digitalWrite` lo porti allo stato di riposo corretto — su un relè active-low (il default) questo transiente lo eccitava brevemente ad ogni singolo boot o reflash, anche senza alcun ciclo pompa reale (il registro eventi `/api/events` non mostrava nessun evento `pump` corrispondente).
+
+La v0.40.0 ha invertito l'ordine (`digitalWrite` prima di `pinMode(OUTPUT)`), ma il click può ancora presentarsi: `pinMode(OUTPUT)` su ESP32 disabilita brevemente l'uscita durante la riconfigurazione IOMUX del pin, lasciandolo per un istante flottante prima di riattivarla — se il pull-up/down del modulo relè non è abbastanza forte, quell'istante flottante può ancora essere letto come "attivo". La v0.41.0 aggiunge un passaggio intermedio: il pin viene messo in `INPUT_PULLUP`/`INPUT_PULLDOWN` (pull interno dell'ESP32, coerente con la logica attivo-alto/basso) *prima* di `digitalWrite`+`pinMode(OUTPUT)`, così resta al livello di riposo fin dal primo istante in cui gira il nostro codice.
+
+⚠️ **Limite intrinseco**: nessun fix software può coprire il tempo *prima* di `setup()` — bootloader ROM + avvio del core Arduino. Se il click persiste anche con firmware ≥ v0.41.0, l'unica soluzione definitiva è una resistenza di pull **hardware** sulla linea di controllo del relè (esterna alla scheda: ~10kΩ verso 3.3V per relè active-low, verso GND per active-high) — garantisce lo stato di riposo indipendentemente da cosa fa il software durante il boot.
+
 ## Alimentazione
 
 - **Pin 5V/VBUS**: alimentazione da USB-C o da un convertitore step-down esterno (12V→5V) per il deployment a batteria.

@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.41.0 — 2026-07-05
+
+Fix rinforzato: il relè si eccitava ancora brevemente ad ogni boot nonostante il fix della v0.40.0.
+
+- Il fix della v0.40.0 (`digitalWrite` prima di `pinMode(OUTPUT)`) riduceva ma non eliminava il transiente: `pinMode(OUTPUT)` su ESP32 disabilita brevemente l'uscita durante la riconfigurazione IOMUX del pin, lasciandolo per un istante flottante — se il pull-up/down del modulo relè non è abbastanza forte, quell'istante flottante può ancora essere letto come "attivo" dal transistor di pilotaggio
+- Aggiunto un passaggio intermedio in `Pump::begin()`/`Pump::reconfigure()` (`pump.cpp`): il pin viene prima messo in `INPUT_PULLUP`/`INPUT_PULLDOWN` (a seconda della logica attivo-alto/basso) per tenerlo attivamente al livello di riposo tramite il pull interno dell'ESP32 fin dal primissimo istante in cui gira il nostro codice, poi si precarica `digitalWrite` e solo alla fine si passa a `OUTPUT`
+- **Limite noto**: questo copre solo il tempo da quando parte `setup()` in poi. Il primissimo istante di boot (bootloader ROM + avvio del core, prima che qualunque riga di questo firmware venga eseguita) non è controllabile da codice applicativo — se il click persiste anche dopo questo fix, l'unica soluzione definitiva è una resistenza di pull hardware sulla linea di controllo del relè (esterna alla scheda, es. 10kΩ verso 3.3V per relè active-low, verso GND per active-high), che garantisce lo stato di riposo indipendentemente da cosa fa il software
+
 ## v0.40.0 — 2026-07-05
 
 Fix: il relè si eccitava per un istante ad ogni riavvio della scheda.

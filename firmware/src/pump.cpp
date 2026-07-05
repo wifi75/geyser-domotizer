@@ -11,10 +11,14 @@ void Pump::begin(int relayPin, bool activeHigh) {
   relayPin_ = relayPin;
   onLevel_ = activeHigh ? HIGH : LOW;
   offLevel_ = activeHigh ? LOW : HIGH;
-  // digitalWrite prima di pinMode: precarica il registro di uscita con lo
-  // stato di riposo così, quando pinMode(OUTPUT) abilita il pin, non c'è il
-  // transiente LOW di default che su un relè active-low lo eccita per un
-  // istante ad ogni boot.
+  // pinMode(OUTPUT) su ESP32 disabilita brevemente l'uscita durante la
+  // riconfigurazione del pin (IOMUX), lasciandolo per un istante flottante:
+  // un pull interno allo stato di riposo, impostato PRIMA di passare a
+  // OUTPUT, evita che quell'istante flottante venga letto come "attivo" dal
+  // transistor di pilotaggio del relè. digitalWrite prima di OUTPUT precarica
+  // poi il registro di uscita, cosi' quando l'uscita si riattiva guida subito
+  // il livello giusto senza transienti.
+  pinMode(relayPin_, activeHigh ? INPUT_PULLDOWN : INPUT_PULLUP);
   digitalWrite(relayPin_, offLevel_);
   pinMode(relayPin_, OUTPUT);
   digitalWrite(PIN_BUZZER, LOW);
@@ -34,6 +38,7 @@ bool Pump::reconfigure(int relayPin, bool activeHigh) {
   relayPin_ = relayPin;
   onLevel_ = activeHigh ? HIGH : LOW;
   offLevel_ = activeHigh ? LOW : HIGH;
+  pinMode(relayPin_, activeHigh ? INPUT_PULLDOWN : INPUT_PULLUP);
   digitalWrite(relayPin_, offLevel_);
   pinMode(relayPin_, OUTPUT);
   return true;
