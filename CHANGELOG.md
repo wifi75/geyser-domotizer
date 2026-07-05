@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.42.0 — 2026-07-05
+
+Favicon a tema e pulsante di salvataggio dedicato per l'Access Point.
+
+- Aggiunta favicon 🦟 (zanzara, via SVG inline nel `<link rel="icon">` di `index.html`, senza bisogno di file immagine separati) e sostituita l'emoji 🌿 nell'header con 🦟 — coerente con un sistema anti-zanzara, non un tema "green"/vegetale
+- Aggiunto un pulsante "Salva impostazione AP" dedicato nella tab Rete, subito sotto la checkbox "Access Point sempre attivo", separato dal pulsante "Salva credenziali" (SSID/password) — invia solo `{"apEnabled": ...}`, già gestito in modo indipendente dal backend (`wifi_settings.cpp`), nessuna modifica firmware necessaria
+
 ## v0.41.0 — 2026-07-05
 
 Fix rinforzato: il relè si eccitava ancora brevemente ad ogni boot nonostante il fix della v0.40.0.

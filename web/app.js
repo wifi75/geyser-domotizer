@@ -1174,6 +1174,25 @@ async function saveWifiSettings() {
   }
 }
 
+async function saveApSetting() {
+  const feedback = el("wifi-ap-feedback");
+  feedback.textContent = "";
+  feedback.className = "feedback";
+
+  const r = await api("/api/wifi", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ apEnabled: el("wifi-ap-enabled").checked })
+  });
+  if (r && r.ok === false) {
+    feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+    feedback.className = "feedback error";
+  } else {
+    feedback.textContent = "Salvato.";
+    feedback.className = "feedback ok";
+  }
+}
+
 el("btn-start").addEventListener("click", startManual);
 el("btn-stop").addEventListener("click", stopManual);
 el("btn-save-schedule").addEventListener("click", saveSchedule);
@@ -1187,6 +1206,7 @@ el("network-mode-dhcp").addEventListener("change", updateNetworkFieldsVisibility
 el("network-mode-static").addEventListener("change", updateNetworkFieldsVisibility);
 el("btn-save-network").addEventListener("click", saveNetworkConfig);
 el("btn-save-wifi").addEventListener("click", saveWifiSettings);
+el("btn-save-ap").addEventListener("click", saveApSetting);
 el("btn-restart").addEventListener("click", restartDevice);
 el("btn-save-gpio").addEventListener("click", saveGpioConfig);
 el("btn-save-ntp").addEventListener("click", saveNtpConfig);

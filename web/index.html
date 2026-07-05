@@ -4,11 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Geyser Domotizer</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%A6%9F</text></svg>">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header>
-  <h1>🌿 Geyser Domotizer</h1>
+  <h1>🦟 Geyser Domotizer</h1>
 </header>
 
 <section id="banner-low-battery" class="banner banner-warn hidden">
@@ -177,6 +178,10 @@
         Access Point sempre attivo (in parallelo alla rete normale)
       </label>
       <p class="muted">Si attiva comunque da solo, anche con questa casella disattivata, se il dispositivo non riesce a collegarsi entro un minuto dall'avvio — così hai sempre un modo di raggiungerlo per correggere SSID/password senza reflash.</p>
+      <div class="schedule-actions">
+        <button id="btn-save-ap" class="btn btn-primary">Salva impostazione AP</button>
+        <span id="wifi-ap-feedback" class="feedback"></span>
+      </div>
       <div id="wifi-ap-status-box" class="muted hidden">
         📡 AP attivo ora: <strong id="wifi-ap-status-ssid">--</strong>, password <code>geyser1234</code>, IP <span id="wifi-ap-status-ip">--</span>
       </div>
