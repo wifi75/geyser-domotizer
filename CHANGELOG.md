@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.47.1 — 2026-07-05
+
+UI: pannello upload firmware manuale ora sempre visibile per impostazione predefinita (non collassato).
+
 ## v0.47.0 — 2026-07-05
 
 Micro-ottimizzazioni di memoria e performance.
