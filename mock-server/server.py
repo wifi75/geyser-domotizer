@@ -36,7 +36,7 @@ PORT = int(os.environ.get("PORT", 8000))
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.43.0"
+MOCK_CURRENT_VERSION = "0.44.0"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 # Rispecchia l'elenco per esp32dev in firmware/src/gpio_settings.cpp
@@ -90,6 +90,11 @@ class State:
         self.config = self._load_config()
         self.network = self._load_network()
         self.wifi = self._load_wifi()
+        # Override manuale "Spegni/Accendi AP ora" della UI: None = nessun
+        # override (segue apEnabled/rete di sicurezza), True/False = forzato.
+        # Solo in RAM, si azzera al riavvio del mock, coerente col firmware
+        # reale (vedi WifiSettings::hasApOverride() in wifi_settings.h).
+        self.ap_override = None
         self.led_active_low = True
         self.gpio_pin, self.gpio_active_high = self._load_gpio_pin()
         self.ntp = self._load_ntp()
@@ -250,6 +255,7 @@ class State:
     def status(self):
         with self.lock:
             now = datetime.now()
+            ap_active = self.ap_override if self.ap_override is not None else self.wifi.get("apEnabled", False)
             return {
                 "time": now.strftime("%d/%m/%Y %H:%M:%S"),
                 "battery": {
@@ -270,9 +276,9 @@ class State:
                     "connected": True, "ssid": "WiFi (mock, non reale)", "ip": "203.0.113.50", "rssi": -55,
                     "channel": 6, "band": "2.4GHz",
                     "ap": {
-                        "active": self.wifi.get("apEnabled", False),
-                        "ssid": "GeyserSetup-AABB" if self.wifi.get("apEnabled") else "",
-                        "ip": "192.168.4.1" if self.wifi.get("apEnabled") else "",
+                        "active": ap_active,
+                        "ssid": "ESP-Geyser" if ap_active else "",
+                        "ip": "192.168.4.1" if ap_active else "",
                     },
                 },
                 "led": {"available": True, "on": self.led_display_on(), "reason": self.led_reason()},
@@ -617,6 +623,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 return
             state.stop()
             return self._send_json({"ok": True})
+        if self.path == "/api/wifi/ap-toggle":
+            if not self._require_admin():
+                return
+            body = self._read_json()
+            active = bool(body.get("active", False))
+            state.ap_override = active
+            state.add_event("wifi", "AP acceso manualmente" if active else "AP spento manualmente")
+            return self._send_json({"ok": True})
         if self.path == "/api/ota/check":
             if state.ota_progress.get("inProgress"):
                 return self._send_json({"ok": False, "error": "ota_in_progress"}, status=409)
@@ -747,6 +761,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 wifi["password"] = body["password"]
             if "apEnabled" in body:
                 wifi["apEnabled"] = bool(body["apEnabled"])
+                state.ap_override = None  # un salvataggio esplicito ha priorità su un vecchio override manuale
             state.save_wifi(wifi)
             state.add_event("wifi", f"credenziali aggiornate, SSID: {ssid}")
             return self._send_json({"ok": True})

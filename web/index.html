@@ -177,13 +177,19 @@
         <input type="checkbox" id="wifi-ap-enabled">
         Access Point sempre attivo (in parallelo alla rete normale)
       </label>
-      <p class="muted">Si attiva comunque da solo, anche con questa casella disattivata, se il dispositivo non riesce a collegarsi entro un minuto dall'avvio — così hai sempre un modo di raggiungerlo per correggere SSID/password senza reflash.</p>
+      <p class="muted">Indipendente dalla connessione WiFi: se abilitato qui, l'AP resta acceso per sempre. Anche disabilitato, si accende comunque da solo come rete di soccorso se il dispositivo non si collega entro un minuto dall'avvio o se il WiFi principale si disconnette — così hai sempre un modo di raggiungerlo senza reflash.</p>
       <div class="schedule-actions">
-        <button id="btn-save-ap" class="btn btn-primary">Salva impostazione AP</button>
+        <button id="btn-save-ap" class="btn btn-primary btn-small">Salva impostazione AP</button>
         <span id="wifi-ap-feedback" class="feedback"></span>
       </div>
+
+      <div class="ap-live-row">
+        <span class="muted">AP adesso: <strong id="wifi-ap-live-state">--</strong></span>
+        <button id="btn-ap-toggle" class="btn btn-small btn-outline-danger">Spegni AP ora</button>
+        <span id="ap-toggle-feedback" class="feedback"></span>
+      </div>
       <div id="wifi-ap-status-box" class="muted hidden">
-        📡 AP attivo ora: <strong id="wifi-ap-status-ssid">--</strong>, password <code>geyser1234</code>, IP <span id="wifi-ap-status-ip">--</span>
+        📡 SSID <strong id="wifi-ap-status-ssid">--</strong>, password <code>geyser1234</code>, IP <span id="wifi-ap-status-ip">--</span>
       </div>
     </section>
 

@@ -254,6 +254,14 @@ main {
 .wifi-details { font-size: 0.9rem; }
 .wifi-details > div { margin-bottom: 2px; }
 
+.ap-live-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
 .network-form {
   margin-top: 16px;
   padding-top: 14px;

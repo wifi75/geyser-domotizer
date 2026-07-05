@@ -79,6 +79,11 @@ void connectWifiIfNeeded() {
       lastNtpResyncMs = millis();
     } else {
       wifiJustDisconnected = true;  // WiFi disconnesso, attiva il flag per AP di emergenza
+      // Una disconnessione REALE ha sempre priorità su un vecchio override
+      // manuale ("Spegni AP ora" cliccato in precedenza): altrimenti un click
+      // sbagliato potrebbe bloccare per sempre l'unico modo di raggiungere
+      // il dispositivo se la rete principale sparisse più tardi.
+      wifiSettings.clearApOverride();
       Serial.println("WiFi disconnesso");
       eventLogAdd("wifi", "disconnesso");
     }
@@ -100,6 +105,12 @@ void updateApState() {
   bool shouldBeActive = wifiSettings.data().apEnabled || AP_AUTO_ENABLED_ON_BOOT;
   if (!everConnectedSTA && millis() > AP_AUTO_FALLBACK_MS) shouldBeActive = true;
   if (wifiJustDisconnected) shouldBeActive = true;  // Attiva AP di emergenza se WiFi si disconnette
+
+  // Override manuale ("Spegni/Accendi AP ora" in UI): ha priorità su tutto
+  // il resto, ma solo finché non arriva una nuova disconnessione reale (vedi
+  // wifiSettings.clearApOverride() in connectWifiIfNeeded()) — così non può
+  // mai bloccare la rete di sicurezza in modo permanente.
+  if (wifiSettings.hasApOverride()) shouldBeActive = wifiSettings.apOverrideValue();
 
   if (shouldBeActive && !apActiveFlag) {
     apSsidInfo = AP_SSID;

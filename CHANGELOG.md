@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.44.0 — 2026-07-05
+
+Separata la logica dell'Access Point dalla connessione WiFi, aggiunto un pulsante per spegnerlo/accenderlo subito.
+
+- Nuovo endpoint `POST /api/wifi/ap-toggle` (`{"active": true|false}`): accende/spegne l'AP **immediatamente**, indipendentemente dall'impostazione persistita "sempre attivo" (`apEnabled`) — prima l'unico modo di intervenire sull'AP era salvare quella casella, che non permetteva di spegnerlo "adesso" se era acceso per altri motivi (fallback di boot, disconnessione WiFi)
+- Nuovo pulsante "Spegni/Accendi AP ora" nella tab Rete, subito sotto lo stato live dell'AP
+- L'override è **temporaneo** (solo RAM, non persistito): si azzera da solo al riavvio, al salvataggio esplicito di `apEnabled`, oppure — importante — alla prossima **disconnessione WiFi reale**, così un "Spegni AP ora" cliccato per errore non può mai bloccare permanentemente l'unica rete di soccorso se il WiFi principale dovesse davvero sparire in seguito
+- Corretto anche un refuso rimasto nella documentazione API e nel mock-server: SSID dell'AP ancora indicato come `GeyserSetup-XXXX` (schema pre-v0.39.0), ora `ESP-Geyser` ovunque
+
 ## v0.43.0 — 2026-07-05
 
 Riorganizzata la tab Impostazioni: meno affollata, gerarchia visiva più chiara tra azioni di routine e azioni distruttive.

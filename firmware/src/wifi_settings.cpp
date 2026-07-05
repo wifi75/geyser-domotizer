@@ -23,6 +23,13 @@ void WifiSettings::begin(AsyncWebServer& server) {
       "/api/wifi", [this](AsyncWebServerRequest* r, JsonVariant& body) { handlePut(r, body); });
   handler->setMethod(HTTP_PUT);
   server.addHandler(handler);
+
+  // Azione immediata, distinta dal salvataggio di apEnabled: accende/spegne
+  // l'AP adesso senza toccare l'impostazione "sempre attivo" persistita.
+  AsyncCallbackJsonWebHandler* toggleHandler = new AsyncCallbackJsonWebHandler(
+      "/api/wifi/ap-toggle", [this](AsyncWebServerRequest* r, JsonVariant& body) { handleApToggle(r, body); });
+  toggleHandler->setMethod(HTTP_POST);
+  server.addHandler(toggleHandler);
 }
 
 bool WifiSettings::load() {
@@ -93,9 +100,24 @@ void WifiSettings::handlePut(AsyncWebServerRequest* request, JsonVariant& body) 
   }
   if (!body["apEnabled"].isNull()) {
     data_.apEnabled = body["apEnabled"] | false;
+    apOverrideActive_ = false;  // un salvataggio esplicito ha priorità su un vecchio override manuale
   }
   save();
   eventLogAdd("wifi", String("credenziali aggiornate, SSID: ") + data_.ssid);
+
+  JsonDocument doc;
+  doc["ok"] = true;
+  AsyncResponseStream* response = request->beginResponseStream("application/json");
+  serializeJson(doc, *response);
+  request->send(response);
+}
+
+void WifiSettings::handleApToggle(AsyncWebServerRequest* request, JsonVariant& body) {
+  if (!requireAdmin(request)) return;
+
+  apOverrideActive_ = true;
+  apOverrideValue_ = body["active"] | false;
+  eventLogAdd("wifi", apOverrideValue_ ? "AP acceso manualmente" : "AP spento manualmente");
 
   JsonDocument doc;
   doc["ok"] = true;

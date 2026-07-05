@@ -162,6 +162,38 @@ function renderWifi(wifi) {
       el("wifi-ap-status-ip").textContent = ap.ip || "--";
     }
   }
+
+  const liveState = el("wifi-ap-live-state");
+  const toggleBtn = el("btn-ap-toggle");
+  if (liveState && toggleBtn) {
+    liveState.textContent = ap.active ? "acceso" : "spento";
+    toggleBtn.textContent = ap.active ? "Spegni AP ora" : "Accendi AP ora";
+    toggleBtn.classList.toggle("btn-outline-danger", ap.active);
+    toggleBtn.classList.toggle("btn-primary", !ap.active);
+    toggleBtn.dataset.targetActive = ap.active ? "false" : "true";
+  }
+}
+
+async function toggleApNow() {
+  const feedback = el("ap-toggle-feedback");
+  const toggleBtn = el("btn-ap-toggle");
+  const targetActive = toggleBtn.dataset.targetActive === "true";
+  feedback.textContent = "";
+  feedback.className = "feedback";
+
+  const r = await api("/api/wifi/ap-toggle", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ active: targetActive })
+  });
+  if (r && r.ok === false) {
+    feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+    feedback.className = "feedback error";
+  } else {
+    feedback.textContent = "Fatto.";
+    feedback.className = "feedback ok";
+    refreshStatus();
+  }
 }
 
 const LED_STATUS_LABELS = {
@@ -1207,6 +1239,7 @@ el("network-mode-static").addEventListener("change", updateNetworkFieldsVisibili
 el("btn-save-network").addEventListener("click", saveNetworkConfig);
 el("btn-save-wifi").addEventListener("click", saveWifiSettings);
 el("btn-save-ap").addEventListener("click", saveApSetting);
+el("btn-ap-toggle").addEventListener("click", toggleApNow);
 el("btn-restart").addEventListener("click", restartDevice);
 el("btn-save-gpio").addEventListener("click", saveGpioConfig);
 el("btn-save-ntp").addEventListener("click", saveNtpConfig);

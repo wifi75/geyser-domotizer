@@ -196,11 +196,23 @@ La password non è mai restituita, solo `hasPassword` (come per `GET /api/config
 
 ## PUT /api/wifi
 
-Cambia SSID/password della rete WiFi a cui il dispositivo si connette, e/o l'interruttore "Access Point sempre attivo". `ssid` obbligatorio e non vuoto se presente nel body; `password` opzionale — assente o omesso lascia quella salvata invariata (come `mqtt.password`). `apEnabled` è indipendente: se `true`, l'Access Point (`WIFI_AP_STA`, SSID `GeyserSetup-XXXX` derivato dal MAC, password fissa) resta sempre acceso in parallelo alla connessione normale; l'AP si attiva comunque da solo, a prescindere da questo flag, se la connessione configurata non riesce entro circa 60 secondi dal boot.
+Cambia SSID/password della rete WiFi a cui il dispositivo si connette, e/o l'interruttore persistito "Access Point sempre attivo". `ssid` obbligatorio e non vuoto se presente nel body; `password` opzionale — assente o omesso lascia quella salvata invariata (come `mqtt.password`). `apEnabled` è indipendente dalla connessione WiFi: se `true`, l'Access Point (`WIFI_AP_STA`, SSID fisso `ESP-Geyser`, password `AP_PASSWORD` da `config.h`, default `geyser1234`) resta sempre acceso in parallelo alla connessione normale, qualunque sia lo stato del WiFi; l'AP si attiva comunque da solo come rete di soccorso, a prescindere da questo flag, se la connessione configurata non riesce entro circa 60 secondi dal boot o se il WiFi era connesso e si disconnette.
+
+Impostare `apEnabled` con questa chiamata azzera anche un eventuale override manuale in corso (vedi `POST /api/wifi/ap-toggle` sotto).
 
 **Applicato subito, nessun riavvio**: il dispositivo tenta la riconnessione con le nuove credenziali all'interno del normale ciclo di retry WiFi.
 
 Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "invalid_ssid", "details": "..." }`
+
+## POST /api/wifi/ap-toggle
+
+Accende/spegne l'Access Point **subito**, indipendentemente dall'impostazione persistita `apEnabled`. Pensato per un pulsante "Spegni/Accendi AP ora" nella UI, distinto dal salvataggio dell'impostazione "sempre attivo".
+
+Body: `{ "active": false }`
+
+Questo è un **override temporaneo**, non persistito in NVS: si azzera da solo (1) al prossimo riavvio del dispositivo, (2) se l'utente salva esplicitamente `apEnabled` via `PUT /api/wifi`, oppure (3) alla prossima **disconnessione WiFi reale** — quest'ultimo caso è intenzionale: un "Spegni AP ora" cliccato per errore (o dimenticato attivo) non deve mai poter bloccare permanentemente l'unico modo di raggiungere il dispositivo se la rete principale dovesse sparire in seguito.
+
+Risposta: `{ "ok": true }`
 
 ## GET /api/led
 

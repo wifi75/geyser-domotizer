@@ -23,10 +23,24 @@ class WifiSettings {
   void begin(AsyncWebServer& server);
   const WifiSettingsData& data() const { return data_; }
 
+  // Override manuale immediato ("Spegni/Accendi AP ora" in UI): distinto da
+  // apEnabled (persistito, "sempre attivo"). Vive solo in RAM apposta — non
+  // deve sopravvivere a un riavvio né restare in vigore per sempre contro la
+  // rete di sicurezza: va azzerato ad ogni NUOVA disconnessione WiFi reale
+  // (vedi clearApOverride() chiamato da connectWifiIfNeeded() in main.cpp)
+  // così un "spegni" cliccato per errore non può mai bloccare permanentemente
+  // l'unico modo di raggiungere il dispositivo se la rete principale sparisce.
+  bool hasApOverride() const { return apOverrideActive_; }
+  bool apOverrideValue() const { return apOverrideValue_; }
+  void clearApOverride() { apOverrideActive_ = false; }
+
  private:
   WifiSettingsData data_;
+  bool apOverrideActive_ = false;
+  bool apOverrideValue_ = false;
   bool load();
   bool save();
   void handleGet(AsyncWebServerRequest* request);
   void handlePut(AsyncWebServerRequest* request, JsonVariant& body);
+  void handleApToggle(AsyncWebServerRequest* request, JsonVariant& body);
 };
