@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.22.0 — 2026-07-05
+
+Fix vero del mancato refresh dopo un riavvio (OTA, upload manuale, riavvio, config di rete).
+
+- **Causa reale trovata**: la pagina rilevava un riavvio solo vedendo il dispositivo prima sparire e poi ricomparire in rete. L'ESP32 si riavvia in pochi secondi — abbastanza in fretta da far sì che il polling (ogni 1.5s) non veda mai un "buco" di rete, restando bloccato in attesa per sempre senza mai ricaricare la pagina, anche col riavvio già avvenuto con successo.
+- `GET /api/ota/info` ora restituisce anche `uptimeMs` (tempo dall'avvio, riparte da 0 ad ogni riavvio): la pagina lo legge PRIMA di innescare un riavvio/aggiornamento, poi lo confronta con quello letto durante il polling — un valore più basso significa riavvio certamente avvenuto, indipendentemente da eventuali buchi di rete visti o no
+- Applicato a tutti i punti che aspettano un riavvio: OTA da GitHub, upload manuale, tasto "Riavvia dispositivo", salvataggio configurazione IP
+
 ## v0.21.0 — 2026-07-05
 
 Fix: barra OTA bloccata dopo un aggiornamento riuscito ma completato più in fretta della richiesta di rete; etichetta di progresso su una riga sola; istruzioni per l'aggiornamento manuale.

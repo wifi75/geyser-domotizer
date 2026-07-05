@@ -19,6 +19,8 @@ import urllib.request
 import urllib.error
 from datetime import datetime
 
+PROCESS_START_MONOTONIC = time.monotonic()
+
 WEB_DIR = os.path.join(os.path.dirname(__file__), "..", "web")
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 SCHEDULE_FILE = os.path.join(DATA_DIR, "schedule.json")
@@ -29,7 +31,7 @@ NTP_FILE = os.path.join(DATA_DIR, "ntp.json")
 PORT = int(os.environ.get("PORT", 8000))
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.21.0"
+MOCK_CURRENT_VERSION = "0.22.0"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 # Rispecchia l'elenco per esp32dev in firmware/src/gpio_settings.cpp
@@ -379,7 +381,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path == "/api/config":
             return self._send_json(state.config_public())
         if self.path == "/api/ota/info":
-            return self._send_json({"currentVersion": MOCK_CURRENT_VERSION})
+            # uptimeMs cresce sempre (il mock non si riavvia mai davvero): la
+            # rilevazione di riavvio lato frontend qui non scatta mai, coerente
+            # col fatto che il "riavvio" del mock è solo simulato via log.
+            uptime_ms = int((time.monotonic() - PROCESS_START_MONOTONIC) * 1000)
+            return self._send_json({"currentVersion": MOCK_CURRENT_VERSION, "uptimeMs": uptime_ms})
         if self.path == "/api/ota/progress":
             return self._send_json(state.ota_progress)
         if self.path == "/api/network":

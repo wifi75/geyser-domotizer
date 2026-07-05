@@ -29,7 +29,17 @@ void OtaManager::begin(AsyncWebServer& server) {
 }
 
 void OtaManager::handleInfo(AsyncWebServerRequest* request) {
-  request->send(200, "application/json", "{\"currentVersion\":\"" FIRMWARE_VERSION "\"}");
+  // uptimeMs: usato dal frontend per rilevare con certezza un riavvio
+  // avvenuto, invece di dedurlo da un momento di irraggiungibilità di rete
+  // che un riavvio abbastanza veloce (l'ESP32 riparte in pochi secondi) può
+  // benissimo non far notare a nessun polling — millis() riparte da 0 ad
+  // ogni avvio, quindi un valore più basso di quello visto prima = riavviato.
+  JsonDocument doc;
+  doc["currentVersion"] = FIRMWARE_VERSION;
+  doc["uptimeMs"] = millis();
+  AsyncResponseStream* response = request->beginResponseStream("application/json");
+  serializeJson(doc, *response);
+  request->send(response);
 }
 
 void OtaManager::handleCheck(AsyncWebServerRequest* request) {

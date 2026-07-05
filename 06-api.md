@@ -97,8 +97,10 @@ Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "invalid_config", "de
 ## GET /api/ota/info
 
 ```json
-{ "currentVersion": "0.4.0" }
+{ "currentVersion": "0.4.0", "uptimeMs": 123456 }
 ```
+
+`uptimeMs` è il tempo trascorso dall'avvio del dispositivo (`millis()`, riparte da 0 ad ogni riavvio). Il frontend lo usa per rilevare con certezza un riavvio avvenuto (un valore più basso di quello visto prima della richiesta di riavvio/aggiornamento), invece di dedurlo da un momento di irraggiungibilità di rete — un riavvio abbastanza veloce può non far notare nessun "buco" di rete al polling.
 
 ## POST /api/ota/check
 

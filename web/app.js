@@ -380,35 +380,53 @@ async function checkOtaUpdate({ silent } = {}) {
 
 // Ping con timeout esplicito: durante il riavvio una fetch normale può
 // restare "appesa" a lungo invece di fallire subito (stato di rete
-// ambiguo mentre il dispositivo si riconnette al WiFi), impedendo di
-// rilevare in tempo utile che è tornato online.
+// ambiguo mentre il dispositivo si riconnette al WiFi). Ritorna il body
+// (che include uptimeMs) o null se non raggiungibile/non valido.
 async function pingDevice(timeoutMs = 2500) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch("/api/ota/info", { signal: controller.signal });
-    return res.ok;
+    return res.ok ? await res.json() : null;
+  } catch (e) {
+    return null;
   } finally {
     clearTimeout(timer);
   }
 }
 
-// Dopo un riavvio (OTA, upload manuale o riavvio esplicito), aspetta che il
-// dispositivo torni raggiungibile e ricarica la pagina da sola.
-async function waitForDeviceAndReload(maxAttempts = 60) {
+// Da chiamare PRIMA di innescare un riavvio (OTA, upload manuale, riavvio
+// esplicito, config di rete): serve a waitForDeviceAndReload per riconoscere
+// con certezza che è avvenuto un riavvio.
+async function captureBootReference() {
+  const info = await pingDevice();
+  return info && typeof info.uptimeMs === "number" ? info.uptimeMs : null;
+}
+
+// Dopo un riavvio, aspetta che il dispositivo torni raggiungibile e ricarica
+// la pagina da sola. bootRefMs (da captureBootReference(), preso PRIMA del
+// riavvio) è il segnale affidabile: uptimeMs riparte da 0 ad ogni avvio, e un
+// valore più basso di bootRefMs significa che il riavvio è certamente
+// avvenuto. Necessario perché un riavvio abbastanza veloce (l'ESP32 ci mette
+// pochi secondi) può benissimo non far notare al polling nessun momento di
+// irraggiungibilità di rete da cui dedurlo altrimenti — il vecchio approccio
+// "aspetta di vederlo sparire e poi ricomparire" restava bloccato in eterno
+// in quel caso, senza mai ricaricare la pagina.
+async function waitForDeviceAndReload(bootRefMs = null, maxAttempts = 80) {
   let sawDown = false;
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((r) => setTimeout(r, 1500));
-    try {
-      const ok = await pingDevice();
-      if (ok && sawDown) {
-        localStorage.setItem("geyser-tab", "stato");  // dopo un riavvio si riparte sempre da Stato
-        location.reload();
-        return;
-      }
-      if (!ok) sawDown = true;
-    } catch (e) {
+    const info = await pingDevice();
+    if (!info) {
       sawDown = true;
+      continue;
+    }
+    const rebooted = typeof bootRefMs === "number" &&
+      typeof info.uptimeMs === "number" && info.uptimeMs < bootRefMs;
+    if (rebooted || sawDown) {
+      localStorage.setItem("geyser-tab", "stato");  // dopo un riavvio si riparte sempre da Stato
+      location.reload();
+      return;
     }
   }
 }
@@ -461,6 +479,7 @@ async function applyOtaUpdate() {
   const progressWraps = [el("ota-update-progress-wrap"), el("banner-update-progress-wrap")];
   setOtaFeedback("", "");
 
+  const bootRef = await captureBootReference();
   const start = await api("/api/ota/update", { method: "POST" });
   if (start && start.ok === false) {
     setOtaFeedback(`Errore: ${start.error} ${start.details ?? ""}`, "error");
@@ -484,7 +503,7 @@ async function applyOtaUpdate() {
       // distinguere i due casi da qui).
       setOtaFeedback("Aggiornamento completato, il dispositivo si sta riavviando...", "ok");
       progressWraps.forEach((w) => w.classList.add("hidden"));
-      waitForDeviceAndReload();
+      waitForDeviceAndReload(bootRef);
       return;
     }
 
@@ -509,7 +528,7 @@ async function applyOtaUpdate() {
     if (sawRealProgress && !p.inProgress && p.phase === "idle") {
       setOtaFeedback("Aggiornamento completato, il dispositivo si è riavviato...", "ok");
       progressWraps.forEach((w) => w.classList.add("hidden"));
-      waitForDeviceAndReload();
+      waitForDeviceAndReload(bootRef);
       return;
     }
 
@@ -521,7 +540,7 @@ async function applyOtaUpdate() {
       await new Promise((r) => setTimeout(r, 700));
       setOtaFeedback("Aggiornamento completato, il dispositivo si sta riavviando...", "ok");
       progressWraps.forEach((w) => w.classList.add("hidden"));
-      waitForDeviceAndReload();
+      waitForDeviceAndReload(bootRef);
       return;
     }
 
@@ -549,15 +568,16 @@ async function restartDevice() {
   const feedback = el("restart-feedback");
   feedback.textContent = "Riavvio in corso...";
   feedback.className = "feedback";
+  const bootRef = await captureBootReference();
   try {
     await api("/api/system/restart", { method: "POST" });
   } catch (e) {
     // atteso: il dispositivo si riavvia e la connessione cade
   }
-  waitForDeviceAndReload();
+  waitForDeviceAndReload(bootRef);
 }
 
-function uploadFirmwareFile() {
+async function uploadFirmwareFile() {
   const feedback = el("ota-upload-feedback");
   const fileInput = el("ota-file-input");
   const progressWrap = el("ota-upload-progress-wrap");
@@ -570,6 +590,8 @@ function uploadFirmwareFile() {
     feedback.className = "feedback error";
     return;
   }
+
+  const bootRef = await captureBootReference();
 
   const formData = new FormData();
   formData.append("firmware", fileInput.files[0]);
@@ -586,7 +608,7 @@ function uploadFirmwareFile() {
       if (r.ok) {
         feedback.textContent = "Caricato, il dispositivo si sta riavviando...";
         feedback.className = "feedback ok";
-        waitForDeviceAndReload();
+        waitForDeviceAndReload(bootRef);
       } else {
         feedback.textContent = `Errore: ${r.error}`;
         feedback.className = "feedback error";
@@ -594,13 +616,13 @@ function uploadFirmwareFile() {
     } catch (e) {
       feedback.textContent = "Caricato, il dispositivo si sta riavviando...";
       feedback.className = "feedback ok";
-      waitForDeviceAndReload();
+      waitForDeviceAndReload(bootRef);
     }
   };
   xhr.onerror = () => {
     feedback.textContent = "Caricato: il dispositivo potrebbe essersi già riavviato.";
     feedback.className = "feedback ok";
-    waitForDeviceAndReload();
+    waitForDeviceAndReload(bootRef);
   };
   xhr.send(formData);
 }
@@ -700,6 +722,7 @@ async function saveNetworkConfig() {
   const feedback = el("network-feedback");
   feedback.textContent = "";
   feedback.className = "feedback";
+  const bootRef = await captureBootReference();
 
   const mode = el("network-mode-static").checked ? "static" : "dhcp";
   const body = { mode };
@@ -726,12 +749,12 @@ async function saveNetworkConfig() {
       // prima) la pagina si ricarica da sola; se l'IP cambia davvero, questa
       // pagina resta comunque puntata al vecchio indirizzo e va riaperta
       // manualmente al nuovo (vedi avviso sopra al form).
-      waitForDeviceAndReload();
+      waitForDeviceAndReload(bootRef);
     }
   } catch (e) {
     feedback.textContent = "Salvato: il dispositivo si sta riavviando (potrebbe cambiare IP).";
     feedback.className = "feedback ok";
-    waitForDeviceAndReload();
+    waitForDeviceAndReload(bootRef);
   }
 }
 
