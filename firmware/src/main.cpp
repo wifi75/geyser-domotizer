@@ -185,10 +185,32 @@ void setup() {
   pumpCurrentMonitor.begin(PIN_I2C_SDA, PIN_I2C_SCL);
   pump.begin(gpioSettings.relayPin(), gpioSettings.relayActiveHigh());
 
+  // Senza questo, il driver WiFi di Arduino-ESP32 salva automaticamente ogni
+  // configurazione STA/AP nella sua area flash interna (separata dalla
+  // nostra, gestita da ESP-IDF) e può far ripartire l'AP con un nome vecchio
+  // o quello di fabbrica ("ESP_xxxxxx" derivato dal MAC) invece di quello
+  // che chiediamo esplicitamente ogni volta — riscontrato: dopo aver
+  // disattivato "sempre attivo" da UI, l'AP tornava a chiamarsi come al
+  // primissimo avvio della scheda invece di sparire. Disabilita quel
+  // salvataggio automatico: ogni softAP()/WiFi.begin() vale solo per la
+  // sessione corrente, mai riletto da flash a nostra insaputa.
+  WiFi.persistent(false);
+
   // AP_STA (non solo STA) fin da subito: così l'Access Point di
   // emergenza/setup (vedi updateApState()) può accendersi in qualsiasi
   // momento senza un cambio di modalità WiFi disruptivo per la STA.
   WiFi.mode(WIFI_AP_STA);
+  // Con la modalità AP_STA attiva, l'interfaccia AP di ESP-IDF trasmette
+  // comunque qualcosa non appena "su" — se updateApState() non decide di
+  // accenderla subito (caso comune: checkbox "sempre attivo" disattivata e
+  // WiFi che si connette regolarmente), softAP() non verrebbe mai chiamato
+  // in questo boot, e l'AP finirebbe per trasmettere la configurazione di
+  // fabbrica di ESP-IDF ("ESP_xxxxxx" derivato dal MAC, salvata nella sua
+  // area NVS interna separata dalla nostra) invece di restare silenzioso.
+  // Disconnessione esplicita subito dopo il cambio di modalità: garantisce
+  // che l'AP non trasmetta nulla finché updateApState() non lo accende
+  // davvero con il nostro nome ("ESP-Geyser").
+  WiFi.softAPdisconnect(true);
   WiFi.setSleep(true);  // modem sleep: il radio dorme tra un beacon DTIM e l'altro
 
   if (networkSettings.data().mode == NetworkMode::STATIC_IP) {

@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.46.0 — 2026-07-05
+
+Fix: dopo aver disattivato "Access Point sempre attivo", ricompariva una rete WiFi con un nome vecchio/di fabbrica (`ESP_xxxxxx` derivato dal MAC) invece di sparire.
+
+- Causa: senza `WiFi.persistent(false)`, il driver WiFi di Arduino-ESP32 salva automaticamente ogni configurazione STA/AP nella sua area flash interna (gestita da ESP-IDF, separata dalle nostre impostazioni NVS) e può farla ripartire con quella salvata invece di quella che il firmware chiede esplicitamente ad ogni `softAP()`/`WiFi.begin()` — in questo caso, tornava la configurazione di fabbrica risalente ai primi test della scheda, prima che esistesse il nome fisso "ESP-Geyser"
+- Aggiunto `WiFi.persistent(false)` all'avvio: disabilita quel salvataggio automatico, ogni cambio di configurazione WiFi vale solo per la sessione corrente
+- Aggiunta anche una `WiFi.softAPdisconnect(true)` esplicita subito dopo aver impostato la modalità `WIFI_AP_STA` al boot, come ulteriore garanzia che l'AP non trasmetta nulla finché non lo accendiamo noi con il nome giusto
+
 ## v0.45.0 — 2026-07-05
 
 **Fix critico**: l'aggiornamento OTA del sito web (LittleFS) falliva silenziosamente da diverse release, senza che nulla lo segnalasse in UI.
