@@ -16,6 +16,12 @@ Se in futuro PlatformIO/Espressif ripristinano il supporto ufficiale, l'ambiente
 
 ## Pinout
 
+![Pinout XIAO ESP32-C6, lato componenti](img/xiao-esp32c6-front-pinout.png)
+
+![Pinout XIAO ESP32-C6, lato retro](img/xiao-esp32c6-back-pinout.png)
+
+Diagrammi ufficiali Seeed Studio ([wiki.seeedstudio.com/xiao_esp32c6_getting_started](https://wiki.seeedstudio.com/xiao_esp32c6_getting_started/), CC BY-SA 4.0), ridimensionati per la documentazione — mostrano il mapping serigrafia D-number ↔ pin fisico. Per la tabella GPIO effettivamente usata da questo progetto vedi sotto.
+
 ⚠️ **Non identico alla XIAO ESP32-C3**: il mapping D-number → GPIO reale di questa scheda è completamente diverso (D0=GPIO0, D1=GPIO1, D2=GPIO2, D3=GPIO21, D4=GPIO22, D5=GPIO23, D6=GPIO16, D7=GPIO17... vedi `pins_arduino.h` del core Arduino). Non è un problema per il firmware, che usa numeri di GPIO diretti (`PIN_RELAY_PUMP`, ecc.) non le sigle D-number — ma **non fare l'assunzione "stessa sigla D = stesso GPIO" passando da una scheda all'altra** quando colleghi i fili.
 
 `config.h` ha un branch pin dedicato per questa scheda (`BOARD_XIAO_ESP32C6`), diverso da quello della C3, per un motivo importante:
