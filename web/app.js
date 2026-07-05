@@ -115,7 +115,22 @@ async function refreshStatus() {
     } else {
       currentWrap.classList.add("hidden");
     }
-    el("banner-tank-empty").classList.toggle("hidden", !(s.pumpCurrent && s.pumpCurrent.tankEmptySuspected));
+
+    const tankEmpty = !!(s.pumpCurrent && s.pumpCurrent.tankEmptySuspected);
+    el("banner-tank-empty").classList.toggle("hidden", !tankEmpty);
+
+    const tankIcon = el("tank-status-icon");
+    if (tankEmpty) {
+      tankIcon.textContent = "🪣";
+      tankIcon.title = "Serbatoio probabilmente vuoto";
+      tankIcon.className = "tank-icon tank-icon-empty";
+    } else if (s.pump.active) {
+      tankIcon.textContent = "💧";
+      tankIcon.title = "Nebulizzazione in corso";
+      tankIcon.className = "tank-icon tank-icon-active";
+    } else {
+      tankIcon.className = "tank-icon hidden";
+    }
   } catch (e) {
     setBadge(el("badge-wifi"), false);
     setBadge(el("badge-mqtt"), false);

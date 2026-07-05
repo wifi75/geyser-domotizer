@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.25.0 — 2026-07-05
+
+Indicazione grafica animata per "serbatoio vuoto", non solo testo.
+
+- Icona 💧/🪣 accanto allo stato della pompa: gocciolina che pulsa mentre nebulizza normalmente, secchiello che trema in rosso quando il serbatoio è sospettato vuoto
+- Banner "Serbatoio probabilmente vuoto" ora più vistoso: colore rosso dedicato, icona grande, bordo che pulsa
+
 ## v0.24.0 — 2026-07-05
 
 Rilevamento "serbatoio vuoto" dall'assorbimento della pompa (sensore INA219, I2C).

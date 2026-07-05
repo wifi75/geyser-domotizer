@@ -15,8 +15,9 @@
   ⚠️ Batteria scarica: la programmazione automatica potrebbe non completarsi.
 </section>
 
-<section id="banner-tank-empty" class="banner banner-warn hidden">
-  ⚠️ Serbatoio probabilmente vuoto: la pompa si è fermata da sola in base all'assorbimento rilevato.
+<section id="banner-tank-empty" class="banner banner-danger hidden">
+  <span class="banner-tank-icon">🪣</span>
+  Serbatoio probabilmente vuoto: la pompa si è fermata da sola in base all'assorbimento rilevato.
 </section>
 
 <section id="banner-update" class="banner banner-info hidden">
@@ -63,7 +64,10 @@
 
     <section class="card" id="card-pump">
       <h2>Nebulizzazione</h2>
-      <p id="pump-state">Stato: <strong id="pump-state-text">--</strong></p>
+      <div class="pump-state-row">
+        <p id="pump-state">Stato: <strong id="pump-state-text">--</strong></p>
+        <span id="tank-status-icon" class="tank-icon hidden" title=""></span>
+      </div>
       <p id="pump-remaining-wrap" class="hidden">Tempo rimanente: <strong id="pump-remaining">--</strong></p>
       <p id="pump-current-wrap" class="hidden muted">Assorbimento: <strong id="pump-current-ma">--</strong> mA</p>
       <div class="manual-controls">

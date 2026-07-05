@@ -118,6 +118,21 @@ main {
 
 .banner-warn { background: #4a3a1a; color: var(--warn); }
 .banner-info { background: #1a3a4a; color: #7ec8e8; }
+.banner-danger {
+  background: #4a1f1a;
+  color: #ff8a75;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: banner-danger-pulse 1.6s ease-in-out infinite;
+}
+
+.banner-tank-icon { font-size: 1.6rem; line-height: 1; }
+
+@keyframes banner-danger-pulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(217, 83, 79, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(217, 83, 79, 0.25); }
+}
 
 .banner-clickable { cursor: pointer; }
 .banner-link { text-decoration: underline; }
@@ -136,6 +151,27 @@ main {
 }
 
 .hidden { display: none !important; }
+
+.pump-state-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pump-state-row p { margin: 0; }
+
+.tank-icon { font-size: 1.4rem; line-height: 1; }
+.tank-icon-active { animation: tank-icon-pulse 1.6s ease-in-out infinite; }
+.tank-icon-empty { animation: tank-icon-shake 0.6s ease-in-out infinite; }
+
+@keyframes tank-icon-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+@keyframes tank-icon-shake {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-12deg); }
+  75% { transform: rotate(12deg); }
+}
 
 .battery-row {
   display: flex;
