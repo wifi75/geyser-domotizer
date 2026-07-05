@@ -93,6 +93,7 @@
 // permanente da web (vedi wifi_settings.h), indipendentemente da questo
 // fallback automatico.
 #define AP_AUTO_FALLBACK_MS 60000
+#define AP_AUTO_ENABLED_ON_BOOT false  // attiva l'AP subito al boot, utile se sai che il WiFi non funzionerà
 #define AP_SSID_PREFIX "GeyserSetup-"
 #ifndef AP_PASSWORD
 #define AP_PASSWORD "geyser1234"
@@ -156,7 +157,7 @@
 // Da bump manuale ad ogni release: deve corrispondere ESATTAMENTE al tag
 // GitHub "vX.Y.Z" (senza la "v"), il confronto è una semplice uguaglianza
 // di stringa, non un confronto semver.
-#define FIRMWARE_VERSION "0.37.0"
+#define FIRMWARE_VERSION "0.38.0"
 #define GITHUB_OWNER "wifi75"
 #define GITHUB_REPO "geyser-domotizer"
 // Nome dell'asset da cercare tra quelli allegati alla release GitHub: deve

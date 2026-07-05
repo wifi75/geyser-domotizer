@@ -97,7 +97,7 @@ void connectWifiIfNeeded() {
 // ecc.) o (2) il WiFi era connesso e si è disconnesso — così c'è sempre un
 // modo di raggiungere il dispositivo da browser.
 void updateApState() {
-  bool shouldBeActive = wifiSettings.data().apEnabled;
+  bool shouldBeActive = wifiSettings.data().apEnabled || AP_AUTO_ENABLED_ON_BOOT;
   if (!everConnectedSTA && millis() > AP_AUTO_FALLBACK_MS) shouldBeActive = true;
   if (wifiJustDisconnected) shouldBeActive = true;  // Attiva AP di emergenza se WiFi si disconnette
 

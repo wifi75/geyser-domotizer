@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.38.0 — 2026-07-05
+
+Booleano di configurazione per abilitare l'AP al boot.
+
+- Aggiunto `AP_AUTO_ENABLED_ON_BOOT` in `config.h` (default `false`): se messo a `true`, l'Access Point si attiva subito al boot, utile se sai che il WiFi non funzionerà (es. rete assente, configurazione da zero). Può essere sovrascritto da `config.local.h` senza riflashare
+
 ## v0.37.0 — 2026-07-05
 
 Access Point di emergenza si attiva automaticamente quando il WiFi si disconnette.
