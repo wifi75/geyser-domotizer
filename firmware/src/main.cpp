@@ -146,7 +146,17 @@ void setup() {
   // Registrato per ultimo apposta: vedi il commento in webserver.cpp
   // (WebServerApp::begin()) sul perché farlo prima intasa il log ad ogni
   // chiamata API con tentativi falliti di apertura file su LittleFS.
-  server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
+  //
+  // Il filtro sotto rende esplicita la separazione: nessun path /api/... deve
+  // mai arrivare al fallback statico. Durante OTA il frontend polla
+  // /api/status e /api/ota/progress; se lo static handler prova ad aprirli su
+  // LittleFS mentre HTTPUpdate sta verificando la nuova immagine, può
+  // interferire con il mmap della flash e far fallire l'attivazione firmware.
+  server.serveStatic("/", LittleFS, "/")
+      .setDefaultFile("index.html")
+      .setFilter([](AsyncWebServerRequest* request) {
+        return !request->url().startsWith("/api/");
+      });
   server.begin();
   mqtt.begin(mqttSettings, pump);
 

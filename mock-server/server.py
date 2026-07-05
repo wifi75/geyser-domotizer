@@ -33,7 +33,7 @@ PUMP_CURRENT_FILE = os.path.join(DATA_DIR, "pump_current.json")
 PORT = int(os.environ.get("PORT", 8000))
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.28.1"
+MOCK_CURRENT_VERSION = "0.28.2"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 # Rispecchia l'elenco per esp32dev in firmware/src/gpio_settings.cpp
@@ -221,7 +221,7 @@ class State:
                 # pompa gira, nessun sensore reale nel mock (niente hardware
                 # I2C da leggere) — sufficiente per esercitare l'interfaccia.
                 "pumpCurrent": self._simulated_pump_current(),
-                # Valori tipici osservati sul vero ESP32 DevKitV1 (v0.6.0-beta),
+                # Valori tipici osservati sul vero ESP32 DevKitV1,
                 # solo per popolare la UI in locale: non cambiano nel mock.
                 "system": {
                     "ramFreeBytes": 210000, "ramTotalBytes": 327680,
@@ -309,7 +309,7 @@ def check_github_latest_release():
     """Interroga davvero le release GitHub del repo (utile: il mock gira sul
     PC dello sviluppatore, che ha accesso a internet, a differenza dell'ESP32
     isolato in laboratorio). Usa /releases (lista) e non /releases/latest,
-    perché quest'ultimo esclude le prerelease -- e qui sono tutte beta.
+    perché quest'ultimo esclude eventuali prerelease più recenti.
     Ritorna (tag_senza_v, note_di_rilascio, errore)."""
     url = f"https://api.github.com/repos/{GITHUB_REPO}/releases?per_page=1"
     req = urllib.request.Request(url, headers={

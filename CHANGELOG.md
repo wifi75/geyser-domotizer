@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.28.2 — 2026-07-05
+
+Fix: impedito al fallback statico di toccare LittleFS per le rotte API durante OTA.
+
+- Lo static handler ora rifiuta esplicitamente i path `/api/...`: le chiamate di polling come `/api/status` e `/api/ota/progress` non vengono più cercate come file su LittleFS (`/littlefs/api/status`, `/littlefs/api/ota/progress`, ecc.)
+- Durante un aggiornamento OTA, evitare accessi inutili a LittleFS riduce il rischio di interferire con il mmap/verifica flash di `HTTPUpdate`, associato all'errore `Could Not Activate The Firmware`
+- Allineata la documentazione allo stato attuale del progetto: firmware già esistente/testato su ESP32 DevKit V1, XIAO ancora compile-only, configurazioni runtime persistite in NVS e non più su LittleFS
+
 ## v0.28.1 — 2026-07-05
 
 Fix: rumore nel log seriale ad ogni chiamata API (file statici sondati inutilmente).

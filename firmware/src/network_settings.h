@@ -10,7 +10,7 @@ struct NetworkSettingsData {
   String ip, gateway, subnet, dns;
 };
 
-// Configurazione IP (DHCP o statico) persistita su LittleFS. Va letta e
+// Configurazione IP (DHCP o statico) persistita in NVS. Va letta e
 // applicata (in main.cpp, con WiFi.config()) PRIMA di WiFi.begin(): un
 // cambio impostazioni da web richiede quindi un riavvio per avere effetto,
 // gestito qui internamente dopo il salvataggio.

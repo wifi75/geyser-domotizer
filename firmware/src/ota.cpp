@@ -5,6 +5,7 @@
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <HTTPUpdate.h>
+#include <LittleFS.h>
 
 // setInsecure() salta la verifica del certificato TLS di GitHub: la
 // connessione resta comunque cifrata, ma non autenticata (nessuna difesa
@@ -166,6 +167,17 @@ void OtaManager::runUpdateTask() {
     progressTotal_ = total;
   });
 
+  // Smontato per tutta la durata dell'update: l'attivazione del firmware
+  // (esp_ota_set_boot_partition, chiamata dentro Update.end()) rimappa la
+  // flash per verificare l'immagine, e una richiesta HTTP concorrente che
+  // tocca LittleFS nello stesso istante (es. /api/status, polling ogni 2s
+  // dal frontend) può scontrarcisi — visto in log come
+  // "tried to bootloader_mmap twice" seguito da "Could Not Activate The
+  // Firmware", anche con un download perfettamente riuscito. Rimontato
+  // solo se qualcosa fallisce (a riavvio andato a buon fine non serve,
+  // l'ESP.restart() qui sotto ripulisce comunque tutto).
+  LittleFS.end();
+
   WiFiClientSecure firmwareClient;
   firmwareClient.setInsecure();
   // Il default (~5s) può bastare per una connessione TLS ma è troppo poco
@@ -184,6 +196,7 @@ void OtaManager::runUpdateTask() {
                   lastErrorDetails_.c_str(), Update.getError());
     progressPhase_ = "error";
     updateInProgress_ = false;
+    LittleFS.begin(true);  // rimonta per continuare a servire la webapp dopo il fallimento
     return;
   }
 

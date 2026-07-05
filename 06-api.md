@@ -66,7 +66,7 @@ Programmazione settimanale corrente.
 
 ## PUT /api/schedule
 
-Sostituisce l'intera programmazione (stesso formato di GET), validata e persistita (LittleFS su firmware, file JSON su mock).
+Sostituisce l'intera programmazione (stesso formato di GET), validata e persistita (NVS su firmware, file JSON su mock).
 
 Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "invalid_schedule", "details": "..." }`
 
@@ -88,7 +88,7 @@ Configurazione MQTT corrente. La password non viene mai restituita (write-only),
 
 ## PUT /api/config
 
-Aggiorna la configurazione MQTT, persistita (LittleFS su firmware, file JSON su mock) e applicata subito, senza bisogno di riflashare.
+Aggiorna la configurazione MQTT, persistita (NVS su firmware, file JSON su mock) e applicata subito, senza bisogno di riflashare.
 
 Richiesta:
 ```json
@@ -192,7 +192,7 @@ Cambia modalità DHCP/IP statico. Se `mode` è `"static"`, `ip`/`gateway`/`subne
 
 Risposta (se la validazione fallisce, prima di riavviare): `{ "ok": false, "error": "invalid_network_config", "details": "..." }`
 
-⚠️ Se l'IP statico scelto è sbagliato o già occupato da un altro dispositivo sulla rete, il dispositivo potrebbe diventare irraggiungibile dalla UI: in tal caso serve ricollegarlo via USB e correggere manualmente (cancellare `/network_config.json` da LittleFS, o riflashare).
+⚠️ Se l'IP statico scelto è sbagliato o già occupato da un altro dispositivo sulla rete, il dispositivo potrebbe diventare irraggiungibile dalla UI: in tal caso serve ricollegarlo via USB e correggere manualmente la configurazione NVS (oppure riflashare/cancellare la partizione NVS).
 
 ## GET /api/ntp
 

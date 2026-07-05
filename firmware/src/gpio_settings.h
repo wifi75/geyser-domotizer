@@ -6,7 +6,7 @@ class Pump;
 
 // Elenco dei GPIO proponibili per il pin IN del relè pompa, diverso per
 // scheda (evita UART0, pin di strapping del boot, pin input-only), e scelta
-// corrente persistita su LittleFS. Il cambio pin/logica è applicato subito
+// corrente persistita in NVS. Il cambio pin/logica è applicato subito
 // tramite Pump::reconfigure(), senza riavviare il dispositivo.
 class GpioSettings {
  public:

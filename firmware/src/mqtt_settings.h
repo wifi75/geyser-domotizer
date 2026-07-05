@@ -10,7 +10,7 @@ struct MqttSettingsData {
   String password;
 };
 
-// Configurazione MQTT persistita su LittleFS, modificabile da web senza
+// Configurazione MQTT persistita in NVS, modificabile da web senza
 // dover riflashare. Al primo avvio (nessun file salvato) usa i default in
 // config.h come punto di partenza.
 class MqttSettings {

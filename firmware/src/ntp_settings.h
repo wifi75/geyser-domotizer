@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include <ESPAsyncWebServer.h>
 
-// Server NTP e intervallo di risincronizzazione, persistiti su LittleFS e
+// Server NTP e intervallo di risincronizzazione, persistiti in NVS e
 // modificabili dalla UI senza riavviare: a differenza di
 // GpioSettings/NetworkSettings, non serve un reboot, basta richiamare
 // configTzTime() con il nuovo indirizzo. L'intervallo è gestito a mano in
