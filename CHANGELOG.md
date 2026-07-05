@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.27.0 — 2026-07-05
+
+Legenda di collegamento del modulo INA219 direttamente nella card "Sensore corrente pompa".
+
+- Sezione a comparsa "Come collegare il modulo INA219" con la mappa pin corretta per la scheda rilevata (GPIO21/22 su ESP32 DevKitV1, GPIO6/7 su XIAO), utile quando il sensore risulta "non rilevato" e serve ricontrollare i collegamenti
+- Ribadisce che i terminali Vin+/Vin- vanno in serie su un filo della pompa, non collegati all'ESP32
+
 ## v0.26.0 — 2026-07-05
 
 Min/max di corrente pompa, per tarare la soglia senza doverla leggere al momento esatto.

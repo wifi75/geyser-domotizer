@@ -739,6 +739,17 @@ async function loadPumpCurrentConfig() {
   el("pcur-direction").value = cfg.belowThreshold ? "below" : "above";
   el("pcur-threshold").value = cfg.thresholdMa;
   el("pcur-duration").value = cfg.durationS;
+
+  // Riusa /api/gpio solo per sapere su quale scheda gira, cosi' i pin I2C
+  // mostrati corrispondono davvero (GPIO21/22 su esp32dev, GPIO6/7 su XIAO).
+  try {
+    const gpioCfg = await api("/api/gpio");
+    const isEsp32Dev = (gpioCfg.board || "").startsWith("esp32dev");
+    el("pcur-sda-pin").textContent = isEsp32Dev ? "GPIO21" : "GPIO6";
+    el("pcur-scl-pin").textContent = isEsp32Dev ? "GPIO22" : "GPIO7";
+  } catch (e) {
+    // non bloccante: la legenda resta con "--"
+  }
 }
 
 async function savePumpCurrentConfig() {

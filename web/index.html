@@ -219,6 +219,17 @@
       <h2>Sensore corrente pompa</h2>
       <p class="muted">Sensore INA219 (I2C): <strong id="pcur-sensor-status">--</strong></p>
 
+      <details class="pcur-wiring">
+        <summary>Come collegare il modulo INA219</summary>
+        <div class="pcur-wiring-table">
+          <div>VCC</div><div>→ 3.3V</div>
+          <div>GND</div><div>→ GND</div>
+          <div>SDA</div><div>→ <strong id="pcur-sda-pin">--</strong></div>
+          <div>SCL</div><div>→ <strong id="pcur-scl-pin">--</strong></div>
+        </div>
+        <p class="muted">I terminali <strong>Vin+</strong> / <strong>Vin-</strong> (a vite) non si collegano all'ESP32: vanno inseriti in serie su uno dei due fili che alimentano la pompa, cosi' la sua corrente attraversa fisicamente il modulo.</p>
+      </details>
+
       <div class="pcur-debug">
         <p class="muted" style="margin:0">
           Min/max osservati: <strong id="pcur-minmax">-- / -- mA</strong>

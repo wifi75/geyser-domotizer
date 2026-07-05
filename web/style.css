@@ -304,6 +304,26 @@ main {
 .pcur-fields label { color: var(--muted); font-size: 0.85rem; }
 .pcur-fields select, .pcur-fields input[type="number"] { width: 100%; max-width: 260px; }
 
+.pcur-wiring {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(0,0,0,0.15);
+  border-radius: 6px;
+}
+.pcur-wiring summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.pcur-wiring-table {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  margin: 8px 0;
+  font-size: 0.85rem;
+}
+.pcur-wiring-table > div:nth-child(odd) { color: var(--muted); }
+
 .pcur-debug {
   display: flex;
   align-items: center;
