@@ -107,6 +107,15 @@ async function refreshStatus() {
     } else {
       remainingWrap.classList.add("hidden");
     }
+
+    const currentWrap = el("pump-current-wrap");
+    if (s.pump.active && s.pumpCurrent && s.pumpCurrent.sensorFound) {
+      currentWrap.classList.remove("hidden");
+      el("pump-current-ma").textContent = Math.round(s.pumpCurrent.milliAmps);
+    } else {
+      currentWrap.classList.add("hidden");
+    }
+    el("banner-tank-empty").classList.toggle("hidden", !(s.pumpCurrent && s.pumpCurrent.tankEmptySuspected));
   } catch (e) {
     setBadge(el("badge-wifi"), false);
     setBadge(el("badge-mqtt"), false);
@@ -696,6 +705,50 @@ async function saveGpioConfig() {
   }
 }
 
+async function loadPumpCurrentConfig() {
+  const s = await api("/api/status");
+  el("pcur-sensor-status").textContent = s.pumpCurrent && s.pumpCurrent.sensorFound
+    ? "rilevato"
+    : "non rilevato (controlla i collegamenti I2C)";
+
+  const cfg = await api("/api/pump-current");
+  el("pcur-enabled").checked = cfg.enabled;
+  el("pcur-direction").value = cfg.belowThreshold ? "below" : "above";
+  el("pcur-threshold").value = cfg.thresholdMa;
+  el("pcur-duration").value = cfg.durationS;
+}
+
+async function savePumpCurrentConfig() {
+  const feedback = el("pcur-feedback");
+  feedback.textContent = "";
+  feedback.className = "feedback";
+
+  const body = {
+    enabled: el("pcur-enabled").checked,
+    belowThreshold: el("pcur-direction").value === "below",
+    thresholdMa: parseInt(el("pcur-threshold").value, 10) || 500,
+    durationS: parseInt(el("pcur-duration").value, 10) || 5
+  };
+
+  try {
+    const r = await api("/api/pump-current", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    if (r && r.ok === false) {
+      feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+      feedback.className = "feedback error";
+    } else {
+      feedback.textContent = "Salvato.";
+      feedback.className = "feedback ok";
+    }
+  } catch (e) {
+    feedback.textContent = "Errore di comunicazione con il dispositivo.";
+    feedback.className = "feedback error";
+  }
+}
+
 async function loadNtpConfig() {
   const cfg = await api("/api/ntp");
   el("ntp-server").value = cfg.server || "";
@@ -800,6 +853,7 @@ el("btn-save-network").addEventListener("click", saveNetworkConfig);
 el("btn-restart").addEventListener("click", restartDevice);
 el("btn-save-gpio").addEventListener("click", saveGpioConfig);
 el("btn-save-ntp").addEventListener("click", saveNtpConfig);
+el("btn-save-pcur").addEventListener("click", savePumpCurrentConfig);
 
 el("banner-update-summary").addEventListener("click", () => {
   el("banner-update-details").classList.toggle("hidden");
@@ -840,5 +894,6 @@ loadOtaInfo();
 loadNetworkConfig();
 loadGpioConfig();
 loadNtpConfig();
+loadPumpCurrentConfig();
 checkOtaUpdate({ silent: true });
 setInterval(refreshStatus, 2000);

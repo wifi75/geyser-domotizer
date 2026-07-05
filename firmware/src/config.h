@@ -22,12 +22,16 @@
   #define PIN_RELAY_PUMP   26
   #define PIN_BUZZER       27
   #define PIN_BATTERY_ADC  34
+  #define PIN_I2C_SDA      21  // sensore corrente pompa (INA219)
+  #define PIN_I2C_SCL      22
 #else
   // Pin per Seeed XIAO ESP32-C3/C6 (scheda di riferimento per il
   // deployment finale a batteria, vedi ../../03-hardware-bom.md)
   #define PIN_RELAY_PUMP   2   // GPIO che pilota il relè in parallelo ai fili del motore/pompa
   #define PIN_BUZZER       3   // opzionale: preavviso acustico sugli avvii automatici
   #define PIN_BATTERY_ADC  4   // ADC sul partitore resistivo collegato ai 12V della batteria
+  #define PIN_I2C_SDA      6   // sensore corrente pompa (INA219), pin D4/SDA della XIAO
+  #define PIN_I2C_SCL      7   // pin D5/SCL della XIAO
 #endif
 
 // Partitore resistivo Vbatt -> ADC: Vadc = Vbatt * R2/(R1+R2).
@@ -43,6 +47,19 @@
 #define BATTERY_EMPTY_VOLT 9.0
 #define BATTERY_FULL_VOLT 12.6
 #define BATTERY_LOW_PERCENT 20
+
+// --- Sensore corrente pompa (INA219 via I2C) ---
+// Rileva il serbatoio vuoto dall'assorbimento della pompa: una pompa a
+// vuoto (senz'acqua da spingere) di solito assorbe MENO corrente di una a
+// pieno carico (girante che gira libera, senza il carico del fluido) — da
+// qui il default "sotto soglia = vuoto". Soglia/durata/verso sono comunque
+// configurabili da UI perché il comportamento reale dipende dal modello di
+// pompa e va tarato osservando le letture reali.
+#define PUMP_CURRENT_I2C_ADDR 0x40
+#define PUMP_CURRENT_DEFAULT_ENABLED false
+#define PUMP_CURRENT_DEFAULT_THRESHOLD_MA 500
+#define PUMP_CURRENT_DEFAULT_BELOW_THRESHOLD true
+#define PUMP_CURRENT_DEFAULT_DURATION_S 5
 
 // --- WiFi ---
 // Valori reali da mettere in config.local.h (ignorato da git), non qui.
@@ -104,7 +121,7 @@
 // Da bump manuale ad ogni release: deve corrispondere ESATTAMENTE al tag
 // GitHub "vX.Y.Z" (senza la "v"), il confronto è una semplice uguaglianza
 // di stringa, non un confronto semver.
-#define FIRMWARE_VERSION "0.23.2"
+#define FIRMWARE_VERSION "0.24.0"
 #define GITHUB_OWNER "wifi75"
 #define GITHUB_REPO "geyser-domotizer"
 // Nome dell'asset da cercare tra quelli allegati alla release GitHub: deve

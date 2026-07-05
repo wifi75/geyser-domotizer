@@ -15,6 +15,10 @@
   ⚠️ Batteria scarica: la programmazione automatica potrebbe non completarsi.
 </section>
 
+<section id="banner-tank-empty" class="banner banner-warn hidden">
+  ⚠️ Serbatoio probabilmente vuoto: la pompa si è fermata da sola in base all'assorbimento rilevato.
+</section>
+
 <section id="banner-update" class="banner banner-info hidden">
   <div id="banner-update-summary" class="banner-clickable">
     🔔 Nuova versione disponibile: <strong id="banner-update-version">--</strong> — <span class="banner-link">vedi novità</span>
@@ -61,6 +65,7 @@
       <h2>Nebulizzazione</h2>
       <p id="pump-state">Stato: <strong id="pump-state-text">--</strong></p>
       <p id="pump-remaining-wrap" class="hidden">Tempo rimanente: <strong id="pump-remaining">--</strong></p>
+      <p id="pump-current-wrap" class="hidden muted">Assorbimento: <strong id="pump-current-ma">--</strong> mA</p>
       <div class="manual-controls">
         <label for="manual-duration">Durata (minuti)</label>
         <div class="stepper">
@@ -204,6 +209,33 @@
         <span id="gpio-feedback" class="feedback"></span>
       </div>
       <p class="muted">⚠️ Ricollega fisicamente il relè al nuovo pin prima di salvare, altrimenti la pompa non risponderà più finché non lo ricolleghi. Applicato subito, nessun riavvio (rifiutato se un ciclo è in corso).</p>
+    </section>
+
+    <section class="card" id="card-pump-current">
+      <h2>Sensore corrente pompa</h2>
+      <p class="muted">Sensore INA219 (I2C): <strong id="pcur-sensor-status">--</strong></p>
+      <label class="mqtt-enabled-row">
+        <input type="checkbox" id="pcur-enabled">
+        Ferma la pompa e segnala "serbatoio vuoto" quando rilevato
+      </label>
+      <div class="pcur-fields">
+        <label for="pcur-direction">Condizione di allarme</label>
+        <select id="pcur-direction">
+          <option value="below">Corrente sotto la soglia (pompa scarica, tipico)</option>
+          <option value="above">Corrente sopra la soglia</option>
+        </select>
+
+        <label for="pcur-threshold">Soglia (mA)</label>
+        <input type="number" id="pcur-threshold" min="1" max="20000" value="500">
+
+        <label for="pcur-duration">Durata minima (secondi)</label>
+        <input type="number" id="pcur-duration" min="1" max="300" value="5">
+      </div>
+      <div class="schedule-actions">
+        <button id="btn-save-pcur" class="btn btn-primary">Salva</button>
+        <span id="pcur-feedback" class="feedback"></span>
+      </div>
+      <p class="muted">Il comportamento varia da pompa a pompa: osserva l'assorbimento nella card "Nebulizzazione" durante un ciclo normale e uno a serbatoio vuoto prima di impostare la soglia.</p>
     </section>
 
     <section class="card" id="card-ota">

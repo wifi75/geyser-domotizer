@@ -13,6 +13,7 @@ Stato corrente del dispositivo, interrogato dal frontend ogni 2-3 secondi.
   "pump": { "active": false, "remainingSeconds": 0, "source": null },
   "wifi": { "connected": true, "ssid": "WiFi", "ip": "192.168.1.235", "rssi": -58 },
   "mqtt": { "connected": true },
+  "pumpCurrent": { "sensorFound": true, "milliAmps": 1180, "tankEmptySuspected": false },
   "system": {
     "ramFreeBytes": 210000, "ramTotalBytes": 327680,
     "flashUsedBytes": 1111184, "flashFreeBytes": 199536,
@@ -26,6 +27,7 @@ Stato corrente del dispositivo, interrogato dal frontend ogni 2-3 secondi.
 `pump.source` è `"manual"` o `"schedule"` quando `active` è `true`, altrimenti `null`.
 `wifi.ssid`/`wifi.ip` sono stringa vuota quando `wifi.connected` è `false`. La qualità del segnale (barre/percentuale) è calcolata lato frontend da `rssi`, non serve un campo dedicato.
 `time` è sempre sincronizzato via NTP (vedi `GET/PUT /api/ntp`), non è l'orologio interno dell'ESP32 non sincronizzato.
+`pumpCurrent.sensorFound` è `false` se il sensore INA219 non risponde sul bus I2C (es. non collegato): in quel caso `milliAmps` resta a 0 e `tankEmptySuspected` sempre `false`. `milliAmps` è l'ultima lettura mentre la pompa è attiva (0 a pompa ferma). `tankEmptySuspected` diventa `true` quando il firmware rileva la condizione configurata in `GET/PUT /api/pump-current` e ferma la pompa da solo; resta `true` fino al ciclo successivo.
 
 ## POST /api/manual/start
 
@@ -201,14 +203,30 @@ Richiesta: `{ "server": "pool.ntp.org", "intervalHours": 6 }`
 `intervalHours` tra 1 e 168 (una settimana).
 Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "invalid_ntp_config", "details": "..." }` (server vuoto o intervallo fuori range)
 
+## GET /api/pump-current
+
+Configurazione del rilevamento "serbatoio vuoto" dall'assorbimento della pompa (sensore INA219 via I2C, vedi [07-schema-collegamento.md](07-schema-collegamento.md)).
+
+```json
+{ "enabled": false, "thresholdMa": 500, "belowThreshold": true, "durationS": 5 }
+```
+
+`belowThreshold`: `true` = corrente sotto `thresholdMa` indica serbatoio vuoto (comportamento tipico: pompa scarica, meno attrito idraulico), `false` = sopra soglia (alcune pompe si comportano al contrario). `durationS` è per quanti secondi consecutivi la condizione deve restare vera prima che il firmware fermi la pompa da solo — evita falsi positivi sui transitori d'avvio.
+
+## PUT /api/pump-current
+
+Richiesta: stesso formato di GET. `thresholdMa` tra 1 e 20000, `durationS` tra 1 e 300. Applicato subito, nessun riavvio.
+
+Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "invalid_pump_current_config", "details": "..." }`
+
 ## MQTT (solo firmware, non simulato dal mock)
 
 Con MQTT abilitato (vedi `PUT /api/config`), il firmware pubblica su Home Assistant MQTT Discovery: appena connesso al broker, crea da solo le entità (nessuna configurazione manuale in HA).
 
-- `geyser/status` (JSON, ogni 15s): `battery_percent`, `battery_voltage`, `pump_active`, `pump_remaining_seconds`, `schedule_entries_count`
+- `geyser/status` (JSON, ogni 15s): `battery_percent`, `battery_voltage`, `pump_active`, `pump_remaining_seconds`, `schedule_entries_count`, `pump_current_ma`, `tank_empty_suspected`
 - `geyser/availability`: `online`/`offline` (retained, Last Will), usato come `availability_topic` da tutte le entità
 - `geyser/command/start` / `geyser/command/stop`: sottoscritti dal dispositivo, qualunque messaggio pubblicato qui avvia (durata fissa `MQTT_DEFAULT_MANUAL_DURATION_S`, 120s) o ferma la pompa
-- Discovery: `homeassistant/<component>/geyser_domotizer/<object_id>/config` (retained) per sensor batteria %/V, binary_sensor pompa attiva, sensor secondi rimanenti, sensor partenze programmate attive, binary_sensor online, button avvia/ferma
+- Discovery: `homeassistant/<component>/geyser_domotizer/<object_id>/config` (retained) per sensor batteria %/V, binary_sensor pompa attiva, sensor secondi rimanenti, sensor partenze programmate attive, binary_sensor online, button avvia/ferma, sensor corrente pompa (mA), binary_sensor serbatoio vuoto (sospetto)
 
 ## Note di validazione (condivise da mock e firmware)
 

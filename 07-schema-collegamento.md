@@ -43,7 +43,24 @@ Il percorso originale (batteria → scheda → pulsante → pompa) resta fisicam
 | GPIO relè pompa (→ pin IN del modulo relè) | GPIO26 | GPIO2 |
 | GPIO buzzer (opzionale, preavviso) | GPIO27 | GPIO3 |
 | ADC partitore batteria | GPIO34 (input-only) | GPIO4 |
+| I2C SDA (sensore corrente pompa, INA219) | GPIO21 | GPIO6 |
+| I2C SCL (sensore corrente pompa, INA219) | GPIO22 | GPIO7 |
 | Alimentazione ESP32 | 5V/VIN da step-down | 5V/VBUS da step-down |
+
+## Sensore corrente pompa (INA219, opzionale)
+
+Modulo I2C pronto (es. INA219 breakout, shunt 0.1Ω integrato, range tipico ±3.2A/26V) — nessun partitore resistivo da costruire, a differenza dell'ADC della batteria.
+
+```
+Pompa/motore ──[terminale VIN+ del modulo]──[terminale VIN- del modulo]── resto del circuito
+                (in serie: la corrente della pompa deve attraversare il modulo)
+
+VCC modulo → 3.3V ESP32        GND modulo → GND ESP32
+SDA modulo → GPIO21 (DevKit) / GPIO6 (XIAO)
+SCL modulo → GPIO22 (DevKit) / GPIO7 (XIAO)
+```
+
+Usato per rilevare il serbatoio vuoto dal pattern di assorbimento della pompa (soglia configurabile da UI, vedi [06-api.md](06-api.md) — `GET/PUT /api/pump-current`): il comportamento esatto (corrente che sale o scende a vuoto) va tarato osservando le letture reali, varia da modello a modello di pompa.
 
 Valori da [firmware/src/config.h](firmware/src/config.h) — è la fonte di verità, aggiornare questa tabella se cambiano.
 

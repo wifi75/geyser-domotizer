@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.24.0 — 2026-07-05
+
+Rilevamento "serbatoio vuoto" dall'assorbimento della pompa (sensore INA219, I2C).
+
+- Nuovo modulo `PumpCurrentMonitor`: legge la corrente della pompa da un sensore INA219 collegato via I2C (GPIO21/22 su DevKitV1, GPIO6/7 su XIAO — vedi [07-schema-collegamento.md](07-schema-collegamento.md)) e riconosce il pattern "serbatoio vuoto" quando la corrente resta sopra/sotto una soglia configurabile per una durata minima; in quel caso ferma la pompa da solo
+- Nuova sezione "Sensore corrente pompa" in Impostazioni: abilita/disabilita il rilevamento automatico, soglia in mA, verso (sopra/sotto soglia), durata minima — tutto persistito in NVS, applicato subito senza riavviare
+- Card "Nebulizzazione": mostra l'assorbimento in tempo reale (mA) mentre la pompa gira, utile per tarare la soglia osservando un ciclo normale vs uno a vuoto
+- Nuovo banner "Serbatoio probabilmente vuoto" quando il rilevamento scatta
+- Nuove entità MQTT/Home Assistant Discovery: sensor corrente pompa (mA), binary_sensor serbatoio vuoto (sospetto)
+- `GET/PUT /api/pump-current` nel contratto API
+
+⚠️ Non ancora testato su hardware reale (il modulo INA219 non è stato ancora collegato/verificato fisicamente) — il comportamento sopra/sotto soglia va tarato osservando le letture vere sulla pompa specifica.
+
 ## v0.23.2 — 2026-07-05
 
 Fix: "Riavvia dispositivo" poteva restare bloccato a tempo indeterminato, oltre ogni timeout previsto.

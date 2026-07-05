@@ -28,10 +28,11 @@ CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
 NETWORK_FILE = os.path.join(DATA_DIR, "network.json")
 GPIO_FILE = os.path.join(DATA_DIR, "gpio.json")
 NTP_FILE = os.path.join(DATA_DIR, "ntp.json")
+PUMP_CURRENT_FILE = os.path.join(DATA_DIR, "pump_current.json")
 PORT = int(os.environ.get("PORT", 8000))
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.23.2"
+MOCK_CURRENT_VERSION = "0.24.0"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 # Rispecchia l'elenco per esp32dev in firmware/src/gpio_settings.cpp
@@ -53,6 +54,8 @@ DEFAULT_NETWORK = {
 }
 
 DEFAULT_NTP = {"server": "pool.ntp.org", "intervalHours": 6}
+
+DEFAULT_PUMP_CURRENT = {"enabled": False, "thresholdMa": 500, "belowThreshold": True, "durationS": 5}
 
 DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
@@ -82,6 +85,7 @@ class State:
         self.network = self._load_network()
         self.gpio_pin, self.gpio_active_high = self._load_gpio_pin()
         self.ntp = self._load_ntp()
+        self.pump_current = self._load_pump_current()
         self.ota_pending_version = None
         self.ota_pending_notes = None
         self.ota_progress = {"inProgress": False, "phase": "idle", "current": 0, "total": 0}
@@ -143,6 +147,17 @@ class State:
             json.dump(ntp, f, indent=2)
         self.ntp = ntp
 
+    def _load_pump_current(self):
+        if os.path.exists(PUMP_CURRENT_FILE):
+            with open(PUMP_CURRENT_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        return json.loads(json.dumps(DEFAULT_PUMP_CURRENT))
+
+    def save_pump_current(self, cfg):
+        with open(PUMP_CURRENT_FILE, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, indent=2)
+        self.pump_current = cfg
+
     def config_public(self):
         with self.lock:
             mqtt = self.config["mqtt"]
@@ -177,6 +192,13 @@ class State:
                 # il risultato di WiFi.localIP(), l'indirizzo DHCP reale.
                 "wifi": {"connected": True, "ssid": "WiFi (mock, non reale)", "ip": "203.0.113.50", "rssi": -55},
                 "mqtt": {"connected": bool(self.config["mqtt"]["enabled"] and self.config["mqtt"]["host"])},
+                # Simulato: 1200mA fissi mentre la pompa gira, nessun sensore
+                # reale nel mock (niente hardware I2C da leggere).
+                "pumpCurrent": {
+                    "sensorFound": True,
+                    "milliAmps": 1200 if self.pump_active else 0,
+                    "tankEmptySuspected": False,
+                },
                 # Valori tipici osservati sul vero ESP32 DevKitV1 (v0.6.0-beta),
                 # solo per popolare la UI in locale: non cambiano nel mock.
                 "system": {
@@ -395,6 +417,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                                     "activeHigh": state.gpio_active_high, "options": GPIO_OPTIONS})
         if self.path == "/api/ntp":
             return self._send_json(state.ntp)
+        if self.path == "/api/pump-current":
+            return self._send_json(state.pump_current)
         return super().do_GET()
 
     def do_POST(self):
@@ -506,6 +530,25 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                                         "details": "server vuoto o intervallo fuori range (1-168 ore)"}, status=400)
             state.save_ntp({"server": server_addr, "intervalHours": interval_hours})
             print(f"[ntp] server NTP impostato a {server_addr}")
+            return self._send_json({"ok": True})
+        if self.path == "/api/pump-current":
+            body = self._read_json()
+            try:
+                threshold_ma = int(body.get("thresholdMa", state.pump_current["thresholdMa"]))
+                duration_s = int(body.get("durationS", state.pump_current["durationS"]))
+            except (TypeError, ValueError):
+                threshold_ma = duration_s = -1
+            if not (1 <= threshold_ma <= 20000) or not (1 <= duration_s <= 300):
+                return self._send_json({"ok": False, "error": "invalid_pump_current_config",
+                                        "details": "soglia tra 1 e 20000 mA, durata tra 1 e 300 secondi"}, status=400)
+            cfg = {
+                "enabled": bool(body.get("enabled", state.pump_current["enabled"])),
+                "thresholdMa": threshold_ma,
+                "belowThreshold": bool(body.get("belowThreshold", state.pump_current["belowThreshold"])),
+                "durationS": duration_s,
+            }
+            state.save_pump_current(cfg)
+            print(f"[pump-current] configurazione salvata: {cfg}")
             return self._send_json({"ok": True})
         self.send_error(404)
 

@@ -14,6 +14,8 @@
 #include "network_settings.h"
 #include "gpio_settings.h"
 #include "ntp_settings.h"
+#include "pump_current.h"
+#include "pump_current_settings.h"
 
 // NOTA su consumo energetico: questa v1 del firmware resta sempre sveglia
 // (niente deep-sleep) cosi' l'interfaccia web e l'avvio manuale rispondono
@@ -30,11 +32,13 @@ Schedule schedule;
 MqttSettings mqttSettings;
 bool mqttConnectedFlag = false;
 MqttClientWrapper mqtt;
-WebServerApp webApp(server, pump, battery, schedule, mqttConnectedFlag, mqttSettings, mqtt);
+PumpCurrentMonitor pumpCurrentMonitor;
+WebServerApp webApp(server, pump, battery, schedule, mqttConnectedFlag, mqttSettings, mqtt, pumpCurrentMonitor);
 OtaManager ota;
 NetworkSettings networkSettings;
 GpioSettings gpioSettings;
 NtpSettings ntpSettings;
+PumpCurrentSettings pumpCurrentSettings;
 
 uint32_t lastWifiAttemptMs = 0;
 uint32_t lastNtpResyncMs = 0;
@@ -110,6 +114,8 @@ void setup() {
   networkSettings.begin(server);
   gpioSettings.begin(server, pump);
   ntpSettings.begin(server);
+  pumpCurrentSettings.begin(server);
+  pumpCurrentMonitor.begin(PIN_I2C_SDA, PIN_I2C_SCL);
   pump.begin(gpioSettings.relayPin(), gpioSettings.relayActiveHigh());
 
   WiFi.mode(WIFI_STA);
@@ -147,9 +153,10 @@ void loop() {
   connectWifiIfNeeded();
   checkNtpResync();
   pump.tick();
+  pumpCurrentMonitor.tick(pump, pumpCurrentSettings.data());
   checkScheduleTrigger();
 
   mqttConnectedFlag = mqtt.connected();
   mqtt.loop();
-  mqtt.publishStatusIfDue(pump, battery, schedule);
+  mqtt.publishStatusIfDue(pump, battery, schedule, pumpCurrentMonitor);
 }

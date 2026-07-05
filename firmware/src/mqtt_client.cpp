@@ -173,9 +173,31 @@ void MqttClientWrapper::publishDiscovery() {
   doc["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
   doc["icon"] = "mdi:stop";
   publishEntityConfig("button", "stop", doc);
+
+  doc.clear();
+  doc["name"] = "Corrente pompa";
+  doc["unique_id"] = MQTT_NODE_ID "_pump_current";
+  doc["state_topic"] = MQTT_TOPIC_STATUS;
+  doc["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
+  doc["value_template"] = "{{ value_json.pump_current_ma }}";
+  doc["unit_of_measurement"] = "mA";
+  doc["icon"] = "mdi:current-dc";
+  publishEntityConfig("sensor", "pump_current", doc);
+
+  doc.clear();
+  doc["name"] = "Serbatoio vuoto (sospetto)";
+  doc["unique_id"] = MQTT_NODE_ID "_tank_empty";
+  doc["state_topic"] = MQTT_TOPIC_STATUS;
+  doc["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
+  doc["value_template"] = "{{ 'ON' if value_json.tank_empty_suspected else 'OFF' }}";
+  doc["payload_on"] = "ON";
+  doc["payload_off"] = "OFF";
+  doc["device_class"] = "problem";
+  publishEntityConfig("binary_sensor", "tank_empty", doc);
 }
 
-void MqttClientWrapper::publishStatusIfDue(Pump& pump, Battery& battery, Schedule& schedule) {
+void MqttClientWrapper::publishStatusIfDue(Pump& pump, Battery& battery, Schedule& schedule,
+                                            PumpCurrentMonitor& pumpCurrent) {
   if (!connected()) return;
   uint32_t now = millis();
   if (now - lastPublishMs_ < MQTT_PUBLISH_INTERVAL_MS) return;
@@ -188,8 +210,10 @@ void MqttClientWrapper::publishStatusIfDue(Pump& pump, Battery& battery, Schedul
   doc["pump_active"] = pump.isActive();
   doc["pump_remaining_seconds"] = pump.remainingSeconds();
   doc["schedule_entries_count"] = schedule.countEnabledEntries();
+  doc["pump_current_ma"] = pumpCurrent.lastMilliAmps();
+  doc["tank_empty_suspected"] = pumpCurrent.tankEmptySuspected();
 
-  char payload[256];
+  char payload[320];
   size_t len = serializeJson(doc, payload, sizeof(payload));
   client_.publish(MQTT_TOPIC_STATUS, (const uint8_t*)payload, len, false);
 }

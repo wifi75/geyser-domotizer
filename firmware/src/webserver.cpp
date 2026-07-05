@@ -5,9 +5,10 @@
 #include <ArduinoJson.h>
 
 WebServerApp::WebServerApp(AsyncWebServer& server, Pump& pump, Battery& battery, Schedule& schedule,
-                           bool& mqttConnected, MqttSettings& mqttSettings, MqttClientWrapper& mqttClient)
+                           bool& mqttConnected, MqttSettings& mqttSettings, MqttClientWrapper& mqttClient,
+                           PumpCurrentMonitor& pumpCurrentMonitor)
     : server_(server), pump_(pump), battery_(battery), schedule_(schedule), mqttConnected_(mqttConnected),
-      mqttSettings_(mqttSettings), mqttClient_(mqttClient) {}
+      mqttSettings_(mqttSettings), mqttClient_(mqttClient), pumpCurrentMonitor_(pumpCurrentMonitor) {}
 
 static const char* pumpSourceToString(PumpSource s) {
   switch (s) {
@@ -84,6 +85,10 @@ void WebServerApp::handleStatus(AsyncWebServerRequest* request) {
   doc["wifi"]["rssi"] = WiFi.RSSI();
 
   doc["mqtt"]["connected"] = mqttConnected_;
+
+  doc["pumpCurrent"]["sensorFound"] = pumpCurrentMonitor_.sensorFound();
+  doc["pumpCurrent"]["milliAmps"] = pumpCurrentMonitor_.lastMilliAmps();
+  doc["pumpCurrent"]["tankEmptySuspected"] = pumpCurrentMonitor_.tankEmptySuspected();
 
   doc["system"]["ramFreeBytes"] = ESP.getFreeHeap();
   doc["system"]["ramTotalBytes"] = ESP.getHeapSize();
