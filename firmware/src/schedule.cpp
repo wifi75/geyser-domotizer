@@ -1,6 +1,7 @@
 #include "schedule.h"
 #include "config.h"
 #include <Preferences.h>
+#include <cstring>
 
 // Persistita in NVS (flash separata dalla partizione LittleFS), non in un
 // file su LittleFS: un aggiornamento OTA del sito (littlefs.bin) sostituisce
@@ -91,12 +92,17 @@ bool Schedule::replaceAndSave(JsonVariantConst candidate) {
 uint32_t Schedule::checkTrigger(int dayIndex, const String& hhmm, const String& dateKey) {
   if (dayIndex < 0 || dayIndex > 6) return 0;
   JsonArrayConst entries = doc_[DAY_KEYS[dayIndex]].as<JsonArrayConst>();
+  const char* hhmm_cstr = hhmm.c_str();
+  const char* dayKey = DAY_KEYS[dayIndex];
   for (JsonVariantConst entry : entries) {
     if (!entry["enabled"].as<bool>()) continue;
-    String entryTime = entry["time"].as<String>();
-    if (entryTime != hhmm) continue;
+    const char* entryTime = entry["time"].as<const char*>();
+    if (!entryTime || strcmp(entryTime, hhmm_cstr) != 0) continue;
 
-    String key = String(DAY_KEYS[dayIndex]) + "|" + entryTime;
+    // Costruisci la chiave una sola volta (non allocata ogni loop)
+    char keyBuf[32];
+    snprintf(keyBuf, sizeof(keyBuf), "%s|%s", dayKey, entryTime);
+    String key(keyBuf);
     if (lastTriggered_.count(key) && lastTriggered_[key] == dateKey) continue;
 
     lastTriggered_[key] = dateKey;

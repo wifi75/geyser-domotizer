@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.47.0 — 2026-07-05
+
+Micro-ottimizzazioni di memoria e performance.
+
+- **schedule.cpp**: evita allocazione String temporanea per `entry["time"]` in `checkTrigger()` — usa `as<const char*>()` con confronto `strcmp()` diretto, e pre-compila la chiave della map con `snprintf()` su buffer stack
+- **mqtt_client.cpp**: elimina conversione String inutile in `handleMessage()` — confronta i topic MQTT con `strcmp()` diretto su const char* invece di allocare `String t(topic)` temporaneo
+- Nessun cambio di funzionalità, solo riduzione delle allocazioni heap evitabili nel codice caldo (schedule trigger ogni minuto, MQTT message handling al ricevimento)
+
 ## v0.46.0 — 2026-07-05
 
 Fix: dopo aver disattivato "Access Point sempre attivo", ricompariva una rete WiFi con un nome vecchio/di fabbrica (`ESP_xxxxxx` derivato dal MAC) invece di sparire.
