@@ -10,6 +10,16 @@ python server.py
 
 Poi apri http://localhost:8000
 
+Porta e auth opzionale:
+
+```
+set PORT=8001
+set ADMIN_PASSWORD=prova
+python server.py
+```
+
+Se `ADMIN_PASSWORD` è impostata, il mock richiede le stesse credenziali Basic Auth del firmware (`admin` + password) sugli endpoint amministrativi.
+
 ## Cosa simula
 
 - Batteria che si scarica nel tempo (più velocemente mentre la pompa è "attiva"), a partire dal 100%

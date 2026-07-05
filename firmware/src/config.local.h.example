@@ -5,6 +5,10 @@
 #define WIFI_SSID "il-tuo-ssid"
 #define WIFI_PASSWORD "la-tua-password"
 
+// Opzionale: se non vuota, le API che modificano stato/configurazione
+// richiedono Basic Auth con utente "admin".
+// #define ADMIN_PASSWORD "scegli-una-password"
+
 #define MQTT_ENABLED false
 // #define MQTT_HOST "192.168.1.X"
 // #define MQTT_USER "utente"

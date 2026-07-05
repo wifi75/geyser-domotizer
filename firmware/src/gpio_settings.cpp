@@ -2,6 +2,7 @@
 #include "config.h"
 #include "pump.h"
 #include "event_log.h"
+#include "auth.h"
 #include <Preferences.h>
 #include <ArduinoJson.h>
 
@@ -109,6 +110,7 @@ void GpioSettings::handleGet(AsyncWebServerRequest* request) {
 }
 
 void GpioSettings::handlePut(AsyncWebServerRequest* request, JsonVariant& body) {
+  if (!requireAdmin(request)) return;
   int pin = body["pin"] | -1;
   if (!isValidPin(pin)) {
     JsonDocument doc;

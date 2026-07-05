@@ -2,6 +2,7 @@
 #include "config.h"
 #include "ota.h"
 #include "event_log.h"
+#include "auth.h"
 #include <LittleFS.h>
 #include <WiFi.h>
 #include <time.h>
@@ -115,8 +116,13 @@ void WebServerApp::handleStatus(AsyncWebServerRequest* request) {
   doc["system"]["ramTotalBytes"] = ESP.getHeapSize();
   doc["system"]["flashUsedBytes"] = ESP.getSketchSize();
   doc["system"]["flashFreeBytes"] = ESP.getFreeSketchSpace();
-  doc["system"]["fsUsedBytes"] = LittleFS.usedBytes();
-  doc["system"]["fsTotalBytes"] = LittleFS.totalBytes();
+  if (otaUpdateInProgress()) {
+    doc["system"]["fsUsedBytes"] = nullptr;
+    doc["system"]["fsTotalBytes"] = nullptr;
+  } else {
+    doc["system"]["fsUsedBytes"] = LittleFS.usedBytes();
+    doc["system"]["fsTotalBytes"] = LittleFS.totalBytes();
+  }
 
   AsyncResponseStream* response = request->beginResponseStream("application/json");
   serializeJson(doc, *response);
@@ -124,6 +130,7 @@ void WebServerApp::handleStatus(AsyncWebServerRequest* request) {
 }
 
 void WebServerApp::handleManualStart(AsyncWebServerRequest* request, JsonVariant& body) {
+  if (!requireAdmin(request)) return;
   if (otaUpdateInProgress()) {
     request->send(409, "application/json", "{\"ok\":false,\"error\":\"ota_in_progress\"}");
     return;
@@ -154,6 +161,7 @@ void WebServerApp::handleManualStart(AsyncWebServerRequest* request, JsonVariant
 }
 
 void WebServerApp::handleManualStop(AsyncWebServerRequest* request) {
+  if (!requireAdmin(request)) return;
   pump_.stop();
   eventLogAdd("pump", "stop manuale");
   request->send(200, "application/json", "{\"ok\":true}");
@@ -166,6 +174,7 @@ void WebServerApp::handleGetSchedule(AsyncWebServerRequest* request) {
 }
 
 void WebServerApp::handlePutSchedule(AsyncWebServerRequest* request, JsonVariant& body) {
+  if (!requireAdmin(request)) return;
   String error = schedule_.validate(body);
   JsonDocument doc;
   if (!error.isEmpty()) {
@@ -197,6 +206,7 @@ void WebServerApp::handleGetConfig(AsyncWebServerRequest* request) {
 }
 
 void WebServerApp::handlePutConfig(AsyncWebServerRequest* request, JsonVariant& body) {
+  if (!requireAdmin(request)) return;
   JsonVariant mqttIn = body["mqtt"];
   String error = mqttSettings_.validate(mqttIn);
   JsonDocument doc;
@@ -221,6 +231,7 @@ void WebServerApp::handlePutConfig(AsyncWebServerRequest* request, JsonVariant& 
 }
 
 void WebServerApp::handleResetPumpCurrentMinMax(AsyncWebServerRequest* request) {
+  if (!requireAdmin(request)) return;
   pumpCurrentMonitor_.resetMinMax();
   request->send(200, "application/json", "{\"ok\":true}");
 }

@@ -1,6 +1,7 @@
 #include "pump_current_settings.h"
 #include "config.h"
 #include "event_log.h"
+#include "auth.h"
 #include <Preferences.h>
 #include <ArduinoJson.h>
 
@@ -70,6 +71,7 @@ void PumpCurrentSettings::handleGet(AsyncWebServerRequest* request) {
 }
 
 void PumpCurrentSettings::handlePut(AsyncWebServerRequest* request, JsonVariant& body) {
+  if (!requireAdmin(request)) return;
   uint32_t thresholdMa = body["thresholdMa"] | data_.thresholdMa;
   uint32_t durationS = body["durationS"] | data_.durationS;
 

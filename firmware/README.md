@@ -10,6 +10,7 @@ La Fase 0 sullo Stocker Geyser reale (ricognizione interna del dispositivo) non 
 ## Struttura
 
 - `src/config.h` — pin e parametri (batteria, WiFi, MQTT), da aggiornare dopo la Fase 0
+- `src/auth.*` — Basic Auth opzionale sulle API amministrative quando `ADMIN_PASSWORD` è impostata
 - `src/battery.*` — lettura tensione/percentuale batteria dal partitore resistivo
 - `src/pump.*` — controllo relè pompa, countdown non bloccante, sorgente (manuale/schedulata)
 - `src/schedule.*` — programmazione settimanale persistita in NVS, validazione, trigger orario
@@ -40,6 +41,6 @@ Sostituire `esp32dev` con `xiao-esp32c3` e `COM3` con la porta corretta quando s
 ## Da fare prima di un vero utilizzo
 
 1. Completare la Fase 0 (vedi [../05-fase0-guida-apertura.md](../05-fase0-guida-apertura.md)) e aggiornare i pin/valori in `config.h`
-2. Copiare `src/config.local.h.example` in `src/config.local.h` e impostare li' WiFi/MQTT reali; il file e' ignorato da git
+2. Copiare `src/config.local.h.example` in `src/config.local.h` e impostare li' WiFi/MQTT reali; il file e' ignorato da git. `ADMIN_PASSWORD` e' opzionale e protegge le API amministrative se valorizzata.
 3. Calibrare il partitore resistivo della batteria con un multimetro reale
 4. Verificare sul campo il consumo energetico: questa v1 non usa deep-sleep (vedi nota in `src/main.cpp`)

@@ -10,6 +10,7 @@ stato pompa con countdown, e il trigger della programmazione settimanale
 in base all'orario di sistema.
 """
 import http.server
+import base64
 import json
 import os
 import random
@@ -31,9 +32,10 @@ GPIO_FILE = os.path.join(DATA_DIR, "gpio.json")
 NTP_FILE = os.path.join(DATA_DIR, "ntp.json")
 PUMP_CURRENT_FILE = os.path.join(DATA_DIR, "pump_current.json")
 PORT = int(os.environ.get("PORT", 8000))
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.29.0"
+MOCK_CURRENT_VERSION = "0.30.0"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 # Rispecchia l'elenco per esp32dev in firmware/src/gpio_settings.cpp
@@ -238,7 +240,8 @@ class State:
                 "system": {
                     "ramFreeBytes": 210000, "ramTotalBytes": 327680,
                     "flashUsedBytes": 1111184, "flashFreeBytes": 199536,
-                    "fsUsedBytes": 5200, "fsTotalBytes": 1441792,
+                    "fsUsedBytes": None if self.ota_progress.get("inProgress") else 5200,
+                    "fsTotalBytes": None if self.ota_progress.get("inProgress") else 1441792,
                 },
             }
 
@@ -416,9 +419,71 @@ def validate_config(config):
     return None
 
 
+def validate_gpio(config):
+    if not isinstance(config, dict):
+        return "gpio deve essere un oggetto"
+    if config.get("relayPin") not in GPIO_VALID_PINS:
+        return "relayPin non valido"
+    if not isinstance(config.get("relayActiveHigh"), bool):
+        return "relayActiveHigh deve essere booleano"
+    return None
+
+
+def validate_ntp(config):
+    if not isinstance(config, dict):
+        return "ntp deve essere un oggetto"
+    server_addr = (config.get("server") or "").strip()
+    interval_hours = config.get("intervalHours")
+    if not server_addr or not isinstance(interval_hours, int) or not (1 <= interval_hours <= 168):
+        return "server vuoto o intervallo fuori range"
+    return None
+
+
+def validate_pump_current(config):
+    if not isinstance(config, dict):
+        return "pumpCurrent deve essere un oggetto"
+    if not isinstance(config.get("enabled"), bool) or not isinstance(config.get("belowThreshold"), bool):
+        return "enabled/belowThreshold devono essere booleani"
+    threshold_ma = config.get("thresholdMa")
+    duration_s = config.get("durationS")
+    if not isinstance(threshold_ma, int) or not isinstance(duration_s, int):
+        return "thresholdMa/durationS devono essere numeri"
+    if not (1 <= threshold_ma <= 20000) or not (1 <= duration_s <= 300):
+        return "soglia o durata fuori range"
+    return None
+
+
+def validate_backup_section(name, value):
+    if name == "schedule":
+        return validate_schedule(value)
+    if name == "mqtt":
+        return validate_config({"mqtt": value})
+    if name == "network":
+        return validate_network(value)
+    if name == "gpio":
+        return validate_gpio(value)
+    if name == "ntp":
+        return validate_ntp(value)
+    if name == "pumpCurrent":
+        return validate_pump_current(value)
+    return None
+
+
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=WEB_DIR, **kwargs)
+
+    def _require_admin(self):
+        if not ADMIN_PASSWORD:
+            return True
+        expected = "Basic " + base64.b64encode(f"admin:{ADMIN_PASSWORD}".encode("utf-8")).decode("ascii")
+        if self.headers.get("Authorization") == expected:
+            return True
+        self.send_response(401)
+        self.send_header("WWW-Authenticate", 'Basic realm="Geyser Domotizer"')
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+        return False
 
     def _send_json(self, obj, status=200):
         body = json.dumps(obj).encode("utf-8")
@@ -452,6 +517,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path == "/api/events":
             return self._send_json({"events": state.events})
         if self.path == "/api/backup":
+            if not self._require_admin():
+                return
             return self._send_json({
                 "format": "geyser-domotizer-config",
                 "version": MOCK_CURRENT_VERSION,
@@ -482,6 +549,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         if self.path == "/api/manual/start":
+            if not self._require_admin():
+                return
             if state.ota_progress.get("inProgress"):
                 return self._send_json({"ok": False, "error": "ota_in_progress"}, status=409)
             body = self._read_json()
@@ -492,6 +561,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             ok, error = state.start_manual(duration)
             return self._send_json({"ok": ok, **({"error": error} if error else {})})
         if self.path == "/api/manual/stop":
+            if not self._require_admin():
+                return
             state.stop()
             return self._send_json({"ok": True})
         if self.path == "/api/ota/check":
@@ -510,6 +581,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 "releaseNotes": notes,
             })
         if self.path == "/api/ota/update":
+            if not self._require_admin():
+                return
             if not state.ota_pending_version:
                 return self._send_json({"ok": False, "error": "no_pending_update"})
             if state.ota_progress.get("inProgress"):
@@ -517,23 +590,33 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             state.start_simulated_update()
             return self._send_json({"ok": True, "started": True})
         if self.path == "/api/system/restart":
+            if not self._require_admin():
+                return
             if state.ota_progress.get("inProgress"):
                 return self._send_json({"ok": False, "error": "ota_in_progress"}, status=409)
             state.add_event("system", "riavvio richiesto (mock)")
             print("[system] richiesto riavvio (simulato: il mock resta acceso)")
             return self._send_json({"ok": True})
         if self.path == "/api/pump-current/reset-minmax":
+            if not self._require_admin():
+                return
             state.reset_pump_current_minmax()
             return self._send_json({"ok": True})
         if self.path == "/api/events/clear":
+            if not self._require_admin():
+                return
             state.events = []
             state.add_event("system", "eventi cancellati")
             return self._send_json({"ok": True})
         if self.path == "/api/network/confirm":
+            if not self._require_admin():
+                return
             state.network_pending_confirmation = False
             state.add_event("network", "configurazione rete confermata")
             return self._send_json({"ok": True})
         if self.path == "/api/ota/upload":
+            if not self._require_admin():
+                return
             if state.ota_progress.get("inProgress"):
                 return self._send_json({"ok": False, "error": "ota_in_progress"}, status=409)
             length = int(self.headers.get("Content-Length", 0))
@@ -551,6 +634,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_PUT(self):
         if self.path == "/api/schedule":
+            if not self._require_admin():
+                return
             body = self._read_json()
             error = validate_schedule(body)
             if error:
@@ -559,6 +644,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             state.add_event("schedule", "programmazione salvata")
             return self._send_json({"ok": True})
         if self.path == "/api/config":
+            if not self._require_admin():
+                return
             body = self._read_json()
             error = validate_config(body)
             if error:
@@ -576,6 +663,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             state.add_event("mqtt", "configurazione MQTT salvata")
             return self._send_json({"ok": True})
         if self.path == "/api/network":
+            if not self._require_admin():
+                return
             body = self._read_json()
             error = validate_network(body)
             if error:
@@ -593,6 +682,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             print(f"[network] configurazione salvata: {network} (su un vero ESP32 qui riavvierebbe)")
             return self._send_json({"ok": True})
         if self.path == "/api/gpio":
+            if not self._require_admin():
+                return
             body = self._read_json()
             pin = body.get("pin")
             if pin not in GPIO_VALID_PINS:
@@ -608,6 +699,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             print(f"[gpio] pin relè impostato a {pin} (attivo {'alto' if active_high else 'basso'}, applicato subito)")
             return self._send_json({"ok": True})
         if self.path == "/api/ntp":
+            if not self._require_admin():
+                return
             body = self._read_json()
             server_addr = (body.get("server") or "").strip()
             try:
@@ -622,6 +715,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             print(f"[ntp] server NTP impostato a {server_addr}")
             return self._send_json({"ok": True})
         if self.path == "/api/pump-current":
+            if not self._require_admin():
+                return
             body = self._read_json()
             try:
                 threshold_ma = int(body.get("thresholdMa", state.pump_current["thresholdMa"]))
@@ -642,11 +737,20 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             print(f"[pump-current] configurazione salvata: {cfg}")
             return self._send_json({"ok": True})
         if self.path == "/api/backup":
+            if not self._require_admin():
+                return
             body = self._read_json()
             settings = body.get("settings")
             if not isinstance(settings, dict):
                 return self._send_json({"ok": False, "error": "invalid_backup",
                                         "details": "settings mancante"}, status=400)
+            for name, value in settings.items():
+                if name not in ("schedule", "mqtt", "network", "gpio", "ntp", "pumpCurrent"):
+                    continue
+                error = validate_backup_section(name, value)
+                if error:
+                    return self._send_json({"ok": False, "error": "invalid_backup",
+                                            "details": f"{name}: {error}"}, status=400)
             if "schedule" in settings:
                 state.save_schedule(settings["schedule"])
             if "mqtt" in settings:

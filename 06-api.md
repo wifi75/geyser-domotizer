@@ -2,6 +2,14 @@
 
 Usato sia dal mock server locale ([mock-server/](mock-server/)) sia dal firmware ESP32 ([firmware/](firmware/)): stessa interfaccia, stesso frontend ([web/](web/)) in entrambi i casi.
 
+## Autenticazione opzionale
+
+Di default le API restano aperte sulla LAN, come nelle versioni precedenti.
+Se in `config.local.h` viene impostato `ADMIN_PASSWORD`, gli endpoint che
+modificano stato/configurazione o esportano dati sensibili richiedono Basic
+Auth con utente `admin` e quella password. In caso di credenziali mancanti o
+errate rispondono `401 Unauthorized`.
+
 ## GET /api/status
 
 Stato corrente del dispositivo, interrogato dal frontend ogni 2-3 secondi.
@@ -22,7 +30,7 @@ Stato corrente del dispositivo, interrogato dal frontend ogni 2-3 secondi.
 }
 ```
 
-`system.flashFreeBytes` è lo spazio libero nella partizione OTA (quanto margine c'è per il prossimo aggiornamento firmware); `system.fsUsedBytes`/`fsTotalBytes` sono LittleFS (il sito web). La configurazione runtime vive in NVS, non su LittleFS.
+`system.flashFreeBytes` è lo spazio libero nella partizione OTA (quanto margine c'è per il prossimo aggiornamento firmware); `system.fsUsedBytes`/`fsTotalBytes` sono LittleFS (il sito web) e possono essere `null` mentre un OTA è in corso, perché il firmware evita di toccare LittleFS durante il flash. La configurazione runtime vive in NVS, non su LittleFS.
 
 `pump.source` è `"manual"` o `"schedule"` quando `active` è `true`, altrimenti `null`.
 `wifi.ssid`/`wifi.ip` sono stringa vuota quando `wifi.connected` è `false`. La qualità del segnale (barre/percentuale) è calcolata lato frontend da `rssi`, non serve un campo dedicato.
@@ -250,12 +258,12 @@ Azzera gli eventi recenti. Risposta: `{ "ok": true }`
 
 ## GET /api/backup
 
-Esporta un JSON unico con la configurazione persistita in NVS: programmazione, MQTT (inclusa password, se presente), rete, GPIO, NTP e sensore corrente.
+Esporta un JSON unico con la configurazione persistita in NVS: programmazione, MQTT (inclusa password, se presente), rete, GPIO, NTP e sensore corrente. Se `ADMIN_PASSWORD` è impostata, richiede autenticazione perché il backup include segreti.
 
 ```json
 {
   "format": "geyser-domotizer-config",
-  "version": "0.29.0",
+  "version": "0.30.0",
   "board": "esp32dev",
   "settings": {
     "schedule": {},
@@ -270,7 +278,7 @@ Esporta un JSON unico con la configurazione persistita in NVS: programmazione, M
 
 ## PUT /api/backup
 
-Ripristina un backup nello stesso formato di `GET /api/backup`. Le sezioni presenti vengono scritte in NVS, poi il dispositivo si riavvia per ricaricare tutte le configurazioni.
+Ripristina un backup nello stesso formato di `GET /api/backup`. Le sezioni presenti vengono validate, scritte in NVS, poi il dispositivo si riavvia per ricaricare tutte le configurazioni.
 
 Risposta: `{ "ok": true, "restart": true }` oppure `{ "ok": false, "error": "invalid_backup" | "restore_failed", "details": "..." }`
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.30.0 — 2026-07-05
+
+Hardening codice: stato OTA piu' sicuro, backup validati, auth opzionale e check release.
+
+- `/api/status` non legge piu' statistiche LittleFS mentre un OTA e' in corso: durante il flash restituisce `null` per `fsUsedBytes`/`fsTotalBytes`, evitando accessi al filesystem smontato
+- Stato/progresso OTA protetti con mutex e flag globale in sezione critica, cosi' il task OTA e il polling HTTP non condividono stringhe/campi senza sincronizzazione
+- `ADMIN_PASSWORD` opzionale in `config.local.h`: se impostata, gli endpoint che modificano stato/configurazione o esportano backup richiedono Basic Auth (`admin` + password)
+- La UI gestisce automaticamente la richiesta password al primo 401 e la conserva solo in `sessionStorage`
+- Restore backup validato per sezione prima di scrivere in NVS; backup/export protetti perche' includono anche credenziali MQTT
+- Event log convertito a buffer fissi con sezione critica, riducendo frammentazione heap su uptime lunghi
+- Rimosso l'uso di `containsKey()` in ArduinoJson e aggiunto `tools/check_release.py` per verificare versioni/changelog/asset prima della pubblicazione
+
 ## v0.29.0 — 2026-07-05
 
 Hardening operativo: blocchi OTA lato firmware, rollback rete, backup configurazione, eventi e misura autonomia.

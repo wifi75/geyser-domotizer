@@ -71,6 +71,14 @@
 #endif
 #define WIFI_RECONNECT_INTERVAL_MS 10000
 
+// --- Sicurezza HTTP opzionale ---
+// Vuota = API aperte sulla LAN, comportamento storico. Se impostata in
+// config.local.h, gli endpoint che modificano stato/configurazione chiedono
+// Basic Auth con utente "admin".
+#ifndef ADMIN_PASSWORD
+#define ADMIN_PASSWORD ""
+#endif
+
 // --- MQTT / Home Assistant ---
 #ifndef MQTT_ENABLED
 #define MQTT_ENABLED true
@@ -121,7 +129,7 @@
 // Da bump manuale ad ogni release: deve corrispondere ESATTAMENTE al tag
 // GitHub "vX.Y.Z" (senza la "v"), il confronto è una semplice uguaglianza
 // di stringa, non un confronto semver.
-#define FIRMWARE_VERSION "0.29.0"
+#define FIRMWARE_VERSION "0.30.0"
 #define GITHUB_OWNER "wifi75"
 #define GITHUB_REPO "geyser-domotizer"
 // Nome dell'asset da cercare tra quelli allegati alla release GitHub: deve

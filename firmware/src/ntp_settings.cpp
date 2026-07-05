@@ -1,6 +1,7 @@
 #include "ntp_settings.h"
 #include "config.h"
 #include "event_log.h"
+#include "auth.h"
 #include <Preferences.h>
 #include <ArduinoJson.h>
 #include <time.h>
@@ -77,6 +78,7 @@ void NtpSettings::handleGet(AsyncWebServerRequest* request) {
 }
 
 void NtpSettings::handlePut(AsyncWebServerRequest* request, JsonVariant& body) {
+  if (!requireAdmin(request)) return;
   String s = body["server"] | "";
   s.trim();
   uint32_t hours = body["intervalHours"] | intervalHours_;

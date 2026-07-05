@@ -74,7 +74,7 @@ bool MqttSettings::applyAndSave(JsonVariantConst mqtt) {
   if (mqtt["port"].is<int>()) data_.port = mqtt["port"].as<uint16_t>();
   if (mqtt["user"].is<const char*>()) data_.user = mqtt["user"].as<String>();
   if (mqtt["password"].isNull()) {
-    if (mqtt.containsKey("password")) data_.password = "";
+    if (!mqtt["password"].isUnbound()) data_.password = "";
   } else if (mqtt["password"].is<const char*>() && strlen(mqtt["password"]) > 0) {
     data_.password = mqtt["password"].as<String>();
   }

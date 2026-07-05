@@ -8,6 +8,7 @@ Progetto di "domotizzazione" non invasiva dello **Stocker Geyser 12L** (nebulizz
 - Avvio manuale da remoto
 - Aggiornamenti OTA da GitHub o upload manuale, con protezioni contro azioni concorrenti durante il flash
 - Backup/ripristino della configurazione, eventi recenti e misura pratica dell'autonomia batteria
+- Autenticazione HTTP opzionale per le azioni amministrative (`ADMIN_PASSWORD`)
 - **Convivenza totale con il sistema originale**, senza modifiche irreversibili né rischio di comprometterne il funzionamento
 
 ## Stato del progetto
@@ -50,7 +51,7 @@ Una scheda ESP32 "vergine" non ha né bootloader né partizioni: il primo flash 
    pio run -e esp32dev -t uploadfs --upload-port COM3   # sito web (LittleFS)
    ```
    (sostituisci `esp32dev` con `xiao-esp32c3` se usi quella scheda, e `COM3` con la porta corretta)
-5. Prima del passo 4, personalizza `firmware/src/config.local.h` (copiandolo da `config.local.h.example`) con le tue credenziali WiFi — vedi [firmware/README.md](firmware/README.md)
+5. Prima del passo 4, personalizza `firmware/src/config.local.h` (copiandolo da `config.local.h.example`) con le tue credenziali WiFi — vedi [firmware/README.md](firmware/README.md). `ADMIN_PASSWORD` è opzionale: se impostata, la UI chiede la password quando esegui azioni amministrative (OTA, riavvio, backup, salvataggio impostazioni, avvio/stop manuale).
 
 **Da quel momento in poi** (scheda già avviata almeno una volta con bootloader e partizioni presenti), gli aggiornamenti successivi possono usare solo i file `.bin` delle Release, in due modi:
 - **OTA da GitHub**: pulsante "Controlla su GitHub" → "Aggiorna ora" nella UI web, scarica e flasha da sé firmware+sito

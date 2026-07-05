@@ -6,6 +6,7 @@ const DAYS = [
 const el = (id) => document.getElementById(id);
 let otaBusy = false;
 let latestStatus = null;
+let adminPassword = sessionStorage.getItem("geyser-admin-password") || "";
 
 function fmtRemaining(seconds) {
   const m = Math.floor(seconds / 60);
@@ -18,11 +19,20 @@ function fmtRemaining(seconds) {
 // prima di inviare la risposta) resta appesa a tempo indeterminato — ben
 // oltre qualunque timeout applicato altrove nel codice, perché quegli altri
 // timeout scattano solo DOPO che questa await si è risolta.
-async function api(path, options, timeoutMs = 10000) {
+function withAuthHeaders(options = {}) {
+  const next = { ...options, headers: { ...(options.headers || {}) } };
+  if (adminPassword) {
+    next.headers.Authorization = `Basic ${btoa(`admin:${adminPassword}`)}`;
+  }
+  return next;
+}
+
+async function fetchJson(path, options, timeoutMs) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(path, { ...options, signal: controller.signal });
+    const res = await fetch(path, { ...withAuthHeaders(options), signal: controller.signal });
+    if (res.status === 401) return { __unauthorized: true };
     // Gli endpoint restituiscono sempre un corpo JSON con { ok, error, details }
     // anche in caso di errore applicativo (es. HTTP 400 per validazione fallita):
     // va letto comunque, non trattato come fallimento di rete.
@@ -32,11 +42,29 @@ async function api(path, options, timeoutMs = 10000) {
   }
 }
 
+async function api(path, options, timeoutMs = 10000) {
+  let result = await fetchJson(path, options, timeoutMs);
+  if (!result.__unauthorized) return result;
+
+  const password = window.prompt("Password amministratore");
+  if (password === null) return { ok: false, error: "unauthorized" };
+  adminPassword = password;
+  sessionStorage.setItem("geyser-admin-password", adminPassword);
+  result = await fetchJson(path, options, timeoutMs);
+  if (result.__unauthorized) {
+    sessionStorage.removeItem("geyser-admin-password");
+    adminPassword = "";
+    return { ok: false, error: "unauthorized" };
+  }
+  return result;
+}
+
 function setBadge(elm, connected) {
   elm.classList.toggle("ok", !!connected);
 }
 
 function fmtBytes(bytes) {
+  if (bytes === null || bytes === undefined) return "--";
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${bytes} B`;
@@ -46,7 +74,9 @@ function renderSystem(system) {
   if (!system) return;
   el("sys-ram").textContent = `${fmtBytes(system.ramFreeBytes)} libera su ${fmtBytes(system.ramTotalBytes)}`;
   el("sys-flash").textContent = `${fmtBytes(system.flashUsedBytes)} usati, ${fmtBytes(system.flashFreeBytes)} liberi per il prossimo aggiornamento`;
-  el("sys-fs").textContent = `${fmtBytes(system.fsUsedBytes)} usati su ${fmtBytes(system.fsTotalBytes)}`;
+  el("sys-fs").textContent = system.fsUsedBytes === null || system.fsTotalBytes === null
+    ? "non disponibile durante OTA"
+    : `${fmtBytes(system.fsUsedBytes)} usati su ${fmtBytes(system.fsTotalBytes)}`;
 }
 
 function loadAutonomySession() {
@@ -733,11 +763,20 @@ async function uploadFirmwareFile() {
 
   const xhr = new XMLHttpRequest();
   xhr.open("POST", "/api/ota/upload");
+  if (adminPassword) xhr.setRequestHeader("Authorization", `Basic ${btoa(`admin:${adminPassword}`)}`);
   progressWrap.classList.remove("hidden");
   xhr.upload.addEventListener("progress", (e) => {
     if (e.lengthComputable) progressBar.style.width = `${Math.round((e.loaded / e.total) * 100)}%`;
   });
   xhr.onload = () => {
+    if (xhr.status === 401) {
+      sessionStorage.removeItem("geyser-admin-password");
+      adminPassword = "";
+      feedback.textContent = "Password amministratore richiesta: riprova l'upload.";
+      feedback.className = "feedback error";
+      setOtaBusy(false);
+      return;
+    }
     try {
       const r = JSON.parse(xhr.responseText);
       if (r.ok) {
@@ -807,6 +846,11 @@ async function exportBackup() {
   feedback.className = "feedback";
   try {
     const backup = await api("/api/backup");
+    if (backup && backup.ok === false) {
+      feedback.textContent = `Errore: ${backup.error}`;
+      feedback.className = "feedback error";
+      return;
+    }
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

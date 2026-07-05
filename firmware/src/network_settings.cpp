@@ -1,6 +1,7 @@
 #include "network_settings.h"
 #include "config.h"
 #include "event_log.h"
+#include "auth.h"
 #include <Preferences.h>
 #include <IPAddress.h>
 
@@ -163,6 +164,7 @@ void NetworkSettings::handleGet(AsyncWebServerRequest* request) {
 }
 
 void NetworkSettings::handlePut(AsyncWebServerRequest* request, JsonVariant& body) {
+  if (!requireAdmin(request)) return;
   String error = validate(body);
   if (!error.isEmpty()) {
     JsonDocument doc;
@@ -200,6 +202,7 @@ void NetworkSettings::handlePut(AsyncWebServerRequest* request, JsonVariant& bod
 }
 
 void NetworkSettings::handleConfirm(AsyncWebServerRequest* request) {
+  if (!requireAdmin(request)) return;
   bool hadPending = pendingConfirmation_;
   clearPending();
   if (hadPending) eventLogAdd("network", "configurazione rete confermata");
