@@ -470,6 +470,10 @@ async function applyOtaUpdate() {
   progressWraps.forEach((w) => w.classList.remove("hidden"));
   setOtaProgressUI("firmware", 0, 0);
 
+  let sawRealProgress = false;
+  let lastProgressKey = "";
+  let stalledSinceMs = Date.now();
+
   while (true) {
     let p;
     try {
@@ -494,6 +498,21 @@ async function applyOtaUpdate() {
       return;
     }
 
+    if (p.phase === "firmware" || p.phase === "littlefs") sawRealProgress = true;
+
+    // Il dispositivo può riavviarsi (aggiornamento riuscito) più in fretta
+    // di quanto la richiesta di rete impieghi a fallire: in quel caso non
+    // arriva mai un errore di rete da intercettare, ma /api/ota/progress
+    // torna a rispondere con lo stato "idle" di un avvio pulito invece che
+    // "done" — senza questo controllo la pagina restava bloccata sull'ultima
+    // percentuale vista, anche se il dispositivo aveva già finito.
+    if (sawRealProgress && !p.inProgress && p.phase === "idle") {
+      setOtaFeedback("Aggiornamento completato, il dispositivo si è riavviato...", "ok");
+      progressWraps.forEach((w) => w.classList.add("hidden"));
+      waitForDeviceAndReload();
+      return;
+    }
+
     setOtaProgressUI(p.phase, p.current, p.total);
 
     if (p.phase === "done") {
@@ -503,6 +522,22 @@ async function applyOtaUpdate() {
       setOtaFeedback("Aggiornamento completato, il dispositivo si sta riavviando...", "ok");
       progressWraps.forEach((w) => w.classList.add("hidden"));
       waitForDeviceAndReload();
+      return;
+    }
+
+    // Se la percentuale non si muove per troppo tempo, il dispositivo è
+    // probabilmente bloccato per davvero (es. un problema di rete durante lo
+    // scaricamento del sito): meglio dirlo che restare a girare in eterno.
+    const progressKey = `${p.phase}:${p.current}`;
+    if (progressKey !== lastProgressKey) {
+      lastProgressKey = progressKey;
+      stalledSinceMs = Date.now();
+    } else if (Date.now() - stalledSinceMs > 45000) {
+      setOtaFeedback(
+        "L'aggiornamento sembra bloccato da oltre 45s. Il dispositivo potrebbe essere ancora al lavoro: " +
+        "aspetta ancora un po' e ricarica la pagina a mano, oppure riprova più tardi.",
+        "error"
+      );
       return;
     }
 

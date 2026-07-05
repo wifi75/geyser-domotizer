@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.21.0 — 2026-07-05
+
+Fix: barra OTA bloccata dopo un aggiornamento riuscito ma completato più in fretta della richiesta di rete; etichetta di progresso su una riga sola; istruzioni per l'aggiornamento manuale.
+
+- **Bug risolto**: se il dispositivo si riavviava più in fretta di quanto una richiesta `/api/ota/progress` impiegasse a fallire, non arrivava mai un errore di rete da intercettare — la pagina restava bloccata sull'ultima percentuale vista anche a riavvio già avvenuto, richiedendo un refresh manuale per vedere la versione aggiornata. Ora viene rilevato il ritorno allo stato "idle" e la pagina si ricarica da sola comunque.
+- Aggiunto un limite di 45s: se l'avanzamento resta fermo più a lungo, mostra un messaggio invece di continuare a girare in eterno senza dire nulla
+- L'etichetta di avanzamento ("Aggiornamento ed installazione interfaccia web: 82%") ora sta sempre su una riga sola invece di andare a capo a metà
+- Card "Aggiornamento manuale": aggiunte istruzioni su dove scaricare i file (link diretto alla Release più recente) e in che ordine caricarli (prima il firmware, poi il sito se cambiato)
+
 ## v0.20.2 — 2026-07-04
 
 Fix: il pulsante "Aggiorna ora" nel banner non mostrava errori (sembrava non fare nulla).

@@ -104,7 +104,7 @@
 // Da bump manuale ad ogni release: deve corrispondere ESATTAMENTE al tag
 // GitHub "vX.Y.Z" (senza la "v"), il confronto è una semplice uguaglianza
 // di stringa, non un confronto semver.
-#define FIRMWARE_VERSION "0.20.2"
+#define FIRMWARE_VERSION "0.21.0"
 #define GITHUB_OWNER "wifi75"
 #define GITHUB_REPO "geyser-domotizer"
 // Nome dell'asset da cercare tra quelli allegati alla release GitHub: deve

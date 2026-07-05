@@ -218,6 +218,15 @@
       <div class="ota-manual">
         <h3>Aggiornamento manuale</h3>
         <p class="muted">Carica un file .bin compilato in locale (deve corrispondere esattamente alla scheda in uso).</p>
+        <p class="muted">
+          Scarica i file dalla pagina
+          <a href="https://github.com/wifi75/geyser-domotizer/releases/latest" target="_blank" rel="noopener">Release più recente su GitHub</a>,
+          scegliendo quelli per la tua scheda (es. <code>esp32dev</code> o <code>xiao-esp32c3</code>):
+        </p>
+        <ol class="ota-manual-steps muted">
+          <li><code>firmware-&lt;scheda&gt;.bin</code> — obbligatorio, caricalo per primo. Il dispositivo si riavvia da solo al termine.</li>
+          <li><code>littlefs-&lt;scheda&gt;.bin</code> — solo se è cambiata anche l'interfaccia web (quasi sempre sì). Carica questo <strong>dopo</strong>, quando il dispositivo è di nuovo online: ogni upload sostituisce solo un file alla volta.</li>
+        </ol>
         <input type="file" id="ota-file-input" accept=".bin">
         <button id="btn-ota-upload" class="btn btn-primary">Carica e aggiorna</button>
         <div id="ota-upload-progress-wrap" class="hidden">

@@ -272,6 +272,22 @@ main {
   gap: 10px;
 }
 
+.ota-manual-steps {
+  margin: -4px 0 0 0;
+  padding-left: 20px;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ota-manual code {
+  background: rgba(0,0,0,0.25);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
 .ota-manual h3 {
   margin: 0;
   font-size: 0.9rem;
@@ -284,10 +300,19 @@ main {
 
 #ota-update-progress-wrap, #banner-update-progress-wrap {
   margin-top: 10px;
-  max-width: 300px;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* L'etichetta ("Aggiornamento ed installazione interfaccia web: 82%") è
+   lunga: niente a capo a metà, se proprio non ci sta scorre in orizzontale
+   invece di spezzarsi su due righe. */
+#ota-update-progress-label, #banner-update-progress-label {
+  white-space: nowrap;
+  overflow-x: auto;
+  font-size: 0.78rem;
 }
 
 .ota-progress-track {
