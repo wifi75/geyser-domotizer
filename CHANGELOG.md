@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.47.2 — 2026-07-05
+
+UI: controllo logica LED (attivo-basso/alto) ripristinato nella sezione "LED di stato". Era supportato dall'API ma mancava il controllo nella UI.
+
 ## v0.47.1 — 2026-07-05
 
 UI: pannello upload firmware manuale ora sempre visibile per impostazione predefinita (non collassato).

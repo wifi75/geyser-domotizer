@@ -210,6 +210,7 @@ function renderLed(led) {
   }
   card.classList.remove("hidden");
   el("led-status-value").textContent = (led.reason && LED_STATUS_LABELS[led.reason]) || "Spento";
+  el("led-active-low").checked = !!led.activeLow;
 }
 
 async function refreshStatus() {
@@ -1225,10 +1226,36 @@ async function saveApSetting() {
   }
 }
 
+async function saveLedConfig() {
+  const feedback = el("led-feedback");
+  feedback.textContent = "";
+  feedback.className = "feedback";
+  const activeLow = el("led-active-low").checked;
+
+  try {
+    const r = await api("/api/led", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ activeLow })
+    });
+    if (r && r.ok === false) {
+      feedback.textContent = `Errore: ${r.error}`;
+      feedback.className = "feedback error";
+    } else {
+      feedback.textContent = "Logica LED salvata.";
+      feedback.className = "feedback ok";
+    }
+  } catch (e) {
+    feedback.textContent = "Errore di comunicazione con il dispositivo.";
+    feedback.className = "feedback error";
+  }
+}
+
 el("btn-start").addEventListener("click", startManual);
 el("btn-stop").addEventListener("click", stopManual);
 el("btn-save-schedule").addEventListener("click", saveSchedule);
 el("btn-save-mqtt").addEventListener("click", saveMqttConfig);
+el("btn-led-save").addEventListener("click", saveLedConfig);
 el("mqtt-enabled").addEventListener("change", updateMqttFieldsVisibility);
 el("btn-ota-check").addEventListener("click", () => checkOtaUpdate());
 el("btn-ota-update").addEventListener("click", applyOtaUpdate);

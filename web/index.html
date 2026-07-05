@@ -125,6 +125,15 @@
       <h2>LED di stato</h2>
       <p class="muted">LED integrato sulla scheda: fisso acceso durante una nebulizzazione, lampeggiante durante un aggiornamento OTA o quando il WiFi è disconnesso, altrimenti spento. Nessun comando manuale.</p>
       <p id="led-status-text">Stato attuale: <strong id="led-status-value">--</strong></p>
+      <div class="settings-row">
+        <label>
+          <input type="checkbox" id="led-active-low">
+          Logica attivo basso
+        </label>
+        <span class="muted">(spunta se il LED è invertito)</span>
+      </div>
+      <button id="btn-led-save" class="btn btn-primary btn-small">Salva logica LED</button>
+      <span id="led-feedback" class="feedback"></span>
     </section>
 
     <section class="card" id="card-system">
