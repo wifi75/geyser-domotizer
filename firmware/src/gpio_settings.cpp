@@ -1,6 +1,7 @@
 #include "gpio_settings.h"
 #include "config.h"
 #include "pump.h"
+#include "event_log.h"
 #include <Preferences.h>
 #include <ArduinoJson.h>
 
@@ -138,6 +139,7 @@ void GpioSettings::handlePut(AsyncWebServerRequest* request, JsonVariant& body) 
   relayPin_ = pin;
   relayActiveHigh_ = activeHigh;
   save();
+  eventLogAdd("gpio", String("relè su GPIO") + pin + (activeHigh ? " attivo alto" : " attivo basso"));
 
   request->send(200, "application/json", "{\"ok\":true}");
 }

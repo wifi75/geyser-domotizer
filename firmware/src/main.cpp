@@ -16,6 +16,8 @@
 #include "ntp_settings.h"
 #include "pump_current.h"
 #include "pump_current_settings.h"
+#include "event_log.h"
+#include "config_backup.h"
 
 // NOTA su consumo energetico: questa v1 del firmware resta sempre sveglia
 // (niente deep-sleep) cosi' l'interfaccia web e l'avvio manuale rispondono
@@ -52,10 +54,12 @@ void connectWifiIfNeeded() {
     if (isConnected) {
       Serial.print("WiFi connesso, IP: ");
       Serial.println(WiFi.localIP());
+      eventLogAdd("wifi", String("connesso: ") + WiFi.localIP().toString());
       ntpSettings.resync();  // riallinea subito l'orologio dopo ogni riconnessione
       lastNtpResyncMs = millis();
     } else {
       Serial.println("WiFi disconnesso");
+      eventLogAdd("wifi", "disconnesso");
     }
   }
   if (isConnected) return;
@@ -97,7 +101,9 @@ void checkScheduleTrigger() {
   int dayIndex = dowToDayIndex(timeInfo.tm_wday);
   uint32_t duration = schedule.checkTrigger(dayIndex, String(hhmm), String(dateKey));
   if (duration > 0) {
-    pump.start(PumpSource::SCHEDULE, duration);
+    if (pump.start(PumpSource::SCHEDULE, duration)) {
+      eventLogAdd("pump", String("avvio programmato ") + hhmm + " per " + duration + "s");
+    }
   }
 }
 
@@ -115,6 +121,8 @@ void setup() {
   gpioSettings.begin(server, pump);
   ntpSettings.begin(server);
   pumpCurrentSettings.begin(server);
+  eventLogBegin(server);
+  configBackupBegin(server);
   pumpCurrentMonitor.begin(PIN_I2C_SDA, PIN_I2C_SCL);
   pump.begin(gpioSettings.relayPin(), gpioSettings.relayActiveHigh());
 
@@ -160,11 +168,13 @@ void setup() {
   server.begin();
   mqtt.begin(mqttSettings, pump);
 
+  eventLogAdd("system", String("Geyser Domotizer v") + FIRMWARE_VERSION + " avviato");
   Serial.printf("Geyser Domotizer v%s avviato\n", FIRMWARE_VERSION);
 }
 
 void loop() {
   connectWifiIfNeeded();
+  networkSettings.tick();
   checkNtpResync();
   pump.tick();
   pumpCurrentMonitor.tick(pump, pumpCurrentSettings.data());

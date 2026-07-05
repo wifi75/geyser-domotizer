@@ -5,6 +5,7 @@ const DAYS = [
 
 const el = (id) => document.getElementById(id);
 let otaBusy = false;
+let latestStatus = null;
 
 function fmtRemaining(seconds) {
   const m = Math.floor(seconds / 60);
@@ -48,6 +49,46 @@ function renderSystem(system) {
   el("sys-fs").textContent = `${fmtBytes(system.fsUsedBytes)} usati su ${fmtBytes(system.fsTotalBytes)}`;
 }
 
+function loadAutonomySession() {
+  try {
+    return JSON.parse(localStorage.getItem("geyser-autonomy-session") || "null");
+  } catch (e) {
+    return null;
+  }
+}
+
+function saveAutonomySession(session) {
+  if (session) {
+    localStorage.setItem("geyser-autonomy-session", JSON.stringify(session));
+  } else {
+    localStorage.removeItem("geyser-autonomy-session");
+  }
+  renderAutonomy(latestStatus);
+}
+
+function renderAutonomy(status) {
+  const session = loadAutonomySession();
+  if (!session || !status) {
+    el("autonomy-start").textContent = session
+      ? `${new Date(session.startedAt).toLocaleString("it-IT")} (${session.percent}% / ${session.voltage.toFixed(2)}V)`
+      : "Nessuna misura attiva";
+    el("autonomy-delta").textContent = "--";
+    el("autonomy-rate").textContent = "--";
+    return;
+  }
+
+  const elapsedHours = Math.max(0, (Date.now() - session.startedAt) / 3600000);
+  const deltaPercent = session.percent - status.battery.percent;
+  const deltaVolt = session.voltage - status.battery.voltage;
+  el("autonomy-start").textContent =
+    `${new Date(session.startedAt).toLocaleString("it-IT")} (${session.percent}% / ${session.voltage.toFixed(2)}V)`;
+  el("autonomy-delta").textContent =
+    `${deltaPercent.toFixed(1)}% / ${deltaVolt.toFixed(2)}V in ${elapsedHours.toFixed(1)}h`;
+  el("autonomy-rate").textContent = elapsedHours > 0.05
+    ? `${(deltaPercent / elapsedHours).toFixed(2)}%/h`
+    : "attendi almeno qualche minuto";
+}
+
 function renderWifi(wifi) {
   const bars = el("wifi-signal-bars");
   const spans = bars.querySelectorAll("span");
@@ -78,6 +119,7 @@ function renderWifi(wifi) {
 async function refreshStatus() {
   try {
     const s = await api("/api/status");
+    latestStatus = s;
 
     el("battery-percent").textContent = s.battery.percent;
     el("battery-voltage").textContent = s.battery.voltage.toFixed(2);
@@ -90,6 +132,7 @@ async function refreshStatus() {
     setBadge(el("badge-mqtt"), s.mqtt.connected);
     renderWifi(s.wifi);
     renderSystem(s.system);
+    renderAutonomy(s);
 
     el("device-time").textContent = s.time;
 
@@ -720,6 +763,99 @@ async function uploadFirmwareFile() {
   xhr.send(formData);
 }
 
+async function loadEvents() {
+  try {
+    const r = await api("/api/events");
+    const list = el("events-list");
+    const events = r.events || [];
+    if (!events.length) {
+      list.innerHTML = '<span class="muted">Nessun evento recente.</span>';
+      return;
+    }
+    list.innerHTML = "";
+    events.slice().reverse().forEach((event) => {
+      const row = document.createElement("div");
+      row.className = "event-row";
+      const meta = document.createElement("div");
+      meta.className = "event-meta";
+      meta.textContent = event.time || `${Math.round((event.uptimeMs || 0) / 1000)}s`;
+      const body = document.createElement("div");
+      const type = document.createElement("div");
+      type.className = "event-type";
+      type.textContent = event.type || "evento";
+      const msg = document.createElement("div");
+      msg.textContent = event.message || "";
+      body.appendChild(type);
+      body.appendChild(msg);
+      row.appendChild(meta);
+      row.appendChild(body);
+      list.appendChild(row);
+    });
+  } catch (e) {
+    el("events-list").innerHTML = '<span class="muted">Eventi non disponibili.</span>';
+  }
+}
+
+async function clearEvents() {
+  await api("/api/events/clear", { method: "POST" });
+  loadEvents();
+}
+
+async function exportBackup() {
+  const feedback = el("backup-feedback");
+  feedback.textContent = "";
+  feedback.className = "feedback";
+  try {
+    const backup = await api("/api/backup");
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    a.href = url;
+    a.download = `geyser-domotizer-config-${stamp}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    feedback.textContent = "Backup esportato.";
+    feedback.className = "feedback ok";
+  } catch (e) {
+    feedback.textContent = "Errore durante l'esportazione.";
+    feedback.className = "feedback error";
+  }
+}
+
+async function restoreBackup() {
+  const feedback = el("backup-feedback");
+  const input = el("backup-file-input");
+  feedback.textContent = "";
+  feedback.className = "feedback";
+  if (!input.files.length) {
+    feedback.textContent = "Seleziona prima un file JSON.";
+    feedback.className = "feedback error";
+    return;
+  }
+
+  try {
+    const backup = JSON.parse(await input.files[0].text());
+    const bootRef = await captureBootReference();
+    const r = await api("/api/backup", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(backup)
+    });
+    if (r && r.ok === false) {
+      feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+      feedback.className = "feedback error";
+      return;
+    }
+    feedback.textContent = "Backup ripristinato, riavvio in corso...";
+    feedback.className = "feedback ok";
+    waitForDeviceAndReload(bootRef);
+  } catch (e) {
+    feedback.textContent = "File backup non valido.";
+    feedback.className = "feedback error";
+  }
+}
+
 async function loadGpioConfig() {
   const cfg = await api("/api/gpio");
   el("gpio-board").textContent = cfg.board;
@@ -864,6 +1000,11 @@ async function loadNetworkConfig() {
   el("network-subnet").value = cfg.subnet || "255.255.255.0";
   el("network-dns").value = cfg.dns || "";
   updateNetworkFieldsVisibility();
+  if (cfg.pendingConfirmation) {
+    await api("/api/network/confirm", { method: "POST" });
+    el("network-feedback").textContent = "Configurazione rete confermata.";
+    el("network-feedback").className = "feedback ok";
+  }
 }
 
 async function saveNetworkConfig() {
@@ -922,6 +1063,19 @@ el("btn-restart").addEventListener("click", restartDevice);
 el("btn-save-gpio").addEventListener("click", saveGpioConfig);
 el("btn-save-ntp").addEventListener("click", saveNtpConfig);
 el("btn-save-pcur").addEventListener("click", savePumpCurrentConfig);
+el("btn-autonomy-start").addEventListener("click", () => {
+  if (!latestStatus) return;
+  saveAutonomySession({
+    startedAt: Date.now(),
+    percent: latestStatus.battery.percent,
+    voltage: latestStatus.battery.voltage
+  });
+});
+el("btn-autonomy-reset").addEventListener("click", () => saveAutonomySession(null));
+el("btn-refresh-events").addEventListener("click", loadEvents);
+el("btn-clear-events").addEventListener("click", clearEvents);
+el("btn-export-backup").addEventListener("click", exportBackup);
+el("btn-restore-backup").addEventListener("click", restoreBackup);
 el("btn-pcur-reset-minmax").addEventListener("click", async () => {
   await api("/api/pump-current/reset-minmax", { method: "POST" });
   el("pcur-minmax").textContent = "-- / -- mA";
@@ -967,5 +1121,7 @@ loadNetworkConfig();
 loadGpioConfig();
 loadNtpConfig();
 loadPumpCurrentConfig();
+loadEvents();
 checkOtaUpdate({ silent: true });
 setInterval(refreshStatus, 2000);
+setInterval(loadEvents, 5000);

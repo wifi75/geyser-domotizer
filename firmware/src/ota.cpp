@@ -1,5 +1,6 @@
 #include "ota.h"
 #include "config.h"
+#include "event_log.h"
 #include <ArduinoJson.h>
 #include <Update.h>
 #include <WiFiClientSecure.h>
@@ -13,6 +14,12 @@
 // pragmatica per un progetto hobbistico: il pinning del certificato
 // richiederebbe di aggiornare il firmware ogni volta che GitHub ruota i
 // certificati, per un progetto che gira sulla LAN di casa.
+
+static volatile bool gOtaBusy = false;
+
+bool otaUpdateInProgress() {
+  return gOtaBusy;
+}
 
 void OtaManager::begin(AsyncWebServer& server) {
   server.on("/api/ota/info", HTTP_GET, [this](AsyncWebServerRequest* r) { handleInfo(r); });
@@ -44,6 +51,11 @@ void OtaManager::handleInfo(AsyncWebServerRequest* request) {
 }
 
 void OtaManager::handleCheck(AsyncWebServerRequest* request) {
+  if (gOtaBusy) {
+    request->send(409, "application/json", "{\"ok\":false,\"error\":\"ota_in_progress\"}");
+    return;
+  }
+
   WiFiClientSecure client;
   client.setInsecure();
   HTTPClient https;
@@ -116,6 +128,8 @@ void OtaManager::handleCheck(AsyncWebServerRequest* request) {
   doc["updateAvailable"] = pendingVersion_ != FIRMWARE_VERSION;
   doc["latestVersion"] = pendingVersion_;
   doc["releaseNotes"] = notes;
+  eventLogAdd("ota", doc["updateAvailable"] ? String("aggiornamento disponibile: v") + pendingVersion_
+                                             : "controllo aggiornamenti: gia' aggiornato");
   AsyncResponseStream* response = request->beginResponseStream("application/json");
   serializeJson(doc, *response);
   request->send(response);
@@ -134,6 +148,7 @@ void OtaManager::handleUpdate(AsyncWebServerRequest* request) {
   }
 
   updateInProgress_ = true;
+  gOtaBusy = true;
   progressPhase_ = "firmware";
   progressCurrent_ = 0;
   progressTotal_ = 0;
@@ -144,6 +159,7 @@ void OtaManager::handleUpdate(AsyncWebServerRequest* request) {
   // restava quella vecchia). Qui rispondiamo subito; il progresso si legge
   // da /api/ota/progress via polling.
   xTaskCreate(updateTaskEntry, "ota_update", 8192, this, 1, nullptr);
+  eventLogAdd("ota", String("aggiornamento avviato verso v") + pendingVersion_);
 
   request->send(200, "application/json", "{\"ok\":true,\"started\":true}");
 }
@@ -196,6 +212,8 @@ void OtaManager::runUpdateTask() {
                   lastErrorDetails_.c_str(), Update.getError());
     progressPhase_ = "error";
     updateInProgress_ = false;
+    gOtaBusy = false;
+    eventLogAdd("ota", String("aggiornamento firmware fallito: ") + lastErrorDetails_);
     LittleFS.begin(true);  // rimonta per continuare a servire la webapp dopo il fallimento
     return;
   }
@@ -218,6 +236,7 @@ void OtaManager::runUpdateTask() {
   }
 
   progressPhase_ = "done";
+  eventLogAdd("ota", "aggiornamento completato, riavvio");
   delay(500);  // tempo per far leggere lo stato "done" al frontend
   ESP.restart();
 }
@@ -238,6 +257,11 @@ void OtaManager::handleProgress(AsyncWebServerRequest* request) {
 }
 
 void OtaManager::handleRestart(AsyncWebServerRequest* request) {
+  if (gOtaBusy) {
+    request->send(409, "application/json", "{\"ok\":false,\"error\":\"ota_in_progress\"}");
+    return;
+  }
+  eventLogAdd("system", "riavvio richiesto da UI");
   AsyncWebServerResponse* response = request->beginResponse(200, "application/json", "{\"ok\":true}");
   response->addHeader("Connection", "close");
   request->send(response);
@@ -248,8 +272,15 @@ void OtaManager::handleRestart(AsyncWebServerRequest* request) {
 void OtaManager::handleUploadChunk(AsyncWebServerRequest* request, String filename, size_t index,
                                     uint8_t* data, size_t len, bool final) {
   if (index == 0) {
+    if (gOtaBusy) {
+      Update.abort();
+      return;
+    }
+    manualUploadInProgress_ = true;
+    gOtaBusy = true;
     int cmd = filename.indexOf("littlefs") >= 0 ? U_SPIFFS : U_FLASH;
     Serial.printf("OTA upload avviato: %s (cmd=%d)\n", filename.c_str(), cmd);
+    eventLogAdd("ota", String("upload manuale avviato: ") + filename);
     if (!Update.begin(UPDATE_SIZE_UNKNOWN, cmd)) {
       Update.printError(Serial);
     }
@@ -268,6 +299,11 @@ void OtaManager::handleUploadChunk(AsyncWebServerRequest* request, String filena
 
 void OtaManager::handleUploadResult(AsyncWebServerRequest* request) {
   bool ok = !Update.hasError();
+  if (!ok) {
+    manualUploadInProgress_ = false;
+    gOtaBusy = false;
+    eventLogAdd("ota", "upload manuale fallito");
+  }
   AsyncWebServerResponse* response = request->beginResponse(
       200, "application/json", ok ? "{\"ok\":true}" : "{\"ok\":false,\"error\":\"flash_failed\"}");
   response->addHeader("Connection", "close");

@@ -17,13 +17,24 @@ struct NetworkSettingsData {
 class NetworkSettings {
  public:
   void begin(AsyncWebServer& server);
+  void tick();
   const NetworkSettingsData& data() const { return data_; }
+  bool pendingConfirmation() const { return pendingConfirmation_; }
 
  private:
   NetworkSettingsData data_;
+  NetworkSettingsData rollbackData_;
+  bool pendingConfirmation_ = false;
+  uint32_t rollbackDeadlineMs_ = 0;
   bool load();
   bool save();
+  bool loadPending();
+  bool savePending(const NetworkSettingsData& previous, const NetworkSettingsData& candidate);
+  void clearPending();
+  void writeDataToJson(JsonVariant out, const NetworkSettingsData& data) const;
+  void readDataFromJson(JsonVariantConst in, NetworkSettingsData& data) const;
   String validate(JsonVariantConst body) const;
   void handleGet(AsyncWebServerRequest* request);
   void handlePut(AsyncWebServerRequest* request, JsonVariant& body);
+  void handleConfirm(AsyncWebServerRequest* request);
 };

@@ -1,5 +1,6 @@
 #include "ntp_settings.h"
 #include "config.h"
+#include "event_log.h"
 #include <Preferences.h>
 #include <ArduinoJson.h>
 #include <time.h>
@@ -99,6 +100,7 @@ void NtpSettings::handlePut(AsyncWebServerRequest* request, JsonVariant& body) {
   intervalHours_ = hours;
   save();
   apply();
+  eventLogAdd("ntp", String("server NTP salvato: ") + ntpServer_);
 
   request->send(200, "application/json", "{\"ok\":true}");
 }

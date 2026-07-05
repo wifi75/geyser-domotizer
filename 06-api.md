@@ -39,7 +39,7 @@ Azzera `minMilliAmps`/`maxMilliAmps` (li riporta a `null`, ripartono dal prossim
 Avvia subito un ciclo, indipendentemente dalla programmazione.
 
 Richiesta: `{ "durationSeconds": 120 }`
-Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "pump_already_active" }`
+Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "pump_already_active" | "invalid_duration" | "ota_in_progress" }`
 
 ## POST /api/manual/stop
 
@@ -113,7 +113,7 @@ Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "invalid_config", "de
 
 Interroga le release GitHub del progetto e confronta con la versione attuale. Il risultato resta memorizzato lato dispositivo per il successivo `/api/ota/update`.
 
-Risposta: `{ "ok": true, "updateAvailable": true, "latestVersion": "0.5.0", "releaseNotes": "testo delle note di rilascio (troncato oltre 2000 caratteri)" }` oppure `{ "ok": false, "error": "network_error", "details": "..." }`
+Risposta: `{ "ok": true, "updateAvailable": true, "latestVersion": "0.5.0", "releaseNotes": "testo delle note di rilascio (troncato oltre 2000 caratteri)" }` oppure `{ "ok": false, "error": "network_error" | "ota_in_progress", "details": "..." }`
 
 Il frontend chiama questo endpoint automaticamente al caricamento della pagina (oltre che a richiesta manuale): se `updateAvailable` è `true` mostra un banner cliccabile con `latestVersion` e, in un pannello a comparsa, `releaseNotes`.
 
@@ -162,7 +162,7 @@ Risposta: `{ "ok": false, "error": "invalid_pin", "details": "..." }` se il pin 
 
 ## POST /api/system/restart
 
-Riavvia il dispositivo subito (nessuna conferma lato server). Risposta: `{ "ok": true }`, poi il dispositivo si riavvia — la richiesta potrebbe non ricevere risposta per lo stesso motivo di `/api/ota/update`.
+Riavvia il dispositivo subito (nessuna conferma lato server). Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "ota_in_progress" }`, poi il dispositivo si riavvia — la richiesta potrebbe non ricevere risposta per lo stesso motivo di `/api/ota/update`.
 
 ## POST /api/ota/upload
 
@@ -175,7 +175,7 @@ Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "flash_failed" }`
 ## GET /api/network
 
 ```json
-{ "mode": "dhcp", "ip": "", "gateway": "", "subnet": "", "dns": "" }
+{ "mode": "dhcp", "ip": "", "gateway": "", "subnet": "", "dns": "", "pendingConfirmation": false, "rollbackSeconds": 0 }
 ```
 
 oppure, con IP statico attivo:
@@ -190,9 +190,17 @@ Cambia modalità DHCP/IP statico. Se `mode` è `"static"`, `ip`/`gateway`/`subne
 
 **Il dispositivo si riavvia sempre dopo aver salvato**, per riapplicare la configurazione di rete dall'avvio — la richiesta potrebbe non ricevere risposta per lo stesso motivo di `/api/ota/upload`.
 
+Dopo il riavvio la nuova configurazione resta in attesa di conferma: la UI chiama `POST /api/network/confirm` appena torna raggiungibile. Se nessuna conferma arriva entro circa 3 minuti, il firmware ripristina la configurazione precedente e si riavvia, evitando di restare bloccati su un IP statico sbagliato.
+
 Risposta (se la validazione fallisce, prima di riavviare): `{ "ok": false, "error": "invalid_network_config", "details": "..." }`
 
 ⚠️ Se l'IP statico scelto è sbagliato o già occupato da un altro dispositivo sulla rete, il dispositivo potrebbe diventare irraggiungibile dalla UI: in tal caso serve ricollegarlo via USB e correggere manualmente la configurazione NVS (oppure riflashare/cancellare la partizione NVS).
+
+## POST /api/network/confirm
+
+Conferma che la UI è tornata raggiungibile dopo un cambio rete e cancella il rollback pendente.
+
+Risposta: `{ "ok": true }`
 
 ## GET /api/ntp
 
@@ -223,6 +231,48 @@ Configurazione del rilevamento "serbatoio vuoto" dall'assorbimento della pompa (
 Richiesta: stesso formato di GET. `thresholdMa` tra 1 e 20000, `durationS` tra 1 e 300. Applicato subito, nessun riavvio.
 
 Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "invalid_pump_current_config", "details": "..." }`
+
+## GET /api/events
+
+Restituisce gli eventi recenti tenuti in RAM (ring buffer, si azzera a ogni riavvio).
+
+```json
+{
+  "events": [
+    { "uptimeMs": 123456, "time": "05/07/2026 10:40:12", "type": "ota", "message": "aggiornamento completato, riavvio" }
+  ]
+}
+```
+
+## POST /api/events/clear
+
+Azzera gli eventi recenti. Risposta: `{ "ok": true }`
+
+## GET /api/backup
+
+Esporta un JSON unico con la configurazione persistita in NVS: programmazione, MQTT (inclusa password, se presente), rete, GPIO, NTP e sensore corrente.
+
+```json
+{
+  "format": "geyser-domotizer-config",
+  "version": "0.29.0",
+  "board": "esp32dev",
+  "settings": {
+    "schedule": {},
+    "mqtt": {},
+    "network": {},
+    "gpio": {},
+    "ntp": {},
+    "pumpCurrent": {}
+  }
+}
+```
+
+## PUT /api/backup
+
+Ripristina un backup nello stesso formato di `GET /api/backup`. Le sezioni presenti vengono scritte in NVS, poi il dispositivo si riavvia per ricaricare tutte le configurazioni.
+
+Risposta: `{ "ok": true, "restart": true }` oppure `{ "ok": false, "error": "invalid_backup" | "restore_failed", "details": "..." }`
 
 ## MQTT (solo firmware, non simulato dal mock)
 

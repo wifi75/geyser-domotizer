@@ -1,4 +1,7 @@
 #include "webserver.h"
+#include "config.h"
+#include "ota.h"
+#include "event_log.h"
 #include <LittleFS.h>
 #include <WiFi.h>
 #include <time.h>
@@ -121,8 +124,26 @@ void WebServerApp::handleStatus(AsyncWebServerRequest* request) {
 }
 
 void WebServerApp::handleManualStart(AsyncWebServerRequest* request, JsonVariant& body) {
+  if (otaUpdateInProgress()) {
+    request->send(409, "application/json", "{\"ok\":false,\"error\":\"ota_in_progress\"}");
+    return;
+  }
+
   uint32_t duration = body["durationSeconds"] | 120;
+  if (duration < SCHEDULE_MIN_DURATION_S || duration > SCHEDULE_MAX_DURATION_S) {
+    JsonDocument doc;
+    doc["ok"] = false;
+    doc["error"] = "invalid_duration";
+    doc["details"] = "durata tra 5 e 1800 secondi";
+    AsyncResponseStream* response = request->beginResponseStream("application/json");
+    response->setCode(400);
+    serializeJson(doc, *response);
+    request->send(response);
+    return;
+  }
+
   bool ok = pump_.start(PumpSource::MANUAL, duration);
+  if (ok) eventLogAdd("pump", String("avvio manuale per ") + duration + "s");
 
   JsonDocument doc;
   doc["ok"] = ok;
@@ -134,6 +155,7 @@ void WebServerApp::handleManualStart(AsyncWebServerRequest* request, JsonVariant
 
 void WebServerApp::handleManualStop(AsyncWebServerRequest* request) {
   pump_.stop();
+  eventLogAdd("pump", "stop manuale");
   request->send(200, "application/json", "{\"ok\":true}");
 }
 
@@ -158,6 +180,7 @@ void WebServerApp::handlePutSchedule(AsyncWebServerRequest* request, JsonVariant
   }
 
   schedule_.replaceAndSave(body);
+  eventLogAdd("schedule", "programmazione salvata");
   doc["ok"] = true;
   AsyncResponseStream* response = request->beginResponseStream("application/json");
   serializeJson(doc, *response);
@@ -190,6 +213,7 @@ void WebServerApp::handlePutConfig(AsyncWebServerRequest* request, JsonVariant& 
 
   mqttSettings_.applyAndSave(mqttIn);
   mqttClient_.applySettings();
+  eventLogAdd("mqtt", "configurazione MQTT salvata");
   doc["ok"] = true;
   AsyncResponseStream* response = request->beginResponseStream("application/json");
   serializeJson(doc, *response);

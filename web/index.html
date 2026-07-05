@@ -62,6 +62,19 @@
       </div>
     </section>
 
+    <section class="card" id="card-autonomy">
+      <h2>Misura autonomia</h2>
+      <div class="system-grid">
+        <div>Inizio misura</div><div id="autonomy-start"><span class="muted">--</span></div>
+        <div>Delta batteria</div><div id="autonomy-delta"><span class="muted">--</span></div>
+        <div>Stima scarica</div><div id="autonomy-rate"><span class="muted">--</span></div>
+      </div>
+      <div class="schedule-actions">
+        <button id="btn-autonomy-start" class="btn btn-primary">Avvia misura</button>
+        <button id="btn-autonomy-reset" class="btn btn-small">Azzera</button>
+      </div>
+    </section>
+
     <section class="card" id="card-pump">
       <h2>Nebulizzazione</h2>
       <div class="pump-state-row">
@@ -102,6 +115,17 @@
         <div>RAM libera</div><div id="sys-ram"><span class="muted">--</span></div>
         <div>Flash firmware</div><div id="sys-flash"><span class="muted">--</span></div>
         <div>Spazio sito (LittleFS)</div><div id="sys-fs"><span class="muted">--</span></div>
+      </div>
+    </section>
+
+    <section class="card" id="card-events">
+      <h2>Eventi recenti</h2>
+      <div id="events-list" class="events-list">
+        <span class="muted">--</span>
+      </div>
+      <div class="schedule-actions">
+        <button id="btn-refresh-events" class="btn btn-small">Aggiorna</button>
+        <button id="btn-clear-events" class="btn btn-small">Cancella</button>
       </div>
     </section>
 
@@ -302,6 +326,17 @@
         <h3>Riavvio</h3>
         <button id="btn-restart" class="btn btn-danger">Riavvia dispositivo</button>
         <span id="restart-feedback" class="feedback"></span>
+      </div>
+    </section>
+
+    <section class="card" id="card-backup">
+      <h2>Backup configurazione</h2>
+      <p class="muted">Esporta o ripristina programmazione, MQTT, rete, GPIO, NTP e sensore corrente.</p>
+      <div class="ota-manual">
+        <button id="btn-export-backup" class="btn btn-primary">Esporta JSON</button>
+        <input type="file" id="backup-file-input" accept=".json,application/json">
+        <button id="btn-restore-backup" class="btn btn-danger">Ripristina backup</button>
+        <span id="backup-feedback" class="feedback"></span>
       </div>
     </section>
 

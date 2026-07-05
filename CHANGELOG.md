@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.29.0 — 2026-07-05
+
+Hardening operativo: blocchi OTA lato firmware, rollback rete, backup configurazione, eventi e misura autonomia.
+
+- Il firmware rifiuta restart/check OTA/upload/avvio manuale con `ota_in_progress` mentre un aggiornamento e' in corso, cosi' la protezione non dipende solo dalla UI
+- Configurazione rete con rollback automatico: dopo un cambio DHCP/statico il dispositivo attende conferma dalla UI; se non arriva entro 3 minuti, ripristina la configurazione precedente e riavvia
+- Nuovi endpoint `GET/PUT /api/backup` per esportare/ripristinare la configurazione NVS (programmazione, MQTT, rete, GPIO, NTP, sensore corrente)
+- Nuovi endpoint `GET /api/events` e `POST /api/events/clear` con ring buffer RAM degli eventi recenti, mostrato nella tab Stato
+- Nuova card "Misura autonomia" nella tab Stato: registra uno snapshot batteria nel browser e stima la scarica percentuale/ora durante una prova reale
+- UI aggiornata con export/import JSON, conferma rete automatica e log eventi recenti
+
 ## v0.28.3 — 2026-07-05
 
 Protezione UI: blocca riavvio e azioni OTA concorrenti mentre un aggiornamento e' in corso.

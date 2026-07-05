@@ -1,5 +1,7 @@
 #include "mqtt_client.h"
 #include "config.h"
+#include "ota.h"
+#include "event_log.h"
 
 static MqttClientWrapper* s_instance = nullptr;
 
@@ -73,9 +75,16 @@ void MqttClientWrapper::handleMessage(char* topic, uint8_t* payload, unsigned in
   if (!pump_) return;
   String t(topic);
   if (t == MQTT_TOPIC_COMMAND_START) {
-    pump_->start(PumpSource::MANUAL, MQTT_DEFAULT_MANUAL_DURATION_S);
+    if (otaUpdateInProgress()) {
+      eventLogAdd("mqtt", "comando start ignorato: OTA in corso");
+      return;
+    }
+    if (pump_->start(PumpSource::MANUAL, MQTT_DEFAULT_MANUAL_DURATION_S)) {
+      eventLogAdd("pump", "avvio manuale da MQTT");
+    }
   } else if (t == MQTT_TOPIC_COMMAND_STOP) {
     pump_->stop();
+    eventLogAdd("pump", "stop da MQTT");
   }
 }
 

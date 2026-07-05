@@ -95,6 +95,25 @@ main {
 
 .system-grid > div:nth-child(odd) { color: var(--muted); }
 
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.event-row {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.event-row:last-child { border-bottom: none; padding-bottom: 0; }
+.event-meta { color: var(--muted); font-size: 0.78rem; }
+.event-type { color: var(--primary); font-size: 0.78rem; text-transform: uppercase; }
+
 .card {
   background: var(--card-bg);
   border: 1px solid var(--border);

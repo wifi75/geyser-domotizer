@@ -1,5 +1,6 @@
 #include "pump_current_settings.h"
 #include "config.h"
+#include "event_log.h"
 #include <Preferences.h>
 #include <ArduinoJson.h>
 
@@ -89,6 +90,8 @@ void PumpCurrentSettings::handlePut(AsyncWebServerRequest* request, JsonVariant&
   data_.belowThreshold = body["belowThreshold"] | data_.belowThreshold;
   data_.durationS = durationS;
   save();
+  eventLogAdd("pump-current", data_.enabled ? "rilevamento serbatoio vuoto abilitato"
+                                            : "rilevamento serbatoio vuoto disabilitato");
 
   request->send(200, "application/json", "{\"ok\":true}");
 }

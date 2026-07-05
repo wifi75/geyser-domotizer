@@ -33,7 +33,7 @@ PUMP_CURRENT_FILE = os.path.join(DATA_DIR, "pump_current.json")
 PORT = int(os.environ.get("PORT", 8000))
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.28.3"
+MOCK_CURRENT_VERSION = "0.29.0"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 # Rispecchia l'elenco per esp32dev in firmware/src/gpio_settings.cpp
@@ -92,6 +92,18 @@ class State:
         self.ota_pending_version = None
         self.ota_pending_notes = None
         self.ota_progress = {"inProgress": False, "phase": "idle", "current": 0, "total": 0}
+        self.events = []
+        self.network_pending_confirmation = False
+        self.add_event("system", f"Geyser Domotizer mock v{MOCK_CURRENT_VERSION} avviato")
+
+    def add_event(self, event_type, message):
+        self.events.append({
+            "uptimeMs": int((time.monotonic() - PROCESS_START_MONOTONIC) * 1000),
+            "time": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            "type": event_type,
+            "message": message,
+        })
+        self.events = self.events[-24:]
 
     def _load_schedule(self):
         if os.path.exists(SCHEDULE_FILE):
@@ -233,6 +245,7 @@ class State:
     def start_simulated_update(self):
         def run():
             total = 1_100_000
+            self.add_event("ota", f"aggiornamento simulato avviato verso v{self.ota_pending_version}")
             self.ota_progress = {"inProgress": True, "phase": "firmware", "current": 0, "total": total}
             for pct in range(0, 101, 5):
                 time.sleep(0.15)
@@ -244,6 +257,7 @@ class State:
                 self.ota_progress = {"inProgress": True, "phase": "littlefs",
                                      "current": int(total * pct / 100), "total": total}
             self.ota_progress = {"inProgress": False, "phase": "done", "current": total, "total": total}
+            self.add_event("ota", "aggiornamento simulato completato")
             print(f"[ota] simulazione completata: v{self.ota_pending_version} "
                   f"(su un vero ESP32 qui si riavvierebbe)")
 
@@ -256,6 +270,7 @@ class State:
             self.pump_active = True
             self.pump_source = "manual"
             self.pump_remaining = duration_seconds
+            self.add_event("pump", f"avvio manuale per {duration_seconds}s")
             return True, None
 
     def start_schedule(self, duration_seconds):
@@ -265,6 +280,7 @@ class State:
             self.pump_active = True
             self.pump_source = "schedule"
             self.pump_remaining = duration_seconds
+            self.add_event("pump", f"avvio programmato per {duration_seconds}s")
             return True
 
     def stop(self):
@@ -272,6 +288,7 @@ class State:
             self.pump_active = False
             self.pump_source = None
             self.pump_remaining = 0
+            self.add_event("pump", "stop manuale")
 
     def tick(self):
         with self.lock:
@@ -432,8 +449,28 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self._send_json({"currentVersion": MOCK_CURRENT_VERSION, "uptimeMs": uptime_ms})
         if self.path == "/api/ota/progress":
             return self._send_json(state.ota_progress)
+        if self.path == "/api/events":
+            return self._send_json({"events": state.events})
+        if self.path == "/api/backup":
+            return self._send_json({
+                "format": "geyser-domotizer-config",
+                "version": MOCK_CURRENT_VERSION,
+                "board": "esp32dev (mock)",
+                "settings": {
+                    "schedule": state.schedule,
+                    "mqtt": state.config["mqtt"],
+                    "network": state.network,
+                    "gpio": {"relayPin": state.gpio_pin, "relayActiveHigh": state.gpio_active_high},
+                    "ntp": state.ntp,
+                    "pumpCurrent": state.pump_current,
+                },
+            })
         if self.path == "/api/network":
-            return self._send_json(state.network)
+            return self._send_json({
+                **state.network,
+                "pendingConfirmation": state.network_pending_confirmation,
+                "rollbackSeconds": 180 if state.network_pending_confirmation else 0,
+            })
         if self.path == "/api/gpio":
             return self._send_json({"board": "esp32dev (mock)", "current": state.gpio_pin,
                                     "activeHigh": state.gpio_active_high, "options": GPIO_OPTIONS})
@@ -445,19 +482,27 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         if self.path == "/api/manual/start":
+            if state.ota_progress.get("inProgress"):
+                return self._send_json({"ok": False, "error": "ota_in_progress"}, status=409)
             body = self._read_json()
             duration = int(body.get("durationSeconds", 120))
+            if not (5 <= duration <= 1800):
+                return self._send_json({"ok": False, "error": "invalid_duration",
+                                        "details": "durata tra 5 e 1800 secondi"}, status=400)
             ok, error = state.start_manual(duration)
             return self._send_json({"ok": ok, **({"error": error} if error else {})})
         if self.path == "/api/manual/stop":
             state.stop()
             return self._send_json({"ok": True})
         if self.path == "/api/ota/check":
+            if state.ota_progress.get("inProgress"):
+                return self._send_json({"ok": False, "error": "ota_in_progress"}, status=409)
             latest, notes, error = check_github_latest_release()
             if error:
                 return self._send_json({"ok": False, "error": "network_error", "details": error})
             state.ota_pending_version = latest
             state.ota_pending_notes = notes
+            state.add_event("ota", f"controllo aggiornamenti: v{latest}")
             return self._send_json({
                 "ok": True,
                 "updateAvailable": latest != MOCK_CURRENT_VERSION,
@@ -472,12 +517,25 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             state.start_simulated_update()
             return self._send_json({"ok": True, "started": True})
         if self.path == "/api/system/restart":
+            if state.ota_progress.get("inProgress"):
+                return self._send_json({"ok": False, "error": "ota_in_progress"}, status=409)
+            state.add_event("system", "riavvio richiesto (mock)")
             print("[system] richiesto riavvio (simulato: il mock resta acceso)")
             return self._send_json({"ok": True})
         if self.path == "/api/pump-current/reset-minmax":
             state.reset_pump_current_minmax()
             return self._send_json({"ok": True})
+        if self.path == "/api/events/clear":
+            state.events = []
+            state.add_event("system", "eventi cancellati")
+            return self._send_json({"ok": True})
+        if self.path == "/api/network/confirm":
+            state.network_pending_confirmation = False
+            state.add_event("network", "configurazione rete confermata")
+            return self._send_json({"ok": True})
         if self.path == "/api/ota/upload":
+            if state.ota_progress.get("inProgress"):
+                return self._send_json({"ok": False, "error": "ota_in_progress"}, status=409)
             length = int(self.headers.get("Content-Length", 0))
             remaining = length
             while remaining > 0:
@@ -486,6 +544,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     break
                 remaining -= len(chunk)
             print(f"[ota] upload manuale ricevuto ({length} byte), simulazione flash")
+            state.add_event("ota", "upload manuale simulato")
             time.sleep(1)
             return self._send_json({"ok": True})
         self.send_error(404)
@@ -497,6 +556,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if error:
                 return self._send_json({"ok": False, "error": "invalid_schedule", "details": error}, status=400)
             state.save_schedule(body)
+            state.add_event("schedule", "programmazione salvata")
             return self._send_json({"ok": True})
         if self.path == "/api/config":
             body = self._read_json()
@@ -513,6 +573,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if "password" in incoming:
                 mqtt["password"] = incoming["password"] or None
             state.save_config({"mqtt": mqtt})
+            state.add_event("mqtt", "configurazione MQTT salvata")
             return self._send_json({"ok": True})
         if self.path == "/api/network":
             body = self._read_json()
@@ -527,6 +588,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 "dns": body.get("dns", "") if body["mode"] == "static" else "",
             }
             state.save_network(network)
+            state.network_pending_confirmation = True
+            state.add_event("network", "configurazione rete salvata, attendo conferma")
             print(f"[network] configurazione salvata: {network} (su un vero ESP32 qui riavvierebbe)")
             return self._send_json({"ok": True})
         if self.path == "/api/gpio":
@@ -541,6 +604,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                                                    "riprova a pompa ferma"}, status=409)
             active_high = body.get("activeHigh", True)
             state.save_gpio_pin(pin, active_high)
+            state.add_event("gpio", f"relè su GPIO{pin}")
             print(f"[gpio] pin relè impostato a {pin} (attivo {'alto' if active_high else 'basso'}, applicato subito)")
             return self._send_json({"ok": True})
         if self.path == "/api/ntp":
@@ -554,6 +618,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 return self._send_json({"ok": False, "error": "invalid_ntp_config",
                                         "details": "server vuoto o intervallo fuori range (1-168 ore)"}, status=400)
             state.save_ntp({"server": server_addr, "intervalHours": interval_hours})
+            state.add_event("ntp", f"server NTP salvato: {server_addr}")
             print(f"[ntp] server NTP impostato a {server_addr}")
             return self._send_json({"ok": True})
         if self.path == "/api/pump-current":
@@ -573,8 +638,31 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 "durationS": duration_s,
             }
             state.save_pump_current(cfg)
+            state.add_event("pump-current", "configurazione sensore corrente salvata")
             print(f"[pump-current] configurazione salvata: {cfg}")
             return self._send_json({"ok": True})
+        if self.path == "/api/backup":
+            body = self._read_json()
+            settings = body.get("settings")
+            if not isinstance(settings, dict):
+                return self._send_json({"ok": False, "error": "invalid_backup",
+                                        "details": "settings mancante"}, status=400)
+            if "schedule" in settings:
+                state.save_schedule(settings["schedule"])
+            if "mqtt" in settings:
+                state.save_config({"mqtt": settings["mqtt"]})
+            if "network" in settings:
+                state.save_network(settings["network"])
+            if "gpio" in settings:
+                gpio = settings["gpio"]
+                state.save_gpio_pin(gpio.get("relayPin", state.gpio_pin),
+                                    gpio.get("relayActiveHigh", state.gpio_active_high))
+            if "ntp" in settings:
+                state.save_ntp(settings["ntp"])
+            if "pumpCurrent" in settings:
+                state.save_pump_current(settings["pumpCurrent"])
+            state.add_event("config", "configurazione ripristinata da backup")
+            return self._send_json({"ok": True, "restart": True})
         self.send_error(404)
 
     def log_message(self, format, *args):

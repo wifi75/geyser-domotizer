@@ -1,6 +1,8 @@
 #pragma once
 #include <ESPAsyncWebServer.h>
 
+bool otaUpdateInProgress();
+
 // Aggiornamento firmware: due percorsi indipendenti.
 // 1) Controllo/aggiornamento da GitHub Releases (richiede internet).
 // 2) Upload manuale di un .bin da browser (rete locale, nessun internet
@@ -21,6 +23,7 @@ class OtaManager {
   String pendingLittlefsAssetUrl_;  // vuoto se la release non ha un asset del sito
 
   volatile bool updateInProgress_ = false;
+  volatile bool manualUploadInProgress_ = false;
   volatile size_t progressCurrent_ = 0;
   volatile size_t progressTotal_ = 0;
   String progressPhase_ = "idle";  // idle | firmware | littlefs | done | error
