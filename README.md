@@ -52,9 +52,13 @@ Una scheda ESP32 "vergine" non ha né bootloader né partizioni: il primo flash 
 
 **Da quel momento in poi** (scheda già avviata almeno una volta con bootloader e partizioni presenti), gli aggiornamenti successivi possono usare solo i file `.bin` delle Release, in due modi:
 - **OTA da GitHub**: pulsante "Controlla su GitHub" → "Aggiorna ora" nella UI web, scarica e flasha da sé firmware+sito
-- **Upload manuale**: sezione "Aggiornamento manuale" nella UI web, carica un `.bin` scaricato dalla pagina Release (o compilato in locale)
+- **Upload manuale**: sezione "Aggiornamento manuale" nella UI web, scaricando prima i file dalla [pagina Release più recente](https://github.com/wifi75/geyser-domotizer/releases/latest)
 
 Nessuno dei due tocca mai bootloader/partizioni: per questo bastano solo `firmware-<scheda>.bin` e `littlefs-<scheda>.bin`, senza dover ripassare da PlatformIO.
+
+Per l'upload manuale, l'ordine conta — ogni upload sostituisce **un solo file alla volta** e il dispositivo si riavvia da solo al termine di ciascuno:
+1. `firmware-<scheda>.bin` — obbligatorio, va caricato per primo
+2. `littlefs-<scheda>.bin` — solo se è cambiata anche l'interfaccia web (quasi sempre sì); va caricato **dopo**, quando il dispositivo è tornato online dal riavvio del passo 1
 
 ## Fonti consultate
 
