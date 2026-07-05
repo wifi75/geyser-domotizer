@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.28.0 — 2026-07-05
+
+Home Assistant: "produttore" e "modello" più descrittivi, link al progetto.
+
+- La card "Informazioni Dispositivo" di HA non ha un campo descrizione libero: riuso manufacturer ("Tiziano Cassone", per accreditare l'autore), model ("Nebulizzatore Geyser 12L, domotizzato con ESP32") e configuration_url (link cliccabile al repository GitHub, con la descrizione completa del progetto)
+
 ## v0.27.0 — 2026-07-05
 
 Legenda di collegamento del modulo INA219 direttamente nella card "Sensore corrente pompa".

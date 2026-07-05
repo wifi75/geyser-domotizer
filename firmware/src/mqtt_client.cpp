@@ -83,10 +83,16 @@ void MqttClientWrapper::publishEntityConfig(const char* component, const char* o
   JsonObject device = doc["device"].to<JsonObject>();
   JsonArray ids = device["identifiers"].to<JsonArray>();
   ids.add(MQTT_NODE_ID);
+  // manufacturer/model/configuration_url sono gli unici campi liberi che la
+  // card "Informazioni Dispositivo" di Home Assistant mostra oltre a
+  // nome/firmware — non esiste un campo "descrizione" vero e proprio, da
+  // qui il loro riuso per accreditare l'autore e linkare il repository
+  // (che ha la descrizione completa del progetto).
   device["name"] = "Geyser Domotizer";
-  device["manufacturer"] = "DIY";
-  device["model"] = "ESP32";
+  device["manufacturer"] = "Tiziano Cassone";
+  device["model"] = "Nebulizzatore Geyser 12L, domotizzato con ESP32";
   device["sw_version"] = FIRMWARE_VERSION;
+  device["configuration_url"] = "https://github.com/wifi75/geyser-domotizer";
 
   char payload[900];
   size_t len = serializeJson(doc, payload, sizeof(payload));
