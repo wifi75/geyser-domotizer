@@ -40,6 +40,10 @@ Un buzzer o altro componente collegato a GPIO3 e portato HIGH disabiliterebbe l'
 
 GPIO15 è il `LED_BUILTIN` di questa scheda: controllabile da web (tab Stato → card "LED di stato", visibile solo su schede che lo espongono) via `GET/PUT /api/led`. La logica attivo-alto/basso è un default (attivo basso) verificabile/correggibile da UI la prima volta che lo accendi, se il verso risultasse invertito.
 
+## Troubleshooting: relè che non si eccita
+
+Se il relè non scatta sul pin di default (D2/GPIO2) ma il modulo relè è verificato funzionante (testato con successo su un'altra scheda, alimentazione e logica attivo-alto/basso corrette, e la UI conferma "Attiva" quando avvii la pompa), prova un pin diverso dal menu "Pin GPIO relè pompa" (Impostazioni) — es. **D3/GPIO21**, applicato subito senza riavvio. Riscontrato almeno un esemplare con GPIO2 apparentemente non funzionante isolatamente (probabile difetto di saldatura del singolo pin), risolto passando a GPIO21.
+
 ## Alimentazione
 
 - **Pin 5V/VBUS**: alimentazione da USB-C o da un convertitore step-down esterno (12V→5V) per il deployment a batteria.

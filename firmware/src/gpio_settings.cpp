@@ -26,8 +26,22 @@ static const GpioOption OPTIONS[] = {
     {18, "GPIO18"}, {19, "GPIO19"}, {21, "GPIO21"}, {22, "GPIO22"}, {23, "GPIO23"},
     {25, "GPIO25"}, {26, "GPIO26 (default)"}, {27, "GPIO27"}, {32, "GPIO32"}, {33, "GPIO33"},
 };
+#elif defined(BOARD_XIAO_ESP32C6)
+static const char* BOARD_NAME = "xiao-esp32c6";
+// ATTENZIONE: il mapping D-number -> GPIO della C6 e' DIVERSO da quello
+// della C3 (vedi boards/xiao-esp32c6.md, pins_arduino.h del core Arduino).
+// Usare le etichette della C3 qui avrebbe fatto collegare l'utente al pin
+// fisico sbagliato (bug reale riscontrato: D0 su questa scheda e' GPIO0,
+// non GPIO2). GPIO1/3/4/6/7/14/15 esclusi perche' gia' riservati da questo
+// firmware su questa scheda (buzzer, antenna WiFi, batteria, I2C, LED).
+static const GpioOption OPTIONS[] = {
+    {0, "D0 / GPIO0 (pin di boot, sconsigliato)"}, {2, "D2 / GPIO2 (default)"},
+    {21, "D3 / GPIO21"}, {22, "D4 / GPIO22"}, {23, "D5 / GPIO23"},
+    {16, "D6 / GPIO16"}, {17, "D7 / GPIO17"}, {19, "D8 / GPIO19"},
+    {20, "D9 / GPIO20"}, {18, "D10 / GPIO18"},
+};
 #else
-static const char* BOARD_NAME = "xiao";
+static const char* BOARD_NAME = "xiao-esp32c3";
 // La XIAO ESP32-C3 espone solo 11 GPIO in totale: D0/D8/D9 sono pin di
 // strapping del boot, inclusi comunque (segnalati) perché su una scheda
 // così limitata escluderli lascerebbe poche alternative valide.

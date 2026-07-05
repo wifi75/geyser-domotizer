@@ -198,6 +198,12 @@ void setup() {
   }
   Serial.printf("Provo a connettermi a '%s'...\n", wifiSettings.data().ssid.c_str());
   WiFi.begin(wifiSettings.data().ssid.c_str(), wifiSettings.data().password.c_str());
+  // Senza questo, se setup() (scanNetworks incluso) supera i
+  // WIFI_RECONNECT_INTERVAL_MS, il primo giro di loop() richiama subito
+  // WiFi.begin() di nuovo mentre il tentativo di sopra è ancora in corso:
+  // ESP-IDF lo rifiuta ("sta is connecting, cannot set config"), innocuo
+  // (il tentativo in corso prosegue comunque) ma da evitare.
+  lastWifiAttemptMs = millis();
   updateApState();  // attiva subito l'AP se già abilitata manualmente da NVS
 
   webApp.begin();

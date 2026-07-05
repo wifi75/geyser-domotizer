@@ -44,6 +44,8 @@ static bool isValidTimeString(const String& s) {
 static bool isValidRelayPin(int pin) {
 #if defined(BOARD_ESP32DEV)
   const int pins[] = {4, 13, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33};
+#elif defined(BOARD_XIAO_ESP32C6)
+  const int pins[] = {0, 2, 21, 22, 23, 16, 17, 19, 20, 18};
 #else
   const int pins[] = {2, 3, 4, 5, 6, 7, 21, 20, 8, 9, 10};
 #endif

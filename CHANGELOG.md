@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.33.0 — 2026-07-05
+
+Fix etichette pin GPIO sulla XIAO ESP32-C6 e race condition WiFi al boot, trovati testando l'hardware reale.
+
+- **Fix menu "Pin GPIO relè pompa" sulla C6**: mostrava le etichette D-number della XIAO C3 (es. "D0 / GPIO2"), ma il mapping D-number→GPIO della C6 è diverso — un utente si è collegato al pin fisico D0 (che sulla C6 è GPIO0, non GPIO2) fidandosi dell'etichetta sbagliata, e il relè non si eccitava. `gpio_settings.cpp`/`config_backup.cpp` ora hanno una lista pin dedicata `BOARD_XIAO_ESP32C6` con le etichette corrette (D2=GPIO2, D3=GPIO21, D4=GPIO22, D5=GPIO23, D6=GPIO16, D7=GPIO17, D8=GPIO19, D9=GPIO20, D10=GPIO18), verificate contro il diagramma pinout ufficiale Seeed
+- Fix race condition minore nel riconnect WiFi: se `setup()` (scan reti incluso) supera i 10s, il primo giro di `loop()` poteva richiamare `WiFi.begin()` mentre il tentativo di `setup()` era ancora in corso (`ESP_ERR_WIFI_STATE`, innocuo ma da evitare) — `lastWifiAttemptMs` ora viene inizializzato subito dopo il primo `WiFi.begin()`
+
 ## v0.32.0 — 2026-07-05
 
 Modalità Access Point (fallback + attivabile da UI), controllo LED di stato sulla C6, canale/banda WiFi in UI.
