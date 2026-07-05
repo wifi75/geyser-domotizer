@@ -36,7 +36,7 @@ PORT = int(os.environ.get("PORT", 8000))
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.33.0"
+MOCK_CURRENT_VERSION = "0.34.0"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 # Rispecchia l'elenco per esp32dev in firmware/src/gpio_settings.cpp
@@ -157,6 +157,23 @@ class State:
             json.dump(wifi, f, indent=2)
         self.wifi = wifi
 
+    def led_auto_reason(self):
+        # Stessa priorita' del firmware reale (vedi LedControl::tick in
+        # led_control.cpp): AP > pompa attiva > WiFi disconnesso. Il mock
+        # simula il WiFi sempre connesso, quindi quella condizione non
+        # scatta mai qui.
+        if self.wifi.get("apEnabled"):
+            return "ap"
+        if self.pump_active:
+            return "pump"
+        return None
+
+    def led_display_on(self):
+        reason = self.led_auto_reason()
+        if reason is not None:
+            return True
+        return self.led_on
+
     def wifi_public(self):
         return {
             "ssid": self.wifi["ssid"],
@@ -262,7 +279,7 @@ class State:
                         "ip": "192.168.4.1" if self.wifi.get("apEnabled") else "",
                     },
                 },
-                "led": {"available": True, "on": self.led_on},
+                "led": {"available": True, "on": self.led_display_on(), "autoReason": self.led_auto_reason()},
                 "mqtt": {"connected": bool(self.config["mqtt"]["enabled"] and self.config["mqtt"]["host"])},
                 # Simulato: 1200mA con una piccola variazione casuale mentre la
                 # pompa gira, nessun sensore reale nel mock (niente hardware
@@ -575,7 +592,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path == "/api/wifi":
             return self._send_json(state.wifi_public())
         if self.path == "/api/led":
-            return self._send_json({"available": True, "on": state.led_on, "activeLow": state.led_active_low})
+            return self._send_json({"available": True, "on": state.led_display_on(),
+                                    "activeLow": state.led_active_low, "autoReason": state.led_auto_reason()})
         if self.path == "/api/gpio":
             return self._send_json({"board": "esp32dev (mock)", "current": state.gpio_pin,
                                     "activeHigh": state.gpio_active_high, "options": GPIO_OPTIONS})
@@ -745,7 +763,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 state.add_event("led", "logica attivo basso" if state.led_active_low else "logica attivo alto")
             if "on" in body:
                 state.led_on = bool(body["on"])
-            return self._send_json({"ok": True, "on": state.led_on, "activeLow": state.led_active_low})
+            return self._send_json({"ok": True, "on": state.led_display_on(),
+                                    "activeLow": state.led_active_low, "autoReason": state.led_auto_reason()})
         if self.path == "/api/gpio":
             if not self._require_admin():
                 return

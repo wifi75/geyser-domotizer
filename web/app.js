@@ -164,6 +164,12 @@ function renderWifi(wifi) {
   }
 }
 
+const LED_AUTO_LABELS = {
+  ap: "Acceso automaticamente: Access Point di emergenza attivo",
+  pump: "Acceso automaticamente: nebulizzazione in corso",
+  wifi: "Lampeggia automaticamente: WiFi disconnesso",
+};
+
 function renderLed(led) {
   const card = el("card-led");
   if (!led || !led.available) {
@@ -174,6 +180,14 @@ function renderLed(led) {
   const btn = el("btn-led-toggle");
   btn.textContent = led.on ? "Spegni" : "Accendi";
   btn.dataset.on = led.on ? "1" : "0";
+
+  const note = el("led-auto-note");
+  if (led.autoReason && LED_AUTO_LABELS[led.autoReason]) {
+    note.textContent = LED_AUTO_LABELS[led.autoReason];
+    note.classList.remove("hidden");
+  } else {
+    note.classList.add("hidden");
+  }
 }
 
 async function refreshStatus() {
@@ -251,21 +265,28 @@ async function refreshStatus() {
 }
 
 async function startManual() {
-  const minutes = parseInt(el("manual-duration").value, 10) || 1;
+  const minutes = parseInt(el("manual-duration").value, 10) || 0;
+  const seconds = parseInt(el("manual-duration-seconds").value, 10) || 0;
+  const totalSeconds = minutes * 60 + seconds;
   const feedback = el("manual-feedback");
   feedback.textContent = "";
   feedback.className = "feedback";
+  if (totalSeconds < 5) {
+    feedback.textContent = "Durata minima 5 secondi.";
+    feedback.className = "feedback error";
+    return;
+  }
   try {
     const r = await api("/api/manual/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ durationSeconds: minutes * 60 })
+      body: JSON.stringify({ durationSeconds: totalSeconds })
     });
     if (r.ok) {
       feedback.textContent = "Avviato.";
       feedback.className = "feedback ok";
     } else {
-      feedback.textContent = `Errore: ${r.error}`;
+      feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
       feedback.className = "feedback error";
     }
   } catch (e) {

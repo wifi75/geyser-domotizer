@@ -84,12 +84,19 @@
       <p id="pump-remaining-wrap" class="hidden">Tempo rimanente: <strong id="pump-remaining">--</strong></p>
       <p id="pump-current-wrap" class="hidden muted">Assorbimento: <strong id="pump-current-ma">--</strong> mA</p>
       <div class="manual-controls">
-        <label for="manual-duration">Durata (minuti)</label>
+        <label for="manual-duration">Durata</label>
         <div class="stepper">
           <button type="button" class="btn btn-small step-down">−</button>
-          <input type="number" id="manual-duration" min="1" max="30" value="2" step="1">
+          <input type="number" id="manual-duration" min="0" max="30" value="2" step="1" title="Minuti">
           <button type="button" class="btn btn-small step-up">+</button>
         </div>
+        <span class="stepper-unit">min</span>
+        <div class="stepper">
+          <button type="button" class="btn btn-small step-down">−</button>
+          <input type="number" id="manual-duration-seconds" min="0" max="59" value="0" step="5" title="Secondi">
+          <button type="button" class="btn btn-small step-up">+</button>
+        </div>
+        <span class="stepper-unit">sec</span>
         <button id="btn-start" class="btn btn-primary">Avvia ora</button>
         <button id="btn-stop" class="btn btn-danger" disabled>Ferma</button>
       </div>
@@ -115,11 +122,12 @@
 
     <section class="card hidden" id="card-led">
       <h2>LED di stato</h2>
-      <p class="muted">LED integrato sulla scheda.</p>
+      <p class="muted">LED integrato sulla scheda. Si accende automaticamente durante una nebulizzazione o quando è attivo l'Access Point di emergenza, e lampeggia se il WiFi è disconnesso — il comando manuale resta valido quando nessuna di queste condizioni è attiva.</p>
       <div class="schedule-actions">
         <button id="btn-led-toggle" class="btn btn-primary">Accendi</button>
         <span id="led-feedback" class="feedback"></span>
       </div>
+      <p id="led-auto-note" class="muted hidden"></p>
     </section>
 
     <section class="card" id="card-system">

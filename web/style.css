@@ -526,6 +526,7 @@ input[type="number"], input[type="time"], input[type="text"], input[type="passwo
 
 .entry-duration { width: 60px; }
 .entry-unit { color: var(--muted); font-size: 0.8rem; }
+.stepper-unit { color: var(--muted); font-size: 0.8rem; }
 
 .day-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 

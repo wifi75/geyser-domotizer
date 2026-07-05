@@ -10,6 +10,7 @@
 // partizione LittleFS, NVS no).
 static const char* NVS_NAMESPACE = "gd_led";
 static const char* NVS_KEY = "json";
+static const uint32_t BLINK_INTERVAL_MS = 500;
 
 bool LedControl::isAvailable() const {
 #ifdef PIN_STATUS_LED
@@ -47,9 +48,10 @@ bool LedControl::save() {
   return ok;
 }
 
-void LedControl::apply() {
+void LedControl::applyPhysical(bool on) {
+  physicalOn_ = on;
 #ifdef PIN_STATUS_LED
-  bool level = activeLow_ ? !on_ : on_;
+  bool level = activeLow_ ? !on : on;
   digitalWrite(PIN_STATUS_LED, level ? HIGH : LOW);
 #endif
 }
@@ -58,8 +60,8 @@ void LedControl::begin(AsyncWebServer& server) {
 #ifdef PIN_STATUS_LED
   load();
   pinMode(PIN_STATUS_LED, OUTPUT);
-  on_ = false;  // spento all'avvio, indipendentemente dallo stato prima del riavvio
-  apply();
+  manualOn_ = false;  // spento all'avvio, indipendentemente dallo stato prima del riavvio
+  applyPhysical(false);
 #endif
 
   server.on("/api/led", HTTP_GET, [this](AsyncWebServerRequest* r) { handleGet(r); });
@@ -70,11 +72,37 @@ void LedControl::begin(AsyncWebServer& server) {
   server.addHandler(handler);
 }
 
+void LedControl::tick(bool apActive, bool pumpActive, bool wifiConnected) {
+#ifdef PIN_STATUS_LED
+  const char* reason = apActive ? "ap" : pumpActive ? "pump" : !wifiConnected ? "wifi" : nullptr;
+  autoReason_ = reason;
+
+  if (reason == nullptr) {
+    if (physicalOn_ != manualOn_) applyPhysical(manualOn_);
+    return;
+  }
+
+  bool blinking = (reason[0] == 'w');  // solo "wifi" lampeggia, "ap"/"pump" fissi accesi
+  if (!blinking) {
+    if (!physicalOn_) applyPhysical(true);
+    return;
+  }
+
+  uint32_t now = millis();
+  if (now - lastBlinkToggleMs_ >= BLINK_INTERVAL_MS) {
+    lastBlinkToggleMs_ = now;
+    applyPhysical(!physicalOn_);
+  }
+#endif
+}
+
 void LedControl::handleGet(AsyncWebServerRequest* request) {
   JsonDocument doc;
   doc["available"] = isAvailable();
-  doc["on"] = on_;
+  doc["on"] = physicalOn_;
+  doc["manualOn"] = manualOn_;
   doc["activeLow"] = activeLow_;
+  doc["autoReason"] = autoReason_ ? autoReason_ : nullptr;
   AsyncResponseStream* response = request->beginResponseStream("application/json");
   serializeJson(doc, *response);
   request->send(response);
@@ -104,9 +132,9 @@ void LedControl::handlePut(AsyncWebServerRequest* request, JsonVariant& body) {
     }
   }
   if (!body["on"].isNull()) {
-    on_ = body["on"] | false;
+    manualOn_ = body["on"] | false;
+    if (autoReason_ == nullptr) applyPhysical(manualOn_);
   }
-  apply();
   if (changedLogic) {
     save();
     eventLogAdd("led", activeLow_ ? "logica attivo basso" : "logica attivo alto");
@@ -114,8 +142,10 @@ void LedControl::handlePut(AsyncWebServerRequest* request, JsonVariant& body) {
 
   JsonDocument doc;
   doc["ok"] = true;
-  doc["on"] = on_;
+  doc["on"] = physicalOn_;
+  doc["manualOn"] = manualOn_;
   doc["activeLow"] = activeLow_;
+  doc["autoReason"] = autoReason_ ? autoReason_ : nullptr;
   AsyncResponseStream* response = request->beginResponseStream("application/json");
   serializeJson(doc, *response);
   request->send(response);

@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.34.0 — 2026-07-05
+
+Comportamento automatico per il LED di stato sulla C6, durata manuale in minuti+secondi.
+
+- Il LED di stato (GPIO15, XIAO ESP32-C6) ora si accende automaticamente durante una nebulizzazione o quando è attivo l'Access Point di emergenza (fisso), e lampeggia se il WiFi è disconnesso. Il comando manuale da UI resta valido quando nessuna di queste condizioni è attiva, e viene ricordato per quando tornano a "riposo". `/api/led` e `/api/status` espongono il nuovo campo `autoReason`
+- Card "Nebulizzazione" (tab Stato): la durata dell'avvio manuale ora si imposta in minuti **e** secondi separati (prima solo minuti, minimo 60s) — utile per test brevi, dato che il backend accetta già durate a partire da 5s
+- `mock-server/server.py` aggiornato per simulare lo stesso comportamento automatico del LED
+
 ## v0.33.0 — 2026-07-05
 
 Fix etichette pin GPIO sulla XIAO ESP32-C6 e race condition WiFi al boot, trovati testando l'hardware reale.
