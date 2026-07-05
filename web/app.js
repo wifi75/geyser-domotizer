@@ -131,6 +131,14 @@ async function refreshStatus() {
     } else {
       tankIcon.className = "tank-icon hidden";
     }
+
+    const minmaxEl = el("pcur-minmax");
+    if (minmaxEl && s.pumpCurrent) {
+      const { minMilliAmps, maxMilliAmps } = s.pumpCurrent;
+      minmaxEl.textContent = minMilliAmps == null
+        ? "-- / -- mA"
+        : `${Math.round(minMilliAmps)} / ${Math.round(maxMilliAmps)} mA`;
+    }
   } catch (e) {
     setBadge(el("badge-wifi"), false);
     setBadge(el("badge-mqtt"), false);
@@ -869,6 +877,10 @@ el("btn-restart").addEventListener("click", restartDevice);
 el("btn-save-gpio").addEventListener("click", saveGpioConfig);
 el("btn-save-ntp").addEventListener("click", saveNtpConfig);
 el("btn-save-pcur").addEventListener("click", savePumpCurrentConfig);
+el("btn-pcur-reset-minmax").addEventListener("click", async () => {
+  await api("/api/pump-current/reset-minmax", { method: "POST" });
+  el("pcur-minmax").textContent = "-- / -- mA";
+});
 
 el("banner-update-summary").addEventListener("click", () => {
   el("banner-update-details").classList.toggle("hidden");

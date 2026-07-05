@@ -31,6 +31,16 @@ void PumpCurrentMonitor::tick(Pump& pump, const PumpCurrentSettingsData& setting
   }
 
   lastMilliAmps_ = ina219_.getCurrent_mA();
+
+  if (!hasMinMax_) {
+    hasMinMax_ = true;
+    minMilliAmps_ = lastMilliAmps_;
+    maxMilliAmps_ = lastMilliAmps_;
+  } else {
+    if (lastMilliAmps_ < minMilliAmps_) minMilliAmps_ = lastMilliAmps_;
+    if (lastMilliAmps_ > maxMilliAmps_) maxMilliAmps_ = lastMilliAmps_;
+  }
+
   if (!settings.enabled) return;
 
   bool conditionMet = settings.belowThreshold

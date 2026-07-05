@@ -24,6 +24,16 @@ class PumpCurrentMonitor {
   float lastMilliAmps() const { return lastMilliAmps_; }
   bool tankEmptySuspected() const { return tankEmptySuspected_; }
 
+  // Min/max osservati mentre la pompa è attiva, accumulati nel tempo (non
+  // per singolo ciclo) fino al prossimo resetMinMax(): pensati per tarare la
+  // soglia a mano, es. un giro a serbatoio pieno, si azzera, un giro a
+  // vuoto, si confrontano i due risultati senza dover leggere il valore
+  // esatto nell'istante giusto.
+  bool hasMinMax() const { return hasMinMax_; }
+  float minMilliAmps() const { return minMilliAmps_; }
+  float maxMilliAmps() const { return maxMilliAmps_; }
+  void resetMinMax() { hasMinMax_ = false; minMilliAmps_ = 0; maxMilliAmps_ = 0; }
+
  private:
   Adafruit_INA219 ina219_;
   bool sensorFound_ = false;
@@ -32,4 +42,7 @@ class PumpCurrentMonitor {
   bool tankEmptySuspected_ = false;
   bool conditionActive_ = false;
   uint32_t conditionSinceMs_ = 0;
+  bool hasMinMax_ = false;
+  float minMilliAmps_ = 0;
+  float maxMilliAmps_ = 0;
 };

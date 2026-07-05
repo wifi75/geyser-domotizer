@@ -56,6 +56,10 @@ void WebServerApp::begin() {
       });
   configHandler->setMethod(HTTP_PUT);
   server_.addHandler(configHandler);
+
+  server_.on("/api/pump-current/reset-minmax", HTTP_POST, [this](AsyncWebServerRequest* request) {
+    handleResetPumpCurrentMinMax(request);
+  });
 }
 
 void WebServerApp::handleStatus(AsyncWebServerRequest* request) {
@@ -89,6 +93,13 @@ void WebServerApp::handleStatus(AsyncWebServerRequest* request) {
   doc["pumpCurrent"]["sensorFound"] = pumpCurrentMonitor_.sensorFound();
   doc["pumpCurrent"]["milliAmps"] = pumpCurrentMonitor_.lastMilliAmps();
   doc["pumpCurrent"]["tankEmptySuspected"] = pumpCurrentMonitor_.tankEmptySuspected();
+  if (pumpCurrentMonitor_.hasMinMax()) {
+    doc["pumpCurrent"]["minMilliAmps"] = pumpCurrentMonitor_.minMilliAmps();
+    doc["pumpCurrent"]["maxMilliAmps"] = pumpCurrentMonitor_.maxMilliAmps();
+  } else {
+    doc["pumpCurrent"]["minMilliAmps"] = nullptr;
+    doc["pumpCurrent"]["maxMilliAmps"] = nullptr;
+  }
 
   doc["system"]["ramFreeBytes"] = ESP.getFreeHeap();
   doc["system"]["ramTotalBytes"] = ESP.getHeapSize();
@@ -176,4 +187,9 @@ void WebServerApp::handlePutConfig(AsyncWebServerRequest* request, JsonVariant& 
   AsyncResponseStream* response = request->beginResponseStream("application/json");
   serializeJson(doc, *response);
   request->send(response);
+}
+
+void WebServerApp::handleResetPumpCurrentMinMax(AsyncWebServerRequest* request) {
+  pumpCurrentMonitor_.resetMinMax();
+  request->send(200, "application/json", "{\"ok\":true}");
 }

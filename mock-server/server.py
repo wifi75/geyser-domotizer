@@ -12,6 +12,7 @@ in base all'orario di sistema.
 import http.server
 import json
 import os
+import random
 import socketserver
 import threading
 import time
@@ -32,7 +33,7 @@ PUMP_CURRENT_FILE = os.path.join(DATA_DIR, "pump_current.json")
 PORT = int(os.environ.get("PORT", 8000))
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.25.0"
+MOCK_CURRENT_VERSION = "0.26.0"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 # Rispecchia l'elenco per esp32dev in firmware/src/gpio_settings.cpp
@@ -86,6 +87,8 @@ class State:
         self.gpio_pin, self.gpio_active_high = self._load_gpio_pin()
         self.ntp = self._load_ntp()
         self.pump_current = self._load_pump_current()
+        self.pump_current_min_ma = None
+        self.pump_current_max_ma = None
         self.ota_pending_version = None
         self.ota_pending_notes = None
         self.ota_progress = {"inProgress": False, "phase": "idle", "current": 0, "total": 0}
@@ -171,6 +174,28 @@ class State:
                 }
             }
 
+    def _simulated_pump_current(self):
+        if self.pump_active:
+            ma = 1200 + random.randint(-80, 80)
+            if self.pump_current_min_ma is None:
+                self.pump_current_min_ma = self.pump_current_max_ma = ma
+            else:
+                self.pump_current_min_ma = min(self.pump_current_min_ma, ma)
+                self.pump_current_max_ma = max(self.pump_current_max_ma, ma)
+        else:
+            ma = 0
+        return {
+            "sensorFound": True,
+            "milliAmps": ma,
+            "tankEmptySuspected": False,
+            "minMilliAmps": self.pump_current_min_ma,
+            "maxMilliAmps": self.pump_current_max_ma,
+        }
+
+    def reset_pump_current_minmax(self):
+        self.pump_current_min_ma = None
+        self.pump_current_max_ma = None
+
     def status(self):
         with self.lock:
             now = datetime.now()
@@ -192,13 +217,10 @@ class State:
                 # il risultato di WiFi.localIP(), l'indirizzo DHCP reale.
                 "wifi": {"connected": True, "ssid": "WiFi (mock, non reale)", "ip": "203.0.113.50", "rssi": -55},
                 "mqtt": {"connected": bool(self.config["mqtt"]["enabled"] and self.config["mqtt"]["host"])},
-                # Simulato: 1200mA fissi mentre la pompa gira, nessun sensore
-                # reale nel mock (niente hardware I2C da leggere).
-                "pumpCurrent": {
-                    "sensorFound": True,
-                    "milliAmps": 1200 if self.pump_active else 0,
-                    "tankEmptySuspected": False,
-                },
+                # Simulato: 1200mA con una piccola variazione casuale mentre la
+                # pompa gira, nessun sensore reale nel mock (niente hardware
+                # I2C da leggere) — sufficiente per esercitare l'interfaccia.
+                "pumpCurrent": self._simulated_pump_current(),
                 # Valori tipici osservati sul vero ESP32 DevKitV1 (v0.6.0-beta),
                 # solo per popolare la UI in locale: non cambiano nel mock.
                 "system": {
@@ -451,6 +473,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self._send_json({"ok": True, "started": True})
         if self.path == "/api/system/restart":
             print("[system] richiesto riavvio (simulato: il mock resta acceso)")
+            return self._send_json({"ok": True})
+        if self.path == "/api/pump-current/reset-minmax":
+            state.reset_pump_current_minmax()
             return self._send_json({"ok": True})
         if self.path == "/api/ota/upload":
             length = int(self.headers.get("Content-Length", 0))

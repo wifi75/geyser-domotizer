@@ -13,7 +13,7 @@ Stato corrente del dispositivo, interrogato dal frontend ogni 2-3 secondi.
   "pump": { "active": false, "remainingSeconds": 0, "source": null },
   "wifi": { "connected": true, "ssid": "WiFi", "ip": "192.168.1.235", "rssi": -58 },
   "mqtt": { "connected": true },
-  "pumpCurrent": { "sensorFound": true, "milliAmps": 1180, "tankEmptySuspected": false },
+  "pumpCurrent": { "sensorFound": true, "milliAmps": 1180, "tankEmptySuspected": false, "minMilliAmps": 1100, "maxMilliAmps": 1350 },
   "system": {
     "ramFreeBytes": 210000, "ramTotalBytes": 327680,
     "flashUsedBytes": 1111184, "flashFreeBytes": 199536,
@@ -28,6 +28,11 @@ Stato corrente del dispositivo, interrogato dal frontend ogni 2-3 secondi.
 `wifi.ssid`/`wifi.ip` sono stringa vuota quando `wifi.connected` è `false`. La qualità del segnale (barre/percentuale) è calcolata lato frontend da `rssi`, non serve un campo dedicato.
 `time` è sempre sincronizzato via NTP (vedi `GET/PUT /api/ntp`), non è l'orologio interno dell'ESP32 non sincronizzato.
 `pumpCurrent.sensorFound` è `false` se il sensore INA219 non risponde sul bus I2C (es. non collegato): in quel caso `milliAmps` resta a 0 e `tankEmptySuspected` sempre `false`. `milliAmps` è l'ultima lettura mentre la pompa è attiva (0 a pompa ferma). `tankEmptySuspected` diventa `true` quando il firmware rileva la condizione configurata in `GET/PUT /api/pump-current` e ferma la pompa da solo; resta `true` fino al ciclo successivo.
+`minMilliAmps`/`maxMilliAmps` sono `null` se non è ancora mai girata la pompa da quando sono stati azzerati (vedi sotto), altrimenti il minimo/massimo osservati durante *tutti* i cicli da allora — pensati per tarare a mano la soglia (es. un ciclo a serbatoio pieno, azzera, un ciclo a vuoto, confronta i due intervalli).
+
+## POST /api/pump-current/reset-minmax
+
+Azzera `minMilliAmps`/`maxMilliAmps` (li riporta a `null`, ripartono dal prossimo ciclo). Risposta: `{ "ok": true }`
 
 ## POST /api/manual/start
 

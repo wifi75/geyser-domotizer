@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.26.0 — 2026-07-05
+
+Min/max di corrente pompa, per tarare la soglia senza doverla leggere al momento esatto.
+
+- Nuovi campi `minMilliAmps`/`maxMilliAmps` in `/api/status`: minimo e massimo assorbimento osservati durante tutti i cicli da quando sono stati azzerati (non per singolo ciclo)
+- Nuova sezione nella card "Sensore corrente pompa" (Impostazioni): mostra min/max osservati e un tasto "Azzera" — fai un ciclo a serbatoio pieno, annoti, azzeri, fai un ciclo a vuoto, confronti i due intervalli senza dover guardare lo schermo nell'istante giusto
+- Nuovo `POST /api/pump-current/reset-minmax`
+
 ## v0.25.0 — 2026-07-05
 
 Indicazione grafica animata per "serbatoio vuoto", non solo testo.

@@ -218,6 +218,17 @@
     <section class="card" id="card-pump-current">
       <h2>Sensore corrente pompa</h2>
       <p class="muted">Sensore INA219 (I2C): <strong id="pcur-sensor-status">--</strong></p>
+
+      <div class="pcur-debug">
+        <p class="muted" style="margin:0">
+          Min/max osservati: <strong id="pcur-minmax">-- / -- mA</strong>
+        </p>
+        <button id="btn-pcur-reset-minmax" class="btn btn-small">Azzera</button>
+      </div>
+      <p class="muted" style="margin-top:4px">
+        Per tarare la soglia: azzera, fai un ciclo con il serbatoio pieno e annota i valori, azzera di nuovo, fai un ciclo a vuoto e confronta.
+      </p>
+
       <label class="mqtt-enabled-row">
         <input type="checkbox" id="pcur-enabled">
         Ferma la pompa e segnala "serbatoio vuoto" quando rilevato

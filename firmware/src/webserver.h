@@ -31,4 +31,5 @@ class WebServerApp {
   void handlePutSchedule(AsyncWebServerRequest* request, JsonVariant& body);
   void handleGetConfig(AsyncWebServerRequest* request);
   void handlePutConfig(AsyncWebServerRequest* request, JsonVariant& body);
+  void handleResetPumpCurrentMinMax(AsyncWebServerRequest* request);
 };
