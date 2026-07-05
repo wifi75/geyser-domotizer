@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.43.0 — 2026-07-05
+
+Riorganizzata la tab Impostazioni: meno affollata, gerarchia visiva più chiara tra azioni di routine e azioni distruttive.
+
+- Pulsanti "Salva"/azioni primarie ridotti a dimensione compatta (`btn-small`) in tutta la tab, invece della taglia grande usata prima per ogni pulsante
+- "Aggiornamento manuale" (upload `.bin`, azione rara/avanzata) ora collassato in un pannello a comparsa, non più sempre visibile e a piena vista
+- Nuova sezione "⚠️ Zona pericolosa" in fondo alla tab, che raggruppa le sole azioni distruttive/irreversibili (Riavvia dispositivo, Ripristina backup) separate dalle impostazioni di routine — pulsanti in stile "outline" rosso (contorno, non riempimento pieno) per segnalare attenzione senza gareggiare visivamente con le azioni primarie verdi della pagina
+- "Esporta backup" (azione sicura, sola lettura) resta nella sua card originale fuori dalla zona pericolosa; solo "Ripristina" (sovrascrive tutto e riavvia) è stato spostato lì
+
 ## v0.42.0 — 2026-07-05
 
 Favicon a tema e pulsante di salvataggio dedicato per l'Access Point.

@@ -393,6 +393,41 @@ main {
   letter-spacing: 0.04em;
 }
 
+.settings-details {
+  margin-top: 14px;
+  padding: 10px;
+  background: rgba(0,0,0,0.15);
+  border-radius: 6px;
+}
+.settings-details summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.settings-details[open] summary { margin-bottom: 10px; }
+
+.danger-zone {
+  border-color: rgba(217, 83, 79, 0.3);
+  background: rgba(217, 83, 79, 0.05);
+}
+.danger-zone h2 { color: #e88a85; }
+
+.danger-zone-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+}
+.danger-zone-row + .danger-zone-row { border-top: 1px solid rgba(217, 83, 79, 0.2); }
+
+.danger-zone-row-text strong { display: block; font-size: 0.9rem; }
+.danger-zone-row-text p { margin: 2px 0 0 0; }
+
+.danger-zone-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.danger-zone-actions input[type="file"] { font-size: 0.78rem; max-width: 150px; }
+
 #ota-upload-progress-wrap { max-width: 300px; }
 
 #ota-update-progress-wrap, #banner-update-progress-wrap {
@@ -488,8 +523,8 @@ input[type="number"], input[type="time"], input[type="text"], input[type="passwo
 .btn {
   border: none;
   border-radius: 6px;
-  padding: 8px 14px;
-  font-size: 0.9rem;
+  padding: 7px 14px;
+  font-size: 0.85rem;
   cursor: pointer;
 }
 
@@ -498,7 +533,18 @@ input[type="number"], input[type="time"], input[type="text"], input[type="passwo
 .btn-danger { background: var(--danger); color: white; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.btn-small { padding: 4px 8px; font-size: 0.8rem; }
+.btn-small { padding: 5px 10px; font-size: 0.8rem; }
+
+/* Azioni distruttive/rare (riavvio, ripristino backup): un bordo pieno di
+   rosso su tutta l'area del pulsante attira l'attenzione più di quanto
+   serva per un'azione secondaria — l'outline segnala "attenzione" senza
+   competere visivamente con le azioni primarie (verdi) della pagina. */
+.btn-outline-danger {
+  background: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+.btn-outline-danger:hover { background: rgba(217, 83, 79, 0.12); }
 
 .feedback { font-size: 0.85rem; color: var(--muted); min-height: 1.2em; display: inline-block; }
 .feedback.error { color: var(--danger); }

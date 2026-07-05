@@ -891,7 +891,7 @@ async function clearEvents() {
 }
 
 async function exportBackup() {
-  const feedback = el("backup-feedback");
+  const feedback = el("backup-export-feedback");
   feedback.textContent = "";
   feedback.className = "feedback";
   try {

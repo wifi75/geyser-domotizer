@@ -276,7 +276,7 @@
         <option value="low">Attivo basso (jumper o scritta "low level trigger")</option>
       </select>
       <div class="schedule-actions">
-        <button id="btn-save-gpio" class="btn btn-primary">Salva</button>
+        <button id="btn-save-gpio" class="btn btn-primary btn-small">Salva</button>
         <span id="gpio-feedback" class="feedback"></span>
       </div>
       <p class="muted">⚠️ Ricollega fisicamente il relè al nuovo pin prima di salvare, altrimenti la pompa non risponderà più finché non lo ricolleghi. Applicato subito, nessun riavvio (rifiutato se un ciclo è in corso).</p>
@@ -325,7 +325,7 @@
         <input type="number" id="pcur-duration" min="1" max="300" value="5">
       </div>
       <div class="schedule-actions">
-        <button id="btn-save-pcur" class="btn btn-primary">Salva</button>
+        <button id="btn-save-pcur" class="btn btn-primary btn-small">Salva</button>
         <span id="pcur-feedback" class="feedback"></span>
       </div>
       <p class="muted">Il comportamento varia da pompa a pompa: osserva l'assorbimento nella card "Nebulizzazione" durante un ciclo normale e uno a serbatoio vuoto prima di impostare la soglia.</p>
@@ -336,17 +336,17 @@
       <p>Versione installata: <strong id="ota-current-version">--</strong></p>
 
       <div class="ota-github">
-        <button id="btn-ota-check" class="btn btn-primary">Controlla su GitHub</button>
+        <button id="btn-ota-check" class="btn btn-primary btn-small">Controlla su GitHub</button>
         <span id="ota-check-feedback" class="feedback"></span>
-        <button id="btn-ota-update" class="btn btn-primary hidden">Aggiorna ora</button>
+        <button id="btn-ota-update" class="btn btn-primary btn-small hidden">Aggiorna ora</button>
       </div>
       <div id="ota-update-progress-wrap" class="hidden">
         <div class="ota-progress-track"><div id="ota-update-progress-bar" class="ota-progress-fill" style="width:0%"></div></div>
         <span id="ota-update-progress-label" class="muted">--</span>
       </div>
 
-      <div class="ota-manual">
-        <h3>Aggiornamento manuale</h3>
+      <details class="settings-details">
+        <summary>Aggiornamento manuale (upload di un file .bin)</summary>
         <p class="muted">Carica un file .bin compilato in locale (deve corrispondere esattamente alla scheda in uso).</p>
         <p class="muted">
           Scarica i file dalla pagina
@@ -358,28 +358,47 @@
           <li><code>littlefs-&lt;scheda&gt;.bin</code> — solo se è cambiata anche l'interfaccia web (quasi sempre sì). Carica questo <strong>dopo</strong>, quando il dispositivo è di nuovo online: ogni upload sostituisce solo un file alla volta.</li>
         </ol>
         <input type="file" id="ota-file-input" accept=".bin">
-        <button id="btn-ota-upload" class="btn btn-primary">Carica e aggiorna</button>
+        <button id="btn-ota-upload" class="btn btn-primary btn-small">Carica e aggiorna</button>
         <div id="ota-upload-progress-wrap" class="hidden">
           <div class="battery-bar-wrap"><div id="ota-upload-progress" class="battery-bar"></div></div>
         </div>
         <span id="ota-upload-feedback" class="feedback"></span>
-      </div>
-
-      <div class="ota-manual">
-        <h3>Riavvio</h3>
-        <button id="btn-restart" class="btn btn-danger">Riavvia dispositivo</button>
-        <span id="restart-feedback" class="feedback"></span>
-      </div>
+      </details>
     </section>
 
     <section class="card" id="card-backup">
       <h2>Backup configurazione</h2>
-      <p class="muted">Esporta o ripristina programmazione, MQTT, rete, GPIO, NTP e sensore corrente.</p>
-      <div class="ota-manual">
-        <button id="btn-export-backup" class="btn btn-primary">Esporta JSON</button>
-        <input type="file" id="backup-file-input" accept=".json,application/json">
-        <button id="btn-restore-backup" class="btn btn-danger">Ripristina backup</button>
-        <span id="backup-feedback" class="feedback"></span>
+      <p class="muted">Esporta programmazione, MQTT, rete, GPIO, NTP e sensore corrente in un file JSON.</p>
+      <div class="schedule-actions">
+        <button id="btn-export-backup" class="btn btn-primary btn-small">Esporta JSON</button>
+        <span id="backup-export-feedback" class="feedback"></span>
+      </div>
+    </section>
+
+    <section class="card danger-zone" id="card-danger-zone">
+      <h2>⚠️ Zona pericolosa</h2>
+
+      <div class="danger-zone-row">
+        <div class="danger-zone-row-text">
+          <strong>Riavvia dispositivo</strong>
+          <p class="muted">Interrompe subito un'eventuale nebulizzazione in corso.</p>
+        </div>
+        <div class="danger-zone-actions">
+          <button id="btn-restart" class="btn btn-outline-danger btn-small">Riavvia</button>
+          <span id="restart-feedback" class="feedback"></span>
+        </div>
+      </div>
+
+      <div class="danger-zone-row">
+        <div class="danger-zone-row-text">
+          <strong>Ripristina backup</strong>
+          <p class="muted">Sovrascrive tutta la configurazione attuale da un file JSON e riavvia il dispositivo.</p>
+        </div>
+        <div class="danger-zone-actions">
+          <input type="file" id="backup-file-input" accept=".json,application/json">
+          <button id="btn-restore-backup" class="btn btn-outline-danger btn-small">Ripristina</button>
+          <span id="backup-feedback" class="feedback"></span>
+        </div>
       </div>
     </section>
 
