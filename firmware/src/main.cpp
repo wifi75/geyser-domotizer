@@ -102,11 +102,7 @@ void updateApState() {
   if (wifiJustDisconnected) shouldBeActive = true;  // Attiva AP di emergenza se WiFi si disconnette
 
   if (shouldBeActive && !apActiveFlag) {
-    uint8_t mac[6];
-    WiFi.macAddress(mac);
-    char suffix[5];
-    snprintf(suffix, sizeof(suffix), "%02X%02X", mac[4], mac[5]);
-    apSsidInfo = String(AP_SSID_PREFIX) + suffix;
+    apSsidInfo = AP_SSID;
     WiFi.softAP(apSsidInfo.c_str(), AP_PASSWORD);
     apActiveFlag = true;
     Serial.printf("AP attivata: %s (password: %s)\n", apSsidInfo.c_str(), AP_PASSWORD);

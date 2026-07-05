@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.39.0 — 2026-07-05
+
+SSID dell'Access Point cambiato a "ESP-Geyser" (fisso, senza suffisso MAC).
+
+- L'SSID è ora sempre "ESP-Geyser" invece di "GeyserSetup-AABB", più semplice da ricordare e connettersi
+
 ## v0.38.0 — 2026-07-05
 
 Booleano di configurazione per abilitare l'AP al boot.
