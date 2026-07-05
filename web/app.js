@@ -480,6 +480,7 @@ async function applyOtaUpdate() {
   setOtaFeedback("", "");
 
   const bootRef = await captureBootReference();
+  const versionBefore = el("ota-current-version").textContent.replace(/^v/, "");
   const start = await api("/api/ota/update", { method: "POST" });
   if (start && start.ok === false) {
     setOtaFeedback(`Errore: ${start.error} ${start.details ?? ""}`, "error");
@@ -525,7 +526,22 @@ async function applyOtaUpdate() {
     // torna a rispondere con lo stato "idle" di un avvio pulito invece che
     // "done" — senza questo controllo la pagina restava bloccata sull'ultima
     // percentuale vista, anche se il dispositivo aveva già finito.
+    //
+    // Attenzione: "idle" da solo non basta a dire che è andata bene — un
+    // crash/riavvio imprevisto durante l'attivazione del firmware (invece di
+    // un fallimento gestito, che finirebbe in phase "error") riporta ESATTAMENTE
+    // agli stessi valori di default di un avvio pulito. Va quindi confermato
+    // controllando se la versione installata è davvero cambiata.
     if (sawRealProgress && !p.inProgress && p.phase === "idle") {
+      const info = await pingDevice();
+      if (info && info.currentVersion === versionBefore) {
+        setOtaFeedback(
+          "Il dispositivo si è riavviato ma risulta ancora sulla stessa versione: l'aggiornamento probabilmente non è andato a buon fine (es. un crash durante l'attivazione del firmware). Riprova; se continua a ripetersi serve riflashare via USB.",
+          "error"
+        );
+        progressWraps.forEach((w) => w.classList.add("hidden"));
+        return;
+      }
       setOtaFeedback("Aggiornamento completato, il dispositivo si è riavviato...", "ok");
       progressWraps.forEach((w) => w.classList.add("hidden"));
       waitForDeviceAndReload(bootRef);

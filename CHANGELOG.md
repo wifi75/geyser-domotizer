@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.23.1 — 2026-07-05
+
+Fix: un falso "aggiornamento completato" quando in realtà il dispositivo è solo crashato e ripartito con la stessa versione di prima.
+
+- Il rilevamento "riavvio più veloce del previsto" (v0.22.0) considerava qualunque ritorno allo stato "idle" come un successo — ma un crash imprevisto durante l'attivazione del firmware (invece di un fallimento gestito, che finisce in `phase: error`) riporta esattamente agli stessi valori di un avvio pulito. Ora viene confermato controllando se la versione installata è davvero cambiata; se non lo è, mostra un errore invece di un falso successo, con l'indicazione di riflashare via USB se il problema si ripete
+
 ## v0.23.0 — 2026-07-05
 
 Nuova tab "Rete", per non affollare più Impostazioni.
