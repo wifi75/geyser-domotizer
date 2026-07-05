@@ -1,9 +1,10 @@
 # Firmware ESP32
 
-Progetto PlatformIO per due ambienti:
+Progetto PlatformIO per tre ambienti:
 
 - `esp32dev`: ESP32 DevKit V1, testato end-to-end su hardware reale in banco.
-- `xiao-esp32c3`: Seeed Studio XIAO ESP32-C3, scheda di riferimento per il deployment finale a batteria, compilata ma non ancora provata fisicamente.
+- `xiao-esp32c6`: Seeed Studio XIAO ESP32-C6, testato end-to-end su hardware reale in banco (boot, WiFi, dashboard web); pompa/relè/batteria non ancora provati su questa scheda. Richiede il fork community `pioarduino` invece del platform ufficiale — vedi [../boards/xiao-esp32c6.md](../boards/xiao-esp32c6.md).
+- `xiao-esp32c3`: Seeed Studio XIAO ESP32-C3, "gemella" della C6 (stesso pinout), scheda di riferimento per il deployment finale a batteria, compilata ma non ancora provata fisicamente.
 
 La Fase 0 sullo Stocker Geyser reale (ricognizione interna del dispositivo) non e' ancora stata completata, quindi i punti di derivazione e alcune tarature elettriche restano da confermare prima del montaggio definitivo.
 
@@ -26,6 +27,7 @@ La Fase 0 sullo Stocker Geyser reale (ricognizione interna del dispositivo) non 
 ```
 pio run -e esp32dev
 pio run -e xiao-esp32c3
+pio run -e xiao-esp32c6
 ```
 
 ## Caricare su una scheda reale
@@ -36,11 +38,11 @@ pio run -e esp32dev -t upload --upload-port COM3
 pio device monitor -p COM3 -b 115200
 ```
 
-Sostituire `esp32dev` con `xiao-esp32c3` e `COM3` con la porta corretta quando si usa un'altra scheda.
+Sostituire `esp32dev` con `xiao-esp32c3`/`xiao-esp32c6` e `COM3` con la porta corretta quando si usa un'altra scheda. Su Windows, se il flash fallisce con `UnicodeEncodeError` nella progress bar, impostare `$env:PYTHONIOENCODING = "utf-8"` prima del comando.
 
 ## Da fare prima di un vero utilizzo
 
 1. Completare la Fase 0 (vedi [../05-fase0-guida-apertura.md](../05-fase0-guida-apertura.md)) e aggiornare i pin/valori in `config.h`
 2. Copiare `src/config.local.h.example` in `src/config.local.h` e impostare li' WiFi/MQTT reali; il file e' ignorato da git. `ADMIN_PASSWORD` e' opzionale e protegge le API amministrative se valorizzata.
 3. Calibrare il partitore resistivo della batteria con un multimetro reale
-4. Verificare sul campo il consumo energetico: questa v1 non usa deep-sleep (vedi nota in `src/main.cpp`)
+4. Verificare sul campo il consumo energetico: niente deep-sleep, solo WiFi modem-sleep + CPU a 80MHz (vedi nota in `src/main.cpp`)

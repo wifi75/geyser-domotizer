@@ -8,8 +8,10 @@ ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_ASSETS = [
     "firmware-esp32dev.bin",
     "firmware-xiao-esp32c3.bin",
+    "firmware-xiao-esp32c6.bin",
     "littlefs-esp32dev.bin",
     "littlefs-xiao-esp32c3.bin",
+    "littlefs-xiao-esp32c6.bin",
 ]
 
 
@@ -27,7 +29,7 @@ def extract(pattern, text, label):
 def main():
     parser = argparse.ArgumentParser(description="Controlla coerenza versione/release Geyser Domotizer.")
     parser.add_argument("--version", help="Versione attesa senza prefisso v, es. 0.30.0")
-    parser.add_argument("--assets-dir", help="Directory con i 4 asset .bin da pubblicare")
+    parser.add_argument("--assets-dir", help="Directory con i 6 asset .bin da pubblicare")
     args = parser.parse_args()
 
     errors = []

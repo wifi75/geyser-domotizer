@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.31.0 — 2026-07-05
+
+Supporto Seeed XIAO ESP32-C6, tabella partizioni piu' ampia su tutte le board, risparmio energetico best-effort.
+
+- Nuovo ambiente `xiao-esp32c6` in `platformio.ini`: il platform ufficiale "espressif32" sul registry PlatformIO non e' piu' mantenuto da Espressif dal 2024 e il board manifest della C6 dichiara solo "espidf" tra i framework supportati (bug di manifest, non limite del chip) — risolto passando al fork community `pioarduino` (https://github.com/pioarduino/platform-espressif32), che tiene aggiornati core Arduino 3.x e board manifest
+- Nuova tabella partizioni condivisa `partitions_4MB.csv` per tutte e 3 le board (esp32dev, xiao-esp32c3, xiao-esp32c6): lo schema di default riserva solo 1.31MB per slot app, insufficiente per le versioni piu' recenti del core Arduino 3.x (stack di rete unificato piu' pesante, oltre alle librerie Wi-Fi 6/Thread/Zigbee della C6); gli slot app ora sono 1.5MB, la partizione dati 512KB (i web assets pesano ~76KB)
+- Fix mount LittleFS sulla C6: `LittleFS.begin()` cerca di default una partizione chiamata `spiffs` — la tabella partizioni custom iniziale usava il nome `littlefs`, causando mount silenziosamente fallito (`fsUsedBytes:0`, dashboard non raggiungibile)
+- Nuovo define board-specific `BOARD_XIAO_ESP32C6` per gli asset OTA (`firmware-xiao-esp32c6.bin`/`littlefs-xiao-esp32c6.bin`), cosi' l'aggiornamento OTA sulla C6 non scarica per errore il binario della C3
+- Risparmio energetico best-effort: `WiFi.setSleep(true)` (modem sleep, il radio dorme tra un beacon DTIM e l'altro restando raggiungibile) e `setCpuFrequencyMhz(80)` all'avvio. Un vero automatic light-sleep (CPU addormentata tra un giro di `loop()` e l'altro) richiederebbe `CONFIG_PM_ENABLE`/`CONFIG_FREERTOS_USE_TICKLESS_IDLE` nell'sdkconfig, verificati DISATTIVATI nelle librerie ESP-IDF precompilate del framework Arduino puro per tutte e 3 le board — non disponibile senza ricompilare quelle librerie da sorgente
+- Testato end-to-end su hardware reale XIAO ESP32-C6: boot, connessione WiFi, dashboard web e API `/api/status` funzionanti; pompa/relè/batteria non ancora provati su questa scheda (bench setup, vedi [boards/xiao-esp32c6.md](boards/xiao-esp32c6.md))
+
 ## v0.30.0 — 2026-07-05
 
 Hardening codice: stato OTA piu' sicuro, backup validati, auth opzionale e check release.

@@ -1,6 +1,6 @@
-# Scheda: Seeed Studio XIAO ESP32-C3 / ESP32-C6
+# Scheda: Seeed Studio XIAO ESP32-C3
 
-⚠️ Scheda di riferimento scelta per il **deployment finale a batteria** (basso consumo, formato compatto — vedi [../03-hardware-bom.md](../03-hardware-bom.md)), ma **non ancora testata fisicamente**: tutti i test end-to-end finora sono stati fatti su [ESP32 DevKit V1](esp32dev.md). Compila correttamente (ambiente PlatformIO `xiao-esp32c3`) ma va verificata su hardware reale prima dell'uso definitivo.
+⚠️ Scheda di riferimento scelta per il **deployment finale a batteria** (basso consumo, formato compatto — vedi [../03-hardware-bom.md](../03-hardware-bom.md)), ma **non ancora testata fisicamente**: tutti i test end-to-end finora sono stati fatti su [ESP32 DevKit V1](esp32dev.md) e, più di recente, sulla sorella [XIAO ESP32-C6](xiao-esp32c6.md). Compila correttamente (ambiente PlatformIO `xiao-esp32c3`) ma va verificata su hardware reale prima dell'uso definitivo.
 
 ## Pinout (mapping D-number → GPIO)
 

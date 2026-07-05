@@ -13,7 +13,11 @@ Progetto di "domotizzazione" non invasiva dello **Stocker Geyser 12L** (nebulizz
 
 ## Stato del progetto
 
-✅ **Testato su hardware reale: ESP32 DevKit V1.** Web UI, batteria, programmazione, MQTT (con Home Assistant Discovery), configurazione IP/GPIO e aggiornamento OTA sono stati verificati end-to-end su una ESP32 DevKit V1 fisica — vedi [boards/esp32dev.md](boards/esp32dev.md). Le funzioni più recenti (backup configurazione, eventi recenti, rollback rete e misura autonomia UI) sono allineate nel firmware/mock server e compilate nel flusso release, ma vanno ancora provate con una sessione hardware dedicata. La XIAO ESP32-C3/C6 (scheda di riferimento per il deployment finale a batteria) compila correttamente ma non è ancora stata provata fisicamente, vedi [boards/xiao-esp32c3.md](boards/xiao-esp32c3.md). La Fase 0 hands-on sul dispositivo Geyser vero (individuare dove derivare i fili di motore e batteria) resta da fare prima del montaggio definitivo.
+✅ **Testato su hardware reale: ESP32 DevKit V1.** Web UI, batteria, programmazione, MQTT (con Home Assistant Discovery), configurazione IP/GPIO e aggiornamento OTA sono stati verificati end-to-end su una ESP32 DevKit V1 fisica — vedi [boards/esp32dev.md](boards/esp32dev.md). Le funzioni più recenti (backup configurazione, eventi recenti, rollback rete e misura autonomia UI) sono allineate nel firmware/mock server e compilate nel flusso release, ma vanno ancora provate con una sessione hardware dedicata.
+
+✅ **Testato su hardware reale anche: XIAO ESP32-C6.** Boot, connessione WiFi e dashboard web verificati end-to-end — vedi [boards/xiao-esp32c6.md](boards/xiao-esp32c6.md) per le note specifiche sul toolchain (fork PlatformIO community necessario per questa scheda) e sulla tabella partizioni. Non ancora provati su questa scheda: pompa/relè, batteria reale, sensore corrente.
+
+⚠️ La XIAO ESP32-C3 (scheda "gemella" alla C6, stesso pinout, entrambe di riferimento per il deployment finale a batteria) compila correttamente ma non è ancora stata provata fisicamente, vedi [boards/xiao-esp32c3.md](boards/xiao-esp32c3.md). La Fase 0 hands-on sul dispositivo Geyser vero (individuare dove derivare i fili di motore e batteria) resta da fare prima del montaggio definitivo.
 
 ## Struttura del progetto
 
@@ -24,7 +28,7 @@ Progetto di "domotizzazione" non invasiva dello **Stocker Geyser 12L** (nebulizz
 - [05-fase0-guida-apertura.md](05-fase0-guida-apertura.md) — guida operativa per la ricognizione hands-on del dispositivo
 - [06-api.md](06-api.md) — contratto API REST, usato sia dal mock server sia dal firmware
 - [07-schema-collegamento.md](07-schema-collegamento.md) — schema di cablaggio (batteria → step-down → ESP32 → relè → pompa) e mappa pin
-- [boards/esp32dev.md](boards/esp32dev.md) / [boards/xiao-esp32c3.md](boards/xiao-esp32c3.md) — pinout, alimentazione e comandi specifici per ciascuna scheda supportata
+- [boards/esp32dev.md](boards/esp32dev.md) / [boards/xiao-esp32c3.md](boards/xiao-esp32c3.md) / [boards/xiao-esp32c6.md](boards/xiao-esp32c6.md) — pinout, alimentazione e comandi specifici per ciascuna scheda supportata
 - [web/](web/) — interfaccia web condivisa (HTML/CSS/JS vanilla), usata sia dal mock che embeddata nel firmware
 - [mock-server/](mock-server/) — server Python per testare la UI in locale senza hardware
 - [firmware/](firmware/) — progetto PlatformIO per ESP32 (XIAO ESP32-C3/C6 e ESP32 DevKitV1)
@@ -50,7 +54,7 @@ Una scheda ESP32 "vergine" non ha né bootloader né partizioni: il primo flash 
    pio run -e esp32dev -t upload --upload-port COM3     # firmware applicativo (bootloader+partizioni+app, tutto insieme)
    pio run -e esp32dev -t uploadfs --upload-port COM3   # sito web (LittleFS)
    ```
-   (sostituisci `esp32dev` con `xiao-esp32c3` se usi quella scheda, e `COM3` con la porta corretta)
+   (sostituisci `esp32dev` con `xiao-esp32c3` o `xiao-esp32c6` se usi quelle schede, e `COM3` con la porta corretta)
 5. Prima del passo 4, personalizza `firmware/src/config.local.h` (copiandolo da `config.local.h.example`) con le tue credenziali WiFi — vedi [firmware/README.md](firmware/README.md). `ADMIN_PASSWORD` è opzionale: se impostata, la UI chiede la password quando esegui azioni amministrative (OTA, riavvio, backup, salvataggio impostazioni, avvio/stop manuale).
 
 **Da quel momento in poi** (scheda già avviata almeno una volta con bootloader e partizioni presenti), gli aggiornamenti successivi possono usare solo i file `.bin` delle Release, in due modi:

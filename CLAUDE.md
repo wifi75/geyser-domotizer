@@ -8,10 +8,11 @@ Firmware + web UI to "domotize" a Stocker Geyser 12L battery-powered garden mosq
 
 ## Project status (check before assuming something is done)
 
-- Tested end-to-end on real hardware: **ESP32 DevKitV1** (bench test, USB-powered). See [boards/esp32dev.md](boards/esp32dev.md). Latest published release: **v0.30.0**.
-- **Seeed XIAO ESP32-C3** (the reference board for final battery deployment) compiles but has never been physically tested. See [boards/xiao-esp32c3.md](boards/xiao-esp32c3.md).
+- Tested end-to-end on real hardware: **ESP32 DevKitV1** (bench test, USB-powered). See [boards/esp32dev.md](boards/esp32dev.md). Latest published release: **v0.31.0**.
+- Also tested end-to-end on real hardware: **Seeed XIAO ESP32-C6** (bench test, USB-powered) — boot, WiFi connect, web dashboard/API verified working. See [boards/xiao-esp32c6.md](boards/xiao-esp32c6.md). Pump/relay/battery/current-sensor not yet tested on this board (bench setup, no real Geyser unit). Needs the community `pioarduino` platform fork (not the official PlatformIO registry `espressif32`, which has a stale board manifest for C6 — see that doc for why) and a shared custom partition table (`firmware/partitions_4MB.csv`, needed by all 3 boards since recent Arduino-ESP32 3.x core releases outgrew the default 1.31MB app partition).
+- **Seeed XIAO ESP32-C3** (the C6's "twin", same pinout, both reference boards for final battery deployment) compiles but has never been physically tested. See [boards/xiao-esp32c3.md](boards/xiao-esp32c3.md).
 - Fase 0 (physically opening the real Stocker Geyser device, identifying motor/battery tap points) has **not** been done yet — the bench setup drives a standalone relay/motor, not the actual Geyser unit.
-- No deep-sleep: `loop()` runs continuously so the web UI stays instantly responsive. Deliberate tradeoff pending real battery-life measurement (see `04-roadmap.md`), not an oversight.
+- No deep-sleep: `loop()` runs continuously so the web UI stays instantly responsive. Deliberate tradeoff pending real battery-life measurement (see `04-roadmap.md`), not an oversight. As of v0.31.0 there's a best-effort power draw reduction (`WiFi.setSleep(true)` + `setCpuFrequencyMhz(80)` in `main.cpp`'s `setup()`), but true automatic light-sleep-on-idle isn't available: it needs `CONFIG_PM_ENABLE`/`CONFIG_FREERTOS_USE_TICKLESS_IDLE` in the sdkconfig, and both are verified OFF in the precompiled ESP-IDF libs shipped with the plain Arduino framework build (checked `framework-arduinoespressif32-libs/<chip>/sdkconfig` for esp32/esp32c3/esp32c6 — all disabled). Enabling it would require rebuilding those libs from source with a custom sdkconfig (the same ESP-IDF-as-component road already abandoned for the C6 build due to toolchain fragility).
 - Releases are **not** beta anymore (since v0.8.0): no `-beta` suffix, no `--prerelease` flag on GitHub releases.
 
 ## Commands
@@ -46,12 +47,12 @@ Before building/flashing for real, copy `firmware/src/config.local.h.example` to
 Every code/UI change must be published as a downloadable GitHub release, not just committed:
 
 1. Bump `FIRMWARE_VERSION` in `firmware/src/config.h` **and** `MOCK_CURRENT_VERSION` in `mock-server/server.py` to the same value (plain string equality is used for the OTA update-available check, not semver).
-2. `pio run -e esp32dev` and `pio run -e xiao-esp32c3` — both must compile.
-3. `pio run -e esp32dev -t buildfs` and `pio run -e xiao-esp32c3 -t buildfs` — build the LittleFS images.
+2. `pio run -e esp32dev`, `pio run -e xiao-esp32c3`, and `pio run -e xiao-esp32c6` — all three must compile. The `xiao-esp32c6` env uses the community `pioarduino` platform fork (not the official PlatformIO registry `espressif32`, whose C6 board manifest is stale — see `boards/xiao-esp32c6.md`) and a shared custom partition table (`firmware/partitions_4MB.csv`, used by all 3 boards since recent Arduino-ESP32 3.x core releases outgrew the default 1.31MB app partition).
+3. `pio run -e esp32dev -t buildfs`, `pio run -e xiao-esp32c3 -t buildfs`, and `pio run -e xiao-esp32c6 -t buildfs` — build the LittleFS images.
 4. Update `CHANGELOG.md` with a new `## vX.Y.Z — YYYY-MM-DD` entry.
 5. Commit, push to `master`, tag `vX.Y.Z` (matching `FIRMWARE_VERSION` exactly, no `v` prefix inside the define), push the tag.
-6. Run `python tools/check_release.py --version X.Y.Z` from repo root after copying release assets; it verifies version/changelog alignment and the 4 expected `.bin` files when present.
-7. `gh release create vX.Y.Z <4 .bin files> --title "vX.Y.Z" --notes-file <notes>` — **no `--prerelease` flag**. The 4 required assets are `firmware-esp32dev.bin`, `firmware-xiao-esp32c3.bin`, `littlefs-esp32dev.bin`, `littlefs-xiao-esp32c3.bin` (copy them out of `.pio/build/<env>/` into the scratchpad dir first; they're gitignored, never committed).
+6. Run `python tools/check_release.py --version X.Y.Z` from repo root after copying release assets; it verifies version/changelog alignment and the 6 expected `.bin` files when present.
+7. `gh release create vX.Y.Z <6 .bin files> --title "vX.Y.Z" --notes-file <notes>` — **no `--prerelease` flag**. The 6 required assets are `firmware-esp32dev.bin`, `firmware-xiao-esp32c3.bin`, `firmware-xiao-esp32c6.bin`, `littlefs-esp32dev.bin`, `littlefs-xiao-esp32c3.bin`, `littlefs-xiao-esp32c6.bin` (copy them out of `.pio/build/<env>/` into the scratchpad dir first; they're gitignored, never committed).
 
 ## Working conventions (session-specific, established via direct user feedback)
 

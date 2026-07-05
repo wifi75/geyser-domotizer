@@ -1,0 +1,20 @@
+# Tabella partizioni custom condivisa dalle 3 board (tutte con 4MB flash).
+# Lo schema "default.csv" di Arduino-ESP32 riserva solo 0x140000 (1.31MB)
+# per slot app: bastava per il core Arduino 3.20017 usato inizialmente, ma
+# le versioni piu' recenti del core 3.x (nuovo stack di rete unificato,
+# piu' pesante) superano quel limite anche su ESP32 classico e XIAO C3, non
+# solo sulla C6 (che in piu' porta le librerie Wi-Fi 6/Thread/Zigbee).
+# Qui gli slot app crescono a 0x180000 (1.5MB) e la partizione dati si
+# riduce a 0x80000 (512KB, i web assets pesano solo ~76KB): il totale resta
+# comunque sotto i 4MB disponibili su tutte e 3 le board.
+# Il nome "spiffs" nella prima colonna e' voluto (non "littlefs"): la
+# libreria Arduino LittleFS.begin() cerca di default una partizione con
+# quel nome esatto (vedi LittleFS.h, partitionLabel="spiffs"); il campo
+# SubType puo' restare "littlefs" senza conflitti.
+# Name,     Type, SubType,  Offset,   Size,     Flags
+nvs,        data, nvs,      0x9000,   0x5000,
+otadata,    data, ota,      0xe000,   0x2000,
+app0,       app,  ota_0,    0x10000,  0x180000,
+app1,       app,  ota_1,    0x190000, 0x180000,
+spiffs,     data, littlefs, 0x310000, 0x80000,
+coredump,   data, coredump, 0x390000, 0x10000,

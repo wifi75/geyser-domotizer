@@ -129,7 +129,7 @@
 // Da bump manuale ad ogni release: deve corrispondere ESATTAMENTE al tag
 // GitHub "vX.Y.Z" (senza la "v"), il confronto è una semplice uguaglianza
 // di stringa, non un confronto semver.
-#define FIRMWARE_VERSION "0.30.0"
+#define FIRMWARE_VERSION "0.31.0"
 #define GITHUB_OWNER "wifi75"
 #define GITHUB_REPO "geyser-domotizer"
 // Nome dell'asset da cercare tra quelli allegati alla release GitHub: deve
@@ -138,6 +138,9 @@
 #if defined(BOARD_ESP32DEV)
   #define OTA_ASSET_NAME "firmware-esp32dev.bin"
   #define OTA_LITTLEFS_ASSET_NAME "littlefs-esp32dev.bin"
+#elif defined(BOARD_XIAO_ESP32C6)
+  #define OTA_ASSET_NAME "firmware-xiao-esp32c6.bin"
+  #define OTA_LITTLEFS_ASSET_NAME "littlefs-xiao-esp32c6.bin"
 #else
   #define OTA_ASSET_NAME "firmware-xiao-esp32c3.bin"
   #define OTA_LITTLEFS_ASSET_NAME "littlefs-xiao-esp32c3.bin"

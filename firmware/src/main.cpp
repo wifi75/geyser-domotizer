@@ -19,13 +19,22 @@
 #include "event_log.h"
 #include "config_backup.h"
 
-// NOTA su consumo energetico: questa v1 del firmware resta sempre sveglia
-// (niente deep-sleep) cosi' l'interfaccia web e l'avvio manuale rispondono
-// subito. Va misurato sul campo (Fase 3, vedi ../../04-roadmap.md) quanto
-// questo incide sull'autonomia della batteria da 2.5Ah condivisa con la
-// pompa: se il consumo risultasse troppo alto, la prossima iterazione dovrà
-// introdurre un ciclo di sveglia/dormi (deep-sleep + RTC) invece del loop()
-// sempre attivo qui sotto.
+// NOTA su consumo energetico: niente deep-sleep, cosi' l'interfaccia web e
+// l'avvio manuale rispondono sempre subito (vedi ../../04-roadmap.md). Un
+// vero automatic light-sleep (CPU addormentata tra un giro di loop() e
+// l'altro mentre WiFi/timer restano attivi) richiederebbe pero'
+// esp_pm_configure() con CONFIG_PM_ENABLE + CONFIG_FREERTOS_USE_TICKLESS_IDLE
+// abilitati nell'sdkconfig — verificato che sono DISATTIVATI nelle librerie
+// ESP-IDF precompilate usate dal framework "arduino" puro (stesso sdkconfig
+// per esp32/esp32c3/esp32c6 in framework-arduinoespressif32-libs): abilitarli
+// richiederebbe ricompilare quelle librerie da sorgente con un sdkconfig
+// custom, la stessa strada ESP-IDF-component gia' scartata per la XIAO C6
+// per fragilita' del toolchain (vedi CHANGELOG). Qui ci limitiamo quindi ai
+// due risparmi energetici realmente disponibili nel build Arduino standard:
+// modem-sleep del WiFi (il radio e' il consumo maggiore, dorme tra un
+// beacon DTIM e l'altro restando raggiungibile) e riduzione della frequenza
+// CPU alla minima stabile per il WiFi. Impatto reale da misurare sul campo
+// (Fase 3).
 
 AsyncWebServer server(80);
 Battery battery;
@@ -109,6 +118,7 @@ void checkScheduleTrigger() {
 
 void setup() {
   Serial.begin(115200);
+  setCpuFrequencyMhz(80);  // frequenza minima stabile per il WiFi su ESP32/C3/C6
 
   if (!LittleFS.begin(true)) {
     Serial.println("Errore montaggio LittleFS");
@@ -127,6 +137,7 @@ void setup() {
   pump.begin(gpioSettings.relayPin(), gpioSettings.relayActiveHigh());
 
   WiFi.mode(WIFI_STA);
+  WiFi.setSleep(true);  // modem sleep: il radio dorme tra un beacon DTIM e l'altro
 
   if (networkSettings.data().mode == NetworkMode::STATIC_IP) {
     IPAddress ip, gateway, subnet, dns;
