@@ -131,19 +131,49 @@ function renderWifi(wifi) {
     el("wifi-ssid").textContent = "Non connesso";
     el("wifi-rssi").textContent = "";
     el("wifi-ip").textContent = "--";
-    return;
+    el("wifi-band").textContent = "--";
+    el("wifi-channel").textContent = "--";
+  } else {
+    // Soglie tipiche RSSI (dBm) -> numero di barre attive su 4
+    const rssi = wifi.rssi;
+    let activeBars = rssi >= -60 ? 4 : rssi >= -67 ? 3 : rssi >= -75 ? 2 : rssi >= -85 ? 1 : 0;
+    if (activeBars <= 1) bars.classList.add("weak");
+    spans.forEach((s, i) => s.classList.toggle("on", i < activeBars));
+    bars.title = `${rssi} dBm`;
+
+    el("wifi-ssid").textContent = wifi.ssid || "--";
+    el("wifi-rssi").textContent = `${rssi} dBm`;
+    el("wifi-ip").textContent = wifi.ip || "--";
+    el("wifi-band").textContent = wifi.band || "2.4GHz";
+    el("wifi-channel").textContent = wifi.channel ?? "--";
   }
 
-  // Soglie tipiche RSSI (dBm) -> numero di barre attive su 4
-  const rssi = wifi.rssi;
-  let activeBars = rssi >= -60 ? 4 : rssi >= -67 ? 3 : rssi >= -75 ? 2 : rssi >= -85 ? 1 : 0;
-  if (activeBars <= 1) bars.classList.add("weak");
-  spans.forEach((s, i) => s.classList.toggle("on", i < activeBars));
-  bars.title = `${rssi} dBm`;
+  const ap = wifi.ap || { active: false };
+  el("wifi-ap-info").classList.toggle("hidden", !ap.active);
+  if (ap.active) {
+    el("wifi-ap-ssid").textContent = ap.ssid || "--";
+    el("wifi-ap-ip").textContent = ap.ip || "--";
+  }
+  const apStatusBox = el("wifi-ap-status-box");
+  if (apStatusBox) {
+    apStatusBox.classList.toggle("hidden", !ap.active);
+    if (ap.active) {
+      el("wifi-ap-status-ssid").textContent = ap.ssid || "--";
+      el("wifi-ap-status-ip").textContent = ap.ip || "--";
+    }
+  }
+}
 
-  el("wifi-ssid").textContent = wifi.ssid || "--";
-  el("wifi-rssi").textContent = `${rssi} dBm`;
-  el("wifi-ip").textContent = wifi.ip || "--";
+function renderLed(led) {
+  const card = el("card-led");
+  if (!led || !led.available) {
+    card.classList.add("hidden");
+    return;
+  }
+  card.classList.remove("hidden");
+  const btn = el("btn-led-toggle");
+  btn.textContent = led.on ? "Spegni" : "Accendi";
+  btn.dataset.on = led.on ? "1" : "0";
 }
 
 async function refreshStatus() {
@@ -161,6 +191,7 @@ async function refreshStatus() {
     setBadge(el("badge-wifi"), s.wifi.connected);
     setBadge(el("badge-mqtt"), s.mqtt.connected);
     renderWifi(s.wifi);
+    renderLed(s.led);
     renderSystem(s.system);
     renderAutonomy(s);
 
@@ -1091,6 +1122,57 @@ async function saveNetworkConfig() {
   }
 }
 
+async function loadWifiSettings() {
+  const cfg = await api("/api/wifi");
+  el("wifi-ssid-input").value = cfg.ssid || "";
+  el("wifi-password-input").value = "";
+  el("wifi-password-input").placeholder = cfg.hasPassword ? "lascia vuoto per non cambiarla" : "(nessuna password impostata)";
+  el("wifi-ap-enabled").checked = !!cfg.apEnabled;
+}
+
+async function saveWifiSettings() {
+  const feedback = el("wifi-settings-feedback");
+  feedback.textContent = "";
+  feedback.className = "feedback";
+
+  const ssid = el("wifi-ssid-input").value.trim();
+  const password = el("wifi-password-input").value;
+  const body = { ssid, apEnabled: el("wifi-ap-enabled").checked };
+  if (password) body.password = password;
+
+  const r = await api("/api/wifi", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (r && r.ok === false) {
+    feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+    feedback.className = "feedback error";
+  } else {
+    feedback.textContent = "Salvato. Se hai cambiato SSID/password il dispositivo proverà a riconnettersi entro qualche secondo.";
+    feedback.className = "feedback ok";
+    el("wifi-password-input").value = "";
+  }
+}
+
+async function toggleLed() {
+  const btn = el("btn-led-toggle");
+  const feedback = el("led-feedback");
+  const wantOn = btn.dataset.on !== "1";
+  const r = await api("/api/led", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ on: wantOn })
+  });
+  if (r && r.ok === false) {
+    feedback.textContent = `Errore: ${r.error}`;
+    feedback.className = "feedback error";
+  } else {
+    feedback.textContent = "";
+    renderLed({ available: true, on: wantOn });
+  }
+}
+
 el("btn-start").addEventListener("click", startManual);
 el("btn-stop").addEventListener("click", stopManual);
 el("btn-save-schedule").addEventListener("click", saveSchedule);
@@ -1103,6 +1185,8 @@ el("btn-ota-upload").addEventListener("click", uploadFirmwareFile);
 el("network-mode-dhcp").addEventListener("change", updateNetworkFieldsVisibility);
 el("network-mode-static").addEventListener("change", updateNetworkFieldsVisibility);
 el("btn-save-network").addEventListener("click", saveNetworkConfig);
+el("btn-save-wifi").addEventListener("click", saveWifiSettings);
+el("btn-led-toggle").addEventListener("click", toggleLed);
 el("btn-restart").addEventListener("click", restartDevice);
 el("btn-save-gpio").addEventListener("click", saveGpioConfig);
 el("btn-save-ntp").addEventListener("click", saveNtpConfig);
@@ -1162,6 +1246,7 @@ loadSchedule();
 loadMqttConfig();
 loadOtaInfo();
 loadNetworkConfig();
+loadWifiSettings();
 loadGpioConfig();
 loadNtpConfig();
 loadPumpCurrentConfig();

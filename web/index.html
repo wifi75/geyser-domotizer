@@ -105,7 +105,20 @@
         <div class="wifi-details">
           <div><strong id="wifi-ssid">--</strong> <span id="wifi-rssi" class="muted">--</span></div>
           <div class="muted">IP attuale: <span id="wifi-ip">--</span></div>
+          <div class="muted">Banda: <span id="wifi-band">--</span> · Canale: <span id="wifi-channel">--</span></div>
         </div>
+      </div>
+      <div id="wifi-ap-info" class="muted hidden" style="margin-top:8px">
+        📡 Access Point di emergenza attivo: <strong id="wifi-ap-ssid">--</strong> (<span id="wifi-ap-ip">--</span>)
+      </div>
+    </section>
+
+    <section class="card hidden" id="card-led">
+      <h2>LED di stato</h2>
+      <p class="muted">LED integrato sulla scheda.</p>
+      <div class="schedule-actions">
+        <button id="btn-led-toggle" class="btn btn-primary">Accendi</button>
+        <span id="led-feedback" class="feedback"></span>
       </div>
     </section>
 
@@ -143,6 +156,27 @@
   </div>
 
   <div class="tab-panel hidden" data-tab="rete">
+
+    <section class="card" id="card-wifi-settings">
+      <h2>Rete WiFi</h2>
+      <label for="wifi-ssid-input">SSID</label>
+      <input type="text" id="wifi-ssid-input" placeholder="Nome rete WiFi">
+      <label for="wifi-password-input">Password</label>
+      <input type="password" id="wifi-password-input" placeholder="lascia vuoto per non cambiarla">
+      <div class="schedule-actions">
+        <button id="btn-save-wifi" class="btn btn-primary">Salva credenziali</button>
+        <span id="wifi-settings-feedback" class="feedback"></span>
+      </div>
+
+      <label class="mqtt-enabled-row" style="margin-top:14px">
+        <input type="checkbox" id="wifi-ap-enabled">
+        Access Point sempre attivo (in parallelo alla rete normale)
+      </label>
+      <p class="muted">Si attiva comunque da solo, anche con questa casella disattivata, se il dispositivo non riesce a collegarsi entro un minuto dall'avvio — così hai sempre un modo di raggiungerlo per correggere SSID/password senza reflash.</p>
+      <div id="wifi-ap-status-box" class="muted hidden">
+        📡 AP attivo ora: <strong id="wifi-ap-status-ssid">--</strong>, password <code>geyser1234</code>, IP <span id="wifi-ap-status-ip">--</span>
+      </div>
+    </section>
 
     <section class="card" id="card-network">
       <h2>Configurazione IP</h2>

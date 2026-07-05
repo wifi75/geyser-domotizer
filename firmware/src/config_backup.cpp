@@ -21,6 +21,7 @@ static const BackupSection SECTIONS[] = {
     {"gpio", "gd_gpio"},
     {"ntp", "gd_ntp"},
     {"pumpCurrent", "gd_pcur"},
+    {"wifi", "gd_wifi"},
 };
 static const int SECTIONS_COUNT = sizeof(SECTIONS) / sizeof(SECTIONS[0]);
 
@@ -128,6 +129,12 @@ static String validatePumpCurrent(JsonVariantConst value) {
   return "";
 }
 
+static String validateWifi(JsonVariantConst value) {
+  if (!value.is<JsonObjectConst>()) return "wifi deve essere un oggetto";
+  if (!value["ssid"].is<const char*>() || value["ssid"].as<String>().isEmpty()) return "wifi.ssid mancante";
+  return "";
+}
+
 static String validateSection(const char* name, JsonVariantConst value) {
   if (strcmp(name, "schedule") == 0) return validateSchedule(value);
   if (strcmp(name, "mqtt") == 0) return validateMqtt(value);
@@ -135,6 +142,7 @@ static String validateSection(const char* name, JsonVariantConst value) {
   if (strcmp(name, "gpio") == 0) return validateGpio(value);
   if (strcmp(name, "ntp") == 0) return validateNtp(value);
   if (strcmp(name, "pumpCurrent") == 0) return validatePumpCurrent(value);
+  if (strcmp(name, "wifi") == 0) return validateWifi(value);
   return "";
 }
 
@@ -172,6 +180,8 @@ static void handleExport(AsyncWebServerRequest* request) {
   doc["version"] = FIRMWARE_VERSION;
 #if defined(BOARD_ESP32DEV)
   doc["board"] = "esp32dev";
+#elif defined(BOARD_XIAO_ESP32C6)
+  doc["board"] = "xiao-esp32c6";
 #else
   doc["board"] = "xiao-esp32c3";
 #endif

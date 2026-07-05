@@ -28,6 +28,7 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 SCHEDULE_FILE = os.path.join(DATA_DIR, "schedule.json")
 CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
 NETWORK_FILE = os.path.join(DATA_DIR, "network.json")
+WIFI_FILE = os.path.join(DATA_DIR, "wifi.json")
 GPIO_FILE = os.path.join(DATA_DIR, "gpio.json")
 NTP_FILE = os.path.join(DATA_DIR, "ntp.json")
 PUMP_CURRENT_FILE = os.path.join(DATA_DIR, "pump_current.json")
@@ -35,7 +36,7 @@ PORT = int(os.environ.get("PORT", 8000))
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.31.0"
+MOCK_CURRENT_VERSION = "0.32.0"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 # Rispecchia l'elenco per esp32dev in firmware/src/gpio_settings.cpp
@@ -55,6 +56,8 @@ DEFAULT_CONFIG = {
 DEFAULT_NETWORK = {
     "mode": "dhcp", "ip": "", "gateway": "", "subnet": "255.255.255.0", "dns": ""
 }
+
+DEFAULT_WIFI = {"ssid": "WiFi (mock, non reale)", "password": "", "apEnabled": False}
 
 DEFAULT_NTP = {"server": "pool.ntp.org", "intervalHours": 6}
 
@@ -86,6 +89,9 @@ class State:
         self.schedule = self._load_schedule()
         self.config = self._load_config()
         self.network = self._load_network()
+        self.wifi = self._load_wifi()
+        self.led_on = False
+        self.led_active_low = True
         self.gpio_pin, self.gpio_active_high = self._load_gpio_pin()
         self.ntp = self._load_ntp()
         self.pump_current = self._load_pump_current()
@@ -139,6 +145,24 @@ class State:
         with open(NETWORK_FILE, "w", encoding="utf-8") as f:
             json.dump(network, f, indent=2)
         self.network = network
+
+    def _load_wifi(self):
+        if os.path.exists(WIFI_FILE):
+            with open(WIFI_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        return json.loads(json.dumps(DEFAULT_WIFI))
+
+    def save_wifi(self, wifi):
+        with open(WIFI_FILE, "w", encoding="utf-8") as f:
+            json.dump(wifi, f, indent=2)
+        self.wifi = wifi
+
+    def wifi_public(self):
+        return {
+            "ssid": self.wifi["ssid"],
+            "hasPassword": bool(self.wifi.get("password")),
+            "apEnabled": self.wifi.get("apEnabled", False),
+        }
 
     def _load_gpio_pin(self):
         if os.path.exists(GPIO_FILE):
@@ -229,7 +253,16 @@ class State:
                 # instradabile su nessuna rete reale, per non farlo scambiare
                 # per un vero indirizzo LAN. Sul firmware vero questo campo è
                 # il risultato di WiFi.localIP(), l'indirizzo DHCP reale.
-                "wifi": {"connected": True, "ssid": "WiFi (mock, non reale)", "ip": "203.0.113.50", "rssi": -55},
+                "wifi": {
+                    "connected": True, "ssid": "WiFi (mock, non reale)", "ip": "203.0.113.50", "rssi": -55,
+                    "channel": 6, "band": "2.4GHz",
+                    "ap": {
+                        "active": self.wifi.get("apEnabled", False),
+                        "ssid": "GeyserSetup-AABB" if self.wifi.get("apEnabled") else "",
+                        "ip": "192.168.4.1" if self.wifi.get("apEnabled") else "",
+                    },
+                },
+                "led": {"available": True, "on": self.led_on},
                 "mqtt": {"connected": bool(self.config["mqtt"]["enabled"] and self.config["mqtt"]["host"])},
                 # Simulato: 1200mA con una piccola variazione casuale mentre la
                 # pompa gira, nessun sensore reale nel mock (niente hardware
@@ -530,6 +563,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     "gpio": {"relayPin": state.gpio_pin, "relayActiveHigh": state.gpio_active_high},
                     "ntp": state.ntp,
                     "pumpCurrent": state.pump_current,
+                    "wifi": state.wifi,
                 },
             })
         if self.path == "/api/network":
@@ -538,6 +572,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 "pendingConfirmation": state.network_pending_confirmation,
                 "rollbackSeconds": 180 if state.network_pending_confirmation else 0,
             })
+        if self.path == "/api/wifi":
+            return self._send_json(state.wifi_public())
+        if self.path == "/api/led":
+            return self._send_json({"available": True, "on": state.led_on, "activeLow": state.led_active_low})
         if self.path == "/api/gpio":
             return self._send_json({"board": "esp32dev (mock)", "current": state.gpio_pin,
                                     "activeHigh": state.gpio_active_high, "options": GPIO_OPTIONS})
@@ -681,6 +719,33 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             state.add_event("network", "configurazione rete salvata, attendo conferma")
             print(f"[network] configurazione salvata: {network} (su un vero ESP32 qui riavvierebbe)")
             return self._send_json({"ok": True})
+        if self.path == "/api/wifi":
+            if not self._require_admin():
+                return
+            body = self._read_json()
+            ssid = (body.get("ssid") or "").strip()
+            if not ssid:
+                return self._send_json({"ok": False, "error": "invalid_ssid",
+                                        "details": "SSID obbligatorio"}, status=400)
+            wifi = dict(state.wifi)
+            wifi["ssid"] = ssid
+            if body.get("password"):
+                wifi["password"] = body["password"]
+            if "apEnabled" in body:
+                wifi["apEnabled"] = bool(body["apEnabled"])
+            state.save_wifi(wifi)
+            state.add_event("wifi", f"credenziali aggiornate, SSID: {ssid}")
+            return self._send_json({"ok": True})
+        if self.path == "/api/led":
+            if not self._require_admin():
+                return
+            body = self._read_json()
+            if "activeLow" in body:
+                state.led_active_low = bool(body["activeLow"])
+                state.add_event("led", "logica attivo basso" if state.led_active_low else "logica attivo alto")
+            if "on" in body:
+                state.led_on = bool(body["on"])
+            return self._send_json({"ok": True, "on": state.led_on, "activeLow": state.led_active_low})
         if self.path == "/api/gpio":
             if not self._require_admin():
                 return

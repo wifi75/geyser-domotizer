@@ -24,9 +24,23 @@
   #define PIN_BATTERY_ADC  34
   #define PIN_I2C_SDA      21  // sensore corrente pompa (INA219)
   #define PIN_I2C_SCL      22
+#elif defined(BOARD_XIAO_ESP32C6)
+  // Pin per Seeed XIAO ESP32-C6. PIN_BUZZER NON può essere GPIO3 come sulla
+  // C3: il variant.cpp di Seeed per questa scheda (initVariant(), eseguito
+  // automaticamente prima di setup()) pilota GPIO3 come WIFI_ENABLE tenendolo
+  // LOW per abilitare l'antenna WiFi integrata — un buzzer collegato lì e
+  // portato HIGH disabiliterebbe l'antenna. GPIO14 è riservato allo stesso
+  // scopo (WIFI_ANT_CONFIG, selezione antenna integrata/esterna): evitato
+  // anche quello. GPIO15 è LED_BUILTIN (vedi PIN_STATUS_LED sotto).
+  #define PIN_RELAY_PUMP   2   // GPIO che pilota il relè in parallelo ai fili del motore/pompa
+  #define PIN_BUZZER       1   // opzionale: preavviso acustico sugli avvii automatici
+  #define PIN_BATTERY_ADC  4   // ADC sul partitore resistivo collegato ai 12V della batteria
+  #define PIN_I2C_SDA      6   // sensore corrente pompa (INA219)
+  #define PIN_I2C_SCL      7
+  #define PIN_STATUS_LED   15  // LED_BUILTIN della XIAO ESP32-C6
 #else
-  // Pin per Seeed XIAO ESP32-C3/C6 (scheda di riferimento per il
-  // deployment finale a batteria, vedi ../../03-hardware-bom.md)
+  // Pin per Seeed XIAO ESP32-C3 (scheda di riferimento per il deployment
+  // finale a batteria, vedi ../../03-hardware-bom.md)
   #define PIN_RELAY_PUMP   2   // GPIO che pilota il relè in parallelo ai fili del motore/pompa
   #define PIN_BUZZER       3   // opzionale: preavviso acustico sugli avvii automatici
   #define PIN_BATTERY_ADC  4   // ADC sul partitore resistivo collegato ai 12V della batteria
@@ -70,6 +84,19 @@
 #define WIFI_PASSWORD "CAMBIAMI"
 #endif
 #define WIFI_RECONNECT_INTERVAL_MS 10000
+
+// --- Access Point di emergenza/setup ---
+// Si attiva da sola (in parallelo alla STA, WIFI_AP_STA) se la connessione
+// alla rete configurata non riesce entro questo tempo dal boot, cosi' c'è
+// sempre un modo di raggiungere il dispositivo per correggere SSID/password
+// sbagliati da UI senza reflash. Attivabile anche manualmente e in modo
+// permanente da web (vedi wifi_settings.h), indipendentemente da questo
+// fallback automatico.
+#define AP_AUTO_FALLBACK_MS 60000
+#define AP_SSID_PREFIX "GeyserSetup-"
+#ifndef AP_PASSWORD
+#define AP_PASSWORD "geyser1234"
+#endif
 
 // --- Sicurezza HTTP opzionale ---
 // Vuota = API aperte sulla LAN, comportamento storico. Se impostata in
@@ -129,7 +156,7 @@
 // Da bump manuale ad ogni release: deve corrispondere ESATTAMENTE al tag
 // GitHub "vX.Y.Z" (senza la "v"), il confronto è una semplice uguaglianza
 // di stringa, non un confronto semver.
-#define FIRMWARE_VERSION "0.31.0"
+#define FIRMWARE_VERSION "0.32.0"
 #define GITHUB_OWNER "wifi75"
 #define GITHUB_REPO "geyser-domotizer"
 // Nome dell'asset da cercare tra quelli allegati alla release GitHub: deve

@@ -19,7 +19,12 @@ Stato corrente del dispositivo, interrogato dal frontend ogni 2-3 secondi.
   "time": "04/07/2026 18:32:10",
   "battery": { "voltage": 12.4, "percent": 82, "low": false },
   "pump": { "active": false, "remainingSeconds": 0, "source": null },
-  "wifi": { "connected": true, "ssid": "WiFi", "ip": "192.168.1.235", "rssi": -58 },
+  "wifi": {
+    "connected": true, "ssid": "WiFi", "ip": "192.168.1.235", "rssi": -58,
+    "channel": 6, "band": "2.4GHz",
+    "ap": { "active": false, "ssid": "", "ip": "" }
+  },
+  "led": { "available": false, "on": false },
   "mqtt": { "connected": true },
   "pumpCurrent": { "sensorFound": true, "milliAmps": 1180, "tankEmptySuspected": false, "minMilliAmps": 1100, "maxMilliAmps": 1350 },
   "system": {
@@ -33,7 +38,8 @@ Stato corrente del dispositivo, interrogato dal frontend ogni 2-3 secondi.
 `system.flashFreeBytes` è lo spazio libero nella partizione OTA (quanto margine c'è per il prossimo aggiornamento firmware); `system.fsUsedBytes`/`fsTotalBytes` sono LittleFS (il sito web) e possono essere `null` mentre un OTA è in corso, perché il firmware evita di toccare LittleFS durante il flash. La configurazione runtime vive in NVS, non su LittleFS.
 
 `pump.source` è `"manual"` o `"schedule"` quando `active` è `true`, altrimenti `null`.
-`wifi.ssid`/`wifi.ip` sono stringa vuota quando `wifi.connected` è `false`. La qualità del segnale (barre/percentuale) è calcolata lato frontend da `rssi`, non serve un campo dedicato.
+`wifi.ssid`/`wifi.ip` sono stringa vuota quando `wifi.connected` è `false`. La qualità del segnale (barre/percentuale) è calcolata lato frontend da `rssi`, non serve un campo dedicato. `wifi.channel` è `null` se non connesso. `wifi.band` è sempre `"2.4GHz"`: nessun chip ESP32 (nemmeno la XIAO C6, che aggiunge solo 802.11ax/WiFi 6 sulla stessa banda 2.4GHz) ha hardware WiFi 5GHz, il campo è fisso e mostrato solo per trasparenza in UI. `wifi.ap` riflette l'Access Point di emergenza/setup (vedi `GET/PUT /api/wifi`): `ssid`/`ip` sono stringa vuota quando `active` è `false`.
+`led.available` è `false` sulle schede senza LED di stato controllabile (oggi solo la XIAO ESP32-C6 lo espone); `led.on` è sempre `false` quando non disponibile.
 `time` è sempre sincronizzato via NTP (vedi `GET/PUT /api/ntp`), non è l'orologio interno dell'ESP32 non sincronizzato.
 `pumpCurrent.sensorFound` è `false` se il sensore INA219 non risponde sul bus I2C (es. non collegato): in quel caso `milliAmps` resta a 0 e `tankEmptySuspected` sempre `false`. `milliAmps` è l'ultima lettura mentre la pompa è attiva (0 a pompa ferma). `tankEmptySuspected` diventa `true` quando il firmware rileva la condizione configurata in `GET/PUT /api/pump-current` e ferma la pompa da solo; resta `true` fino al ciclo successivo.
 `minMilliAmps`/`maxMilliAmps` sono `null` se non è ancora mai girata la pompa da quando sono stati azzerati (vedi sotto), altrimenti il minimo/massimo osservati durante *tutti* i cicli da allora — pensati per tarare a mano la soglia (es. un ciclo a serbatoio pieno, azzera, un ciclo a vuoto, confronta i due intervalli).
@@ -180,6 +186,36 @@ Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "flash_failed" }`
 
 ⚠️ Il binario caricato **deve** corrispondere esattamente alla scheda in uso (es. `firmware-esp32dev.bin` vs `firmware-xiao-esp32c3.bin`, non sono intercambiabili: architetture di chip diverse).
 
+## GET /api/wifi
+
+```json
+{ "ssid": "WiFi", "hasPassword": true, "apEnabled": false }
+```
+
+La password non è mai restituita, solo `hasPassword` (come per `GET /api/config` → `mqtt.hasPassword`).
+
+## PUT /api/wifi
+
+Cambia SSID/password della rete WiFi a cui il dispositivo si connette, e/o l'interruttore "Access Point sempre attivo". `ssid` obbligatorio e non vuoto se presente nel body; `password` opzionale — assente o omesso lascia quella salvata invariata (come `mqtt.password`). `apEnabled` è indipendente: se `true`, l'Access Point (`WIFI_AP_STA`, SSID `GeyserSetup-XXXX` derivato dal MAC, password fissa) resta sempre acceso in parallelo alla connessione normale; l'AP si attiva comunque da solo, a prescindere da questo flag, se la connessione configurata non riesce entro circa 60 secondi dal boot.
+
+**Applicato subito, nessun riavvio**: il dispositivo tenta la riconnessione con le nuove credenziali all'interno del normale ciclo di retry WiFi.
+
+Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "invalid_ssid", "details": "..." }`
+
+## GET /api/led
+
+```json
+{ "available": true, "on": false, "activeLow": true }
+```
+
+`available` è `false` sulle schede senza LED di stato controllabile (vedi nota su `GET /api/status`).
+
+## PUT /api/led
+
+Accende/spegne il LED di stato e/o ne cambia la logica attivo-alto/basso. Body: `{ "on": true }` e/o `{ "activeLow": false }`, entrambi opzionali. Lo stato acceso/spento **non è persistito**: torna sempre spento a ogni riavvio; la logica attivo-alto/basso invece sì (NVS).
+
+Risposta: `{ "ok": true, "on": true, "activeLow": true }` oppure `{ "ok": false, "error": "led_not_available" }` (schede senza LED integrato).
+
 ## GET /api/network
 
 ```json
@@ -258,12 +294,12 @@ Azzera gli eventi recenti. Risposta: `{ "ok": true }`
 
 ## GET /api/backup
 
-Esporta un JSON unico con la configurazione persistita in NVS: programmazione, MQTT (inclusa password, se presente), rete, GPIO, NTP e sensore corrente. Se `ADMIN_PASSWORD` è impostata, richiede autenticazione perché il backup include segreti.
+Esporta un JSON unico con la configurazione persistita in NVS: programmazione, MQTT (inclusa password, se presente), rete, WiFi (incluse le credenziali), GPIO, NTP e sensore corrente. Se `ADMIN_PASSWORD` è impostata, richiede autenticazione perché il backup include segreti.
 
 ```json
 {
   "format": "geyser-domotizer-config",
-  "version": "0.30.0",
+  "version": "0.32.0",
   "board": "esp32dev",
   "settings": {
     "schedule": {},
@@ -271,7 +307,8 @@ Esporta un JSON unico con la configurazione persistita in NVS: programmazione, M
     "network": {},
     "gpio": {},
     "ntp": {},
-    "pumpCurrent": {}
+    "pumpCurrent": {},
+    "wifi": {}
   }
 }
 ```

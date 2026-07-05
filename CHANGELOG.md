@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.32.0 — 2026-07-05
+
+Modalità Access Point (fallback + attivabile da UI), controllo LED di stato sulla C6, canale/banda WiFi in UI.
+
+- Nuovo modulo `WifiSettings` (NVS, namespace `gd_wifi`): SSID/password persistiti, non più solo compile-time da `config.h`. Editabili da web (tab Rete) senza reflash, applicati subito (nessun riavvio necessario)
+- Access Point di emergenza/setup: si attiva da solo (`WIFI_AP_STA`, SSID `GeyserSetup-XXXX`, password `geyser1234`) se la STA non si connette entro 60s dal boot, così c'è sempre un modo di raggiungere il dispositivo per correggere credenziali sbagliate. Attivabile anche in modo permanente da un interruttore in UI, indipendente dal fallback automatico
+- Nuovo modulo `LedControl` per il LED di stato integrato (GPIO15/`LED_BUILTIN`, solo XIAO ESP32-C6: assente su ESP32 DevKitV1 e XIAO C3): endpoint `GET/PUT /api/led`, toggle acceso/spento e logica attivo-alto/basso da UI (tab Stato, card visibile solo se disponibile)
+- **Fix di sicurezza hardware sulla C6**: `PIN_BUZZER` era GPIO3 nel branch di pin condiviso C3/C6, ma su questa scheda GPIO3 è pilotato attivamente da Seeed (`initVariant()`, prima di `setup()`) come `WIFI_ENABLE` per abilitare l'antenna integrata — un buzzer collegato lì e portato HIGH avrebbe disabilitato l'antenna WiFi. Ora la C6 ha un branch pin dedicato in `config.h` (buzzer spostato su GPIO1, GPIO3/14 evitati)
+- `/api/status` espone ora `wifi.channel` e `wifi.band` (sempre "2.4GHz": nessun chip ESP32, C6 inclusa, ha hardware WiFi 5GHz — "WiFi 6" sulla C6 è 802.11ax sulla banda 2.4GHz esistente) e `wifi.ap`/`led` per lo stato AP/LED in tempo reale
+- Sezione `wifi` aggiunta a `ConfigBackup` (export/import configurazione): le credenziali WiFi ora sopravvivono a un ripristino da backup come le altre impostazioni
+- `mock-server/server.py` aggiornato per simulare le nuove API (`/api/wifi`, `/api/led`, campi status aggiuntivi), cosi' la UI si testa in locale identica a quella reale
+
 ## v0.31.0 — 2026-07-05
 
 Supporto Seeed XIAO ESP32-C6, tabella partizioni piu' ampia su tutte le board, risparmio energetico best-effort.

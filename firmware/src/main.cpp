@@ -18,6 +18,8 @@
 #include "pump_current_settings.h"
 #include "event_log.h"
 #include "config_backup.h"
+#include "wifi_settings.h"
+#include "led_control.h"
 
 // NOTA su consumo energetico: niente deep-sleep, cosi' l'interfaccia web e
 // l'avvio manuale rispondono sempre subito (vedi ../../04-roadmap.md). Un
@@ -44,7 +46,12 @@ MqttSettings mqttSettings;
 bool mqttConnectedFlag = false;
 MqttClientWrapper mqtt;
 PumpCurrentMonitor pumpCurrentMonitor;
-WebServerApp webApp(server, pump, battery, schedule, mqttConnectedFlag, mqttSettings, mqtt, pumpCurrentMonitor);
+WifiSettings wifiSettings;
+LedControl ledControl;
+bool apActiveFlag = false;
+String apSsidInfo = "";
+WebServerApp webApp(server, pump, battery, schedule, mqttConnectedFlag, mqttSettings, mqtt, pumpCurrentMonitor,
+                     ledControl, apActiveFlag, apSsidInfo);
 OtaManager ota;
 NetworkSettings networkSettings;
 GpioSettings gpioSettings;
@@ -55,12 +62,14 @@ uint32_t lastWifiAttemptMs = 0;
 uint32_t lastNtpResyncMs = 0;
 String lastCheckedMinuteKey = "";
 bool wifiWasConnected = false;
+bool everConnectedSTA = false;
 
 void connectWifiIfNeeded() {
   bool isConnected = WiFi.status() == WL_CONNECTED;
   if (isConnected != wifiWasConnected) {
     wifiWasConnected = isConnected;
     if (isConnected) {
+      everConnectedSTA = true;
       Serial.print("WiFi connesso, IP: ");
       Serial.println(WiFi.localIP());
       eventLogAdd("wifi", String("connesso: ") + WiFi.localIP().toString());
@@ -75,8 +84,33 @@ void connectWifiIfNeeded() {
   uint32_t now = millis();
   if (now - lastWifiAttemptMs < WIFI_RECONNECT_INTERVAL_MS) return;
   lastWifiAttemptMs = now;
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  WiFi.begin(wifiSettings.data().ssid.c_str(), wifiSettings.data().password.c_str());
+}
+
+// Tiene accesa/spenta l'Access Point (WIFI_AP_STA, in parallelo alla STA
+// normale): attiva se l'utente l'ha abilitata in modo permanente da web,
+// oppure da sola come rete di soccorso se la STA non si è mai connessa
+// entro AP_AUTO_FALLBACK_MS dal boot (SSID/password sbagliati, rete assente,
+// ecc.) — così c'è sempre un modo di raggiungere il dispositivo da browser.
+void updateApState() {
+  bool shouldBeActive = wifiSettings.data().apEnabled;
+  if (!everConnectedSTA && millis() > AP_AUTO_FALLBACK_MS) shouldBeActive = true;
+
+  if (shouldBeActive && !apActiveFlag) {
+    uint8_t mac[6];
+    WiFi.macAddress(mac);
+    char suffix[5];
+    snprintf(suffix, sizeof(suffix), "%02X%02X", mac[4], mac[5]);
+    apSsidInfo = String(AP_SSID_PREFIX) + suffix;
+    WiFi.softAP(apSsidInfo.c_str(), AP_PASSWORD);
+    apActiveFlag = true;
+    Serial.printf("AP attivata: %s (password: %s)\n", apSsidInfo.c_str(), AP_PASSWORD);
+    eventLogAdd("wifi", String("AP attivata: ") + apSsidInfo);
+  } else if (!shouldBeActive && apActiveFlag) {
+    WiFi.softAPdisconnect(true);
+    apActiveFlag = false;
+    eventLogAdd("wifi", "AP disattivata");
+  }
 }
 
 // Risincronizza l'orologio ogni ntpSettings.intervalHours(), gestito qui a
@@ -131,12 +165,17 @@ void setup() {
   gpioSettings.begin(server, pump);
   ntpSettings.begin(server);
   pumpCurrentSettings.begin(server);
+  wifiSettings.begin(server);
+  ledControl.begin(server);
   eventLogBegin(server);
   configBackupBegin(server);
   pumpCurrentMonitor.begin(PIN_I2C_SDA, PIN_I2C_SCL);
   pump.begin(gpioSettings.relayPin(), gpioSettings.relayActiveHigh());
 
-  WiFi.mode(WIFI_STA);
+  // AP_STA (non solo STA) fin da subito: così l'Access Point di
+  // emergenza/setup (vedi updateApState()) può accendersi in qualsiasi
+  // momento senza un cambio di modalità WiFi disruptivo per la STA.
+  WiFi.mode(WIFI_AP_STA);
   WiFi.setSleep(true);  // modem sleep: il radio dorme tra un beacon DTIM e l'altro
 
   if (networkSettings.data().mode == NetworkMode::STATIC_IP) {
@@ -157,8 +196,9 @@ void setup() {
   for (int i = 0; i < n; i++) {
     Serial.printf("  [%d] '%s' (RSSI %d)\n", i, WiFi.SSID(i).c_str(), WiFi.RSSI(i));
   }
-  Serial.printf("Provo a connettermi a '%s'...\n", WIFI_SSID);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.printf("Provo a connettermi a '%s'...\n", wifiSettings.data().ssid.c_str());
+  WiFi.begin(wifiSettings.data().ssid.c_str(), wifiSettings.data().password.c_str());
+  updateApState();  // attiva subito l'AP se già abilitata manualmente da NVS
 
   webApp.begin();
   ota.begin(server);
@@ -185,6 +225,7 @@ void setup() {
 
 void loop() {
   connectWifiIfNeeded();
+  updateApState();
   networkSettings.tick();
   checkNtpResync();
   pump.tick();

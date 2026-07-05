@@ -10,9 +10,11 @@
 
 WebServerApp::WebServerApp(AsyncWebServer& server, Pump& pump, Battery& battery, Schedule& schedule,
                            bool& mqttConnected, MqttSettings& mqttSettings, MqttClientWrapper& mqttClient,
-                           PumpCurrentMonitor& pumpCurrentMonitor)
+                           PumpCurrentMonitor& pumpCurrentMonitor, LedControl& ledControl,
+                           bool& apActive, String& apSsid)
     : server_(server), pump_(pump), battery_(battery), schedule_(schedule), mqttConnected_(mqttConnected),
-      mqttSettings_(mqttSettings), mqttClient_(mqttClient), pumpCurrentMonitor_(pumpCurrentMonitor) {}
+      mqttSettings_(mqttSettings), mqttClient_(mqttClient), pumpCurrentMonitor_(pumpCurrentMonitor),
+      ledControl_(ledControl), apActive_(apActive), apSsid_(apSsid) {}
 
 static const char* pumpSourceToString(PumpSource s) {
   switch (s) {
@@ -98,6 +100,21 @@ void WebServerApp::handleStatus(AsyncWebServerRequest* request) {
   doc["wifi"]["ssid"] = wifiConnected ? WiFi.SSID() : "";
   doc["wifi"]["ip"] = wifiConnected ? WiFi.localIP().toString() : "";
   doc["wifi"]["rssi"] = WiFi.RSSI();
+  if (wifiConnected) {
+    doc["wifi"]["channel"] = WiFi.channel();
+  } else {
+    doc["wifi"]["channel"] = nullptr;
+  }
+  // Nessun chip ESP32 ha hardware WiFi 5GHz (nemmeno la C6, che aggiunge
+  // solo 802.11ax/WiFi 6 sulla banda 2.4GHz esistente): il campo è fisso,
+  // non un valore letto in runtime, mostrato solo per trasparenza in UI.
+  doc["wifi"]["band"] = "2.4GHz";
+  doc["wifi"]["ap"]["active"] = apActive_;
+  doc["wifi"]["ap"]["ssid"] = apActive_ ? apSsid_ : "";
+  doc["wifi"]["ap"]["ip"] = apActive_ ? WiFi.softAPIP().toString() : "";
+
+  doc["led"]["available"] = ledControl_.isAvailable();
+  doc["led"]["on"] = ledControl_.isOn();
 
   doc["mqtt"]["connected"] = mqttConnected_;
 

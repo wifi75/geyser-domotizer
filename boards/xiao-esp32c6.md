@@ -14,25 +14,31 @@ Usa anche una tabella partizioni condivisa (`partitions_4MB.csv`, vedi `firmware
 
 Se in futuro PlatformIO/Espressif ripristinano il supporto ufficiale, l'ambiente può tornare a `platform = espressif32` — verificare prima che il board manifest dichiari `"arduino"` tra i framework supportati (`cat ~/.platformio/platforms/espressif32/boards/seeed_xiao_esp32c6.json`).
 
-## Pinout (mapping D-number → GPIO)
+## Pinout
 
-Identico alla XIAO ESP32-C3 (stesso `config.h`, branch `#else` comune):
+⚠️ **Non identico alla XIAO ESP32-C3**: il mapping D-number → GPIO reale di questa scheda è completamente diverso (D0=GPIO0, D1=GPIO1, D2=GPIO2, D3=GPIO21, D4=GPIO22, D5=GPIO23, D6=GPIO16, D7=GPIO17... vedi `pins_arduino.h` del core Arduino). Non è un problema per il firmware, che usa numeri di GPIO diretti (`PIN_RELAY_PUMP`, ecc.) non le sigle D-number — ma **non fare l'assunzione "stessa sigla D = stesso GPIO" passando da una scheda all'altra** quando colleghi i fili.
 
-| Silkscreen | GPIO | Note |
-|---|---|---|
-| D0 | **GPIO2** ⚙️ | pin di boot — verificare che non sia tenuto basso da nulla all'accensione |
-| D1 | GPIO3 | |
-| D2 | GPIO4 | |
-| D3 | GPIO5 | |
-| D4 | GPIO6 | |
-| D5 | GPIO7 | |
-| D6 | GPIO21 | |
-| D7 | GPIO20 | |
-| D8 | GPIO8 | pin di boot |
-| D9 | GPIO9 | pin di boot (BOOT), sconsigliato |
-| D10 | GPIO10 | |
+`config.h` ha un branch pin dedicato per questa scheda (`BOARD_XIAO_ESP32C6`), diverso da quello della C3, per un motivo importante:
 
-⚙️ = pin di default per il relè pompa (`PIN_RELAY_PUMP`), riconfigurabile da web (Impostazioni → "Pin GPIO relè pompa") senza riflashare.
+⚠️ **GPIO3 e GPIO14 sono riservati all'antenna WiFi.** Il file `variant.cpp` di Seeed per questa scheda esegue `initVariant()` **prima di `setup()`** e pilota attivamente:
+- GPIO3 (`WIFI_ENABLE`) → tenuto LOW per abilitare l'antenna
+- GPIO14 (`WIFI_ANT_CONFIG`) → LOW per usare l'antenna integrata (HIGH = antenna esterna via u.FL)
+
+Un buzzer o altro componente collegato a GPIO3 e portato HIGH disabiliterebbe l'antenna WiFi. Per questo `PIN_BUZZER` su questa scheda è GPIO1, non GPIO3 come sulla C3.
+
+| GPIO | Uso in questo progetto |
+|---|---|
+| GPIO2 | `PIN_RELAY_PUMP` (relè pompa, default) |
+| GPIO1 | `PIN_BUZZER` (preavviso acustico, opzionale) |
+| GPIO4 | `PIN_BATTERY_ADC` |
+| GPIO6 | `PIN_I2C_SDA` (sensore INA219) |
+| GPIO7 | `PIN_I2C_SCL` (sensore INA219) |
+| GPIO15 | `PIN_STATUS_LED` (`LED_BUILTIN`, controllabile da UI tab Stato) |
+| GPIO3, GPIO14 | ⚠️ riservati all'antenna WiFi, non usare |
+
+## LED di stato
+
+GPIO15 è il `LED_BUILTIN` di questa scheda: controllabile da web (tab Stato → card "LED di stato", visibile solo su schede che lo espongono) via `GET/PUT /api/led`. La logica attivo-alto/basso è un default (attivo basso) verificabile/correggibile da UI la prima volta che lo accendi, se il verso risultasse invertito.
 
 ## Alimentazione
 
