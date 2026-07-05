@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.44.1 — 2026-07-05
+
+Fix: l'emoji 🦟 mancava nel titolo della scheda del browser.
+
+- La v0.42.0 aveva aggiunto la favicon e sostituito l'emoji 🌿→🦟 nell'header, ma il tag `<title>` (il testo mostrato nella scheda del browser) era rimasto senza emoji — ora è `🦟 Geyser Domotizer` ovunque
+
 ## v0.44.0 — 2026-07-05
 
 Separata la logica dell'Access Point dalla connessione WiFi, aggiunto un pulsante per spegnerlo/accenderlo subito.
