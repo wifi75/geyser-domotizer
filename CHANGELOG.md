@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.23.0 — 2026-07-05
+
+Nuova tab "Rete", per non affollare più Impostazioni.
+
+- Nuova tab "Rete" con Configurazione IP, Server NTP e Configurazione MQTT (prima tutte ammassate in Impostazioni insieme a GPIO e aggiornamenti firmware)
+- Impostazioni ora contiene solo Pin GPIO relè pompa e Aggiornamenti firmware
+
 ## v0.22.0 — 2026-07-05
 
 Fix vero del mancato refresh dopo un riavvio (OTA, upload manuale, riavvio, config di rete).

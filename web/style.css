@@ -55,14 +55,16 @@ header h1 { grid-column: 2; text-align: center; font-size: 1.2rem; margin: 0; }
   display: flex;
   gap: 4px;
   border-bottom: 1px solid var(--border);
+  overflow-x: auto;
 }
 
 .tab-btn {
   background: transparent;
   border: none;
   color: var(--muted);
-  padding: 10px 14px;
-  font-size: 0.9rem;
+  padding: 10px 10px;
+  font-size: 0.85rem;
+  white-space: nowrap;
   cursor: pointer;
   border-bottom: 2px solid transparent;
 }
