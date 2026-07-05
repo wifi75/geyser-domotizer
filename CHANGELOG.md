@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.23.2 — 2026-07-05
+
+Fix: "Riavvia dispositivo" poteva restare bloccato a tempo indeterminato, oltre ogni timeout previsto.
+
+- La richiesta iniziale `POST /api/system/restart` (e in generale ogni chiamata dell'helper `api()`) non aveva alcun timeout: se il dispositivo non arrivava mai a rispondere, la pagina restava in attesa a tempo indeterminato PRIMA ancora di iniziare il ciclo che aspetta il riavvio — vanificando tutti i timeout aggiunti in precedenza, che scattano solo dopo che questa richiesta si è risolta
+- Aggiunto un timeout di 10s a tutte le chiamate `api()`: oltre quel limite la richiesta viene abortita e trattata come fallita, sbloccando il resto del flusso
+
 ## v0.23.1 — 2026-07-05
 
 Fix: un falso "aggiornamento completato" quando in realtà il dispositivo è solo crashato e ripartito con la stessa versione di prima.

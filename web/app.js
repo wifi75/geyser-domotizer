@@ -11,12 +11,23 @@ function fmtRemaining(seconds) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-async function api(path, options) {
-  const res = await fetch(path, options);
-  // Gli endpoint restituiscono sempre un corpo JSON con { ok, error, details }
-  // anche in caso di errore applicativo (es. HTTP 400 per validazione fallita):
-  // va letto comunque, non trattato come fallimento di rete.
-  return res.json();
+// Timeout esplicito su ogni richiesta: senza, una fetch che il dispositivo
+// non arriva mai a rispondere (es. si riavvia nel mezzo della richiesta,
+// prima di inviare la risposta) resta appesa a tempo indeterminato — ben
+// oltre qualunque timeout applicato altrove nel codice, perché quegli altri
+// timeout scattano solo DOPO che questa await si è risolta.
+async function api(path, options, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(path, { ...options, signal: controller.signal });
+    // Gli endpoint restituiscono sempre un corpo JSON con { ok, error, details }
+    // anche in caso di errore applicativo (es. HTTP 400 per validazione fallita):
+    // va letto comunque, non trattato come fallimento di rete.
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function setBadge(elm, connected) {
