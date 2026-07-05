@@ -237,7 +237,7 @@ void loop() {
   pump.tick();
   pumpCurrentMonitor.tick(pump, pumpCurrentSettings.data());
   checkScheduleTrigger();
-  ledControl.tick(apActiveFlag, pump.isActive(), WiFi.status() == WL_CONNECTED);
+  ledControl.tick(otaUpdateInProgress(), pump.isActive(), WiFi.status() == WL_CONNECTED);
 
   mqttConnectedFlag = mqtt.connected();
   mqtt.loop();

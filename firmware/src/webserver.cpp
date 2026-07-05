@@ -115,7 +115,7 @@ void WebServerApp::handleStatus(AsyncWebServerRequest* request) {
 
   doc["led"]["available"] = ledControl_.isAvailable();
   doc["led"]["on"] = ledControl_.isOn();
-  doc["led"]["autoReason"] = ledControl_.autoReason() ? ledControl_.autoReason() : nullptr;
+  doc["led"]["reason"] = ledControl_.reason() ? ledControl_.reason() : nullptr;
 
   doc["mqtt"]["connected"] = mqttConnected_;
 

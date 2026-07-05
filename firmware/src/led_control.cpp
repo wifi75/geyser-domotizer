@@ -4,6 +4,7 @@
 #include "auth.h"
 #include <Preferences.h>
 #include <ArduinoJson.h>
+#include <cstring>
 
 // Persistita in NVS, non su LittleFS: vedi il commento analogo in
 // gpio_settings.cpp sul perché (l'OTA del sito sostituisce l'intera
@@ -60,7 +61,6 @@ void LedControl::begin(AsyncWebServer& server) {
 #ifdef PIN_STATUS_LED
   load();
   pinMode(PIN_STATUS_LED, OUTPUT);
-  manualOn_ = false;  // spento all'avvio, indipendentemente dallo stato prima del riavvio
   applyPhysical(false);
 #endif
 
@@ -72,22 +72,22 @@ void LedControl::begin(AsyncWebServer& server) {
   server.addHandler(handler);
 }
 
-void LedControl::tick(bool apActive, bool pumpActive, bool wifiConnected) {
+void LedControl::tick(bool otaInProgress, bool pumpActive, bool wifiConnected) {
 #ifdef PIN_STATUS_LED
-  const char* reason = apActive ? "ap" : pumpActive ? "pump" : !wifiConnected ? "wifi" : nullptr;
-  autoReason_ = reason;
+  const char* reason = pumpActive ? "pump" : otaInProgress ? "ota" : !wifiConnected ? "wifi" : nullptr;
+  reason_ = reason;
 
   if (reason == nullptr) {
-    if (physicalOn_ != manualOn_) applyPhysical(manualOn_);
+    if (physicalOn_) applyPhysical(false);
     return;
   }
 
-  bool blinking = (reason[0] == 'w');  // solo "wifi" lampeggia, "ap"/"pump" fissi accesi
-  if (!blinking) {
+  if (strcmp(reason, "pump") == 0) {
     if (!physicalOn_) applyPhysical(true);
     return;
   }
 
+  // "ota" e "wifi" lampeggiano entrambi
   uint32_t now = millis();
   if (now - lastBlinkToggleMs_ >= BLINK_INTERVAL_MS) {
     lastBlinkToggleMs_ = now;
@@ -100,9 +100,8 @@ void LedControl::handleGet(AsyncWebServerRequest* request) {
   JsonDocument doc;
   doc["available"] = isAvailable();
   doc["on"] = physicalOn_;
-  doc["manualOn"] = manualOn_;
   doc["activeLow"] = activeLow_;
-  doc["autoReason"] = autoReason_ ? autoReason_ : nullptr;
+  doc["reason"] = reason_ ? reason_ : nullptr;
   AsyncResponseStream* response = request->beginResponseStream("application/json");
   serializeJson(doc, *response);
   request->send(response);
@@ -123,29 +122,20 @@ void LedControl::handlePut(AsyncWebServerRequest* request, JsonVariant& body) {
     return;
   }
 
-  bool changedLogic = false;
   if (!body["activeLow"].isNull()) {
     bool activeLow = body["activeLow"] | true;
     if (activeLow != activeLow_) {
       activeLow_ = activeLow;
-      changedLogic = true;
+      save();
+      eventLogAdd("led", activeLow_ ? "logica attivo basso" : "logica attivo alto");
     }
-  }
-  if (!body["on"].isNull()) {
-    manualOn_ = body["on"] | false;
-    if (autoReason_ == nullptr) applyPhysical(manualOn_);
-  }
-  if (changedLogic) {
-    save();
-    eventLogAdd("led", activeLow_ ? "logica attivo basso" : "logica attivo alto");
   }
 
   JsonDocument doc;
   doc["ok"] = true;
   doc["on"] = physicalOn_;
-  doc["manualOn"] = manualOn_;
   doc["activeLow"] = activeLow_;
-  doc["autoReason"] = autoReason_ ? autoReason_ : nullptr;
+  doc["reason"] = reason_ ? reason_ : nullptr;
   AsyncResponseStream* response = request->beginResponseStream("application/json");
   serializeJson(doc, *response);
   request->send(response);

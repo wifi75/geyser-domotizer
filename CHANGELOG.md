@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.36.0 — 2026-07-05
+
+Semplificato il LED di stato: solo automatico, nessun controllo manuale.
+
+- Rimosso il toggle manuale acceso/spento del LED: restava "sempre acceso" una volta premuto, senza modo di capire perché (causa di confusione reale in test) — ora il LED è puramente automatico
+- Nuova logica (priorità): **fisso acceso** durante una nebulizzazione (pompa/relè attivo), **lampeggiante** durante un aggiornamento OTA in corso o quando il WiFi è disconnesso, **spento** altrimenti
+- `/api/led` e `/api/status` espongono `reason` (`"pump"`/`"ota"`/`"wifi"`/`null`) invece del precedente `autoReason`; `PUT /api/led` accetta solo `activeLow` (calibrazione logica, non più un comando "on")
+- `mock-server/server.py` aggiornato con la stessa logica semplificata
+
 ## v0.35.0 — 2026-07-05
 
 Fix cosmetico UI: barra di progresso OTA "bloccata" durante la fase LittleFS.

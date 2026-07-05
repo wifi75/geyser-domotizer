@@ -164,10 +164,10 @@ function renderWifi(wifi) {
   }
 }
 
-const LED_AUTO_LABELS = {
-  ap: "Acceso automaticamente: Access Point di emergenza attivo",
-  pump: "Acceso automaticamente: nebulizzazione in corso",
-  wifi: "Lampeggia automaticamente: WiFi disconnesso",
+const LED_STATUS_LABELS = {
+  pump: "Acceso — nebulizzazione in corso",
+  ota: "Lampeggia — aggiornamento OTA in corso",
+  wifi: "Lampeggia — WiFi disconnesso",
 };
 
 function renderLed(led) {
@@ -177,17 +177,7 @@ function renderLed(led) {
     return;
   }
   card.classList.remove("hidden");
-  const btn = el("btn-led-toggle");
-  btn.textContent = led.on ? "Spegni" : "Accendi";
-  btn.dataset.on = led.on ? "1" : "0";
-
-  const note = el("led-auto-note");
-  if (led.autoReason && LED_AUTO_LABELS[led.autoReason]) {
-    note.textContent = LED_AUTO_LABELS[led.autoReason];
-    note.classList.remove("hidden");
-  } else {
-    note.classList.add("hidden");
-  }
+  el("led-status-value").textContent = (led.reason && LED_STATUS_LABELS[led.reason]) || "Spento";
 }
 
 async function refreshStatus() {
@@ -1184,24 +1174,6 @@ async function saveWifiSettings() {
   }
 }
 
-async function toggleLed() {
-  const btn = el("btn-led-toggle");
-  const feedback = el("led-feedback");
-  const wantOn = btn.dataset.on !== "1";
-  const r = await api("/api/led", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ on: wantOn })
-  });
-  if (r && r.ok === false) {
-    feedback.textContent = `Errore: ${r.error}`;
-    feedback.className = "feedback error";
-  } else {
-    feedback.textContent = "";
-    renderLed({ available: true, on: wantOn });
-  }
-}
-
 el("btn-start").addEventListener("click", startManual);
 el("btn-stop").addEventListener("click", stopManual);
 el("btn-save-schedule").addEventListener("click", saveSchedule);
@@ -1215,7 +1187,6 @@ el("network-mode-dhcp").addEventListener("change", updateNetworkFieldsVisibility
 el("network-mode-static").addEventListener("change", updateNetworkFieldsVisibility);
 el("btn-save-network").addEventListener("click", saveNetworkConfig);
 el("btn-save-wifi").addEventListener("click", saveWifiSettings);
-el("btn-led-toggle").addEventListener("click", toggleLed);
 el("btn-restart").addEventListener("click", restartDevice);
 el("btn-save-gpio").addEventListener("click", saveGpioConfig);
 el("btn-save-ntp").addEventListener("click", saveNtpConfig);

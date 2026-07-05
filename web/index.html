@@ -122,12 +122,8 @@
 
     <section class="card hidden" id="card-led">
       <h2>LED di stato</h2>
-      <p class="muted">LED integrato sulla scheda. Si accende automaticamente durante una nebulizzazione o quando è attivo l'Access Point di emergenza, e lampeggia se il WiFi è disconnesso — il comando manuale resta valido quando nessuna di queste condizioni è attiva.</p>
-      <div class="schedule-actions">
-        <button id="btn-led-toggle" class="btn btn-primary">Accendi</button>
-        <span id="led-feedback" class="feedback"></span>
-      </div>
-      <p id="led-auto-note" class="muted hidden"></p>
+      <p class="muted">LED integrato sulla scheda: fisso acceso durante una nebulizzazione, lampeggiante durante un aggiornamento OTA o quando il WiFi è disconnesso, altrimenti spento. Nessun comando manuale.</p>
+      <p id="led-status-text">Stato attuale: <strong id="led-status-value">--</strong></p>
     </section>
 
     <section class="card" id="card-system">

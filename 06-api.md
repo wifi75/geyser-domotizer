@@ -24,7 +24,7 @@ Stato corrente del dispositivo, interrogato dal frontend ogni 2-3 secondi.
     "channel": 6, "band": "2.4GHz",
     "ap": { "active": false, "ssid": "", "ip": "" }
   },
-  "led": { "available": false, "on": false },
+  "led": { "available": false, "on": false, "reason": null },
   "mqtt": { "connected": true },
   "pumpCurrent": { "sensorFound": true, "milliAmps": 1180, "tankEmptySuspected": false, "minMilliAmps": 1100, "maxMilliAmps": 1350 },
   "system": {
@@ -39,7 +39,7 @@ Stato corrente del dispositivo, interrogato dal frontend ogni 2-3 secondi.
 
 `pump.source` è `"manual"` o `"schedule"` quando `active` è `true`, altrimenti `null`.
 `wifi.ssid`/`wifi.ip` sono stringa vuota quando `wifi.connected` è `false`. La qualità del segnale (barre/percentuale) è calcolata lato frontend da `rssi`, non serve un campo dedicato. `wifi.channel` è `null` se non connesso. `wifi.band` è sempre `"2.4GHz"`: nessun chip ESP32 (nemmeno la XIAO C6, che aggiunge solo 802.11ax/WiFi 6 sulla stessa banda 2.4GHz) ha hardware WiFi 5GHz, il campo è fisso e mostrato solo per trasparenza in UI. `wifi.ap` riflette l'Access Point di emergenza/setup (vedi `GET/PUT /api/wifi`): `ssid`/`ip` sono stringa vuota quando `active` è `false`.
-`led.available` è `false` sulle schede senza LED di stato controllabile (oggi solo la XIAO ESP32-C6 lo espone); `led.on` è sempre `false` quando non disponibile.
+`led.available` è `false` sulle schede senza LED di stato controllabile (oggi solo la XIAO ESP32-C6 lo espone); `led.on` è sempre `false` quando non disponibile. Il LED è puramente automatico (nessun controllo manuale): `led.reason` è `"pump"` (fisso acceso, nebulizzazione in corso), `"ota"` o `"wifi"` (lampeggiante, aggiornamento OTA in corso o WiFi disconnesso), oppure `null` (spento, nessuna condizione attiva).
 `time` è sempre sincronizzato via NTP (vedi `GET/PUT /api/ntp`), non è l'orologio interno dell'ESP32 non sincronizzato.
 `pumpCurrent.sensorFound` è `false` se il sensore INA219 non risponde sul bus I2C (es. non collegato): in quel caso `milliAmps` resta a 0 e `tankEmptySuspected` sempre `false`. `milliAmps` è l'ultima lettura mentre la pompa è attiva (0 a pompa ferma). `tankEmptySuspected` diventa `true` quando il firmware rileva la condizione configurata in `GET/PUT /api/pump-current` e ferma la pompa da solo; resta `true` fino al ciclo successivo.
 `minMilliAmps`/`maxMilliAmps` sono `null` se non è ancora mai girata la pompa da quando sono stati azzerati (vedi sotto), altrimenti il minimo/massimo osservati durante *tutti* i cicli da allora — pensati per tarare a mano la soglia (es. un ciclo a serbatoio pieno, azzera, un ciclo a vuoto, confronta i due intervalli).
@@ -205,16 +205,16 @@ Risposta: `{ "ok": true }` oppure `{ "ok": false, "error": "invalid_ssid", "deta
 ## GET /api/led
 
 ```json
-{ "available": true, "on": false, "activeLow": true }
+{ "available": true, "on": false, "activeLow": true, "reason": null }
 ```
 
-`available` è `false` sulle schede senza LED di stato controllabile (vedi nota su `GET /api/status`).
+`available` è `false` sulle schede senza LED di stato controllabile (vedi nota su `GET /api/status`). Il LED è puramente automatico (nessun comando "on" manuale): `reason` vale `"pump"`/`"ota"`/`"wifi"`/`null`, stessa semantica del campo in `GET /api/status`.
 
 ## PUT /api/led
 
-Accende/spegne il LED di stato e/o ne cambia la logica attivo-alto/basso. Body: `{ "on": true }` e/o `{ "activeLow": false }`, entrambi opzionali. Lo stato acceso/spento **non è persistito**: torna sempre spento a ogni riavvio; la logica attivo-alto/basso invece sì (NVS).
+Cambia solo la logica attivo-alto/basso del LED (calibrazione hardware, non un comando di accensione). Body: `{ "activeLow": false }`. Persistita in NVS.
 
-Risposta: `{ "ok": true, "on": true, "activeLow": true }` oppure `{ "ok": false, "error": "led_not_available" }` (schede senza LED integrato).
+Risposta: `{ "ok": true, "on": true, "activeLow": true, "reason": "pump" }` oppure `{ "ok": false, "error": "led_not_available" }` (schede senza LED integrato).
 
 ## GET /api/network
 

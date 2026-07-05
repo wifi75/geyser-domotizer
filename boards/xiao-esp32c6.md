@@ -38,7 +38,7 @@ Un buzzer o altro componente collegato a GPIO3 e portato HIGH disabiliterebbe l'
 
 ## LED di stato
 
-GPIO15 è il `LED_BUILTIN` di questa scheda: controllabile da web (tab Stato → card "LED di stato", visibile solo su schede che lo espongono) via `GET/PUT /api/led`. La logica attivo-alto/basso è un default (attivo basso) verificabile/correggibile da UI la prima volta che lo accendi, se il verso risultasse invertito.
+GPIO15 è il `LED_BUILTIN` di questa scheda: puramente automatico (nessun comando manuale, era stato provato ma restava "sempre acceso" una volta premuto, causa di confusione — vedi CHANGELOG v0.36.0). Fisso acceso durante una nebulizzazione, lampeggiante durante un aggiornamento OTA o quando il WiFi è disconnesso, spento altrimenti. Visibile in tab Stato → card "LED di stato", esposto via `GET/PUT /api/led`. La logica attivo-alto/basso è un default (attivo basso), correggibile via `PUT /api/led` (`{"activeLow": false}`) se il verso risultasse invertito su un esemplare specifico.
 
 ## Troubleshooting: relè che non si eccita
 
