@@ -19,7 +19,14 @@ static const char* pumpSourceToString(PumpSource s) {
 }
 
 void WebServerApp::begin() {
-  server_.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
+  // Il file statico ("/") va registrato per ultimo in main.cpp, dopo tutte
+  // le rotte API di ogni modulo: ESPAsyncWebServer prova gli handler
+  // nell'ordine di registrazione, e AsyncStaticWebHandler tenta diverse
+  // varianti di file (gzip, index.html...) prima di rinunciare — se fosse
+  // registrato per primo, ogni chiamata API (es. /api/status ogni 2s)
+  // pagherebbe quei tentativi falliti su LittleFS prima di raggiungere
+  // l'handler giusto (visibile nel log come "does not exist, no permits
+  // for creation" ripetuto ad ogni polling).
 
   server_.on("/api/status", HTTP_GET, [this](AsyncWebServerRequest* request) {
     handleStatus(request);

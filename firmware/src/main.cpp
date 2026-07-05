@@ -143,6 +143,10 @@ void setup() {
 
   webApp.begin();
   ota.begin(server);
+  // Registrato per ultimo apposta: vedi il commento in webserver.cpp
+  // (WebServerApp::begin()) sul perché farlo prima intasa il log ad ogni
+  // chiamata API con tentativi falliti di apertura file su LittleFS.
+  server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
   server.begin();
   mqtt.begin(mqttSettings, pump);
 

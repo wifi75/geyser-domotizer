@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.28.1 — 2026-07-05
+
+Fix: rumore nel log seriale ad ogni chiamata API (file statici sondati inutilmente).
+
+- `server.serveStatic("/", ...)` era registrato per primo, prima di tutte le rotte API di ogni modulo: ESPAsyncWebServer prova gli handler nell'ordine di registrazione, e il gestore di file statici tenta diverse varianti (gzip, index.html...) prima di rinunciare — ogni chiamata a `/api/status` (ogni 2s) pagava quei tentativi falliti su LittleFS, visibili nel log come `open(): ... does not exist, no permits for creation` ripetuto
+- Spostato in fondo, dopo tutte le rotte API di tutti i moduli: ora le chiamate API vengono gestite direttamente, senza probing sul filesystem
+
 ## v0.28.0 — 2026-07-05
 
 Home Assistant: "produttore" e "modello" più descrittivi, link al progetto.
