@@ -11,10 +11,14 @@ void Pump::begin(int relayPin, bool activeHigh) {
   relayPin_ = relayPin;
   onLevel_ = activeHigh ? HIGH : LOW;
   offLevel_ = activeHigh ? LOW : HIGH;
-  pinMode(relayPin_, OUTPUT);
+  // digitalWrite prima di pinMode: precarica il registro di uscita con lo
+  // stato di riposo così, quando pinMode(OUTPUT) abilita il pin, non c'è il
+  // transiente LOW di default che su un relè active-low lo eccita per un
+  // istante ad ogni boot.
   digitalWrite(relayPin_, offLevel_);
-  pinMode(PIN_BUZZER, OUTPUT);
+  pinMode(relayPin_, OUTPUT);
   digitalWrite(PIN_BUZZER, LOW);
+  pinMode(PIN_BUZZER, OUTPUT);
 }
 
 bool Pump::reconfigure(int relayPin, bool activeHigh) {
@@ -30,8 +34,8 @@ bool Pump::reconfigure(int relayPin, bool activeHigh) {
   relayPin_ = relayPin;
   onLevel_ = activeHigh ? HIGH : LOW;
   offLevel_ = activeHigh ? LOW : HIGH;
-  pinMode(relayPin_, OUTPUT);
   digitalWrite(relayPin_, offLevel_);
+  pinMode(relayPin_, OUTPUT);
   return true;
 }
 

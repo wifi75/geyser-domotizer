@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.40.0 — 2026-07-05
+
+Fix: il relè si eccitava per un istante ad ogni riavvio della scheda.
+
+- `Pump::begin()`/`Pump::reconfigure()` in `pump.cpp` chiamavano `pinMode(relayPin, OUTPUT)` prima di `digitalWrite(relayPin, offLevel)`: su ESP32 il pin appena passato a OUTPUT parte per un istante a LOW prima che `digitalWrite` lo porti allo stato di riposo corretto — su un relè active-low questo transiente lo eccitava brevemente ad ogni boot (non un vero ciclo pompa: nessun evento `pump` nel log eventi)
+- Risolto invertendo l'ordine: `digitalWrite` prima di `pinMode(OUTPUT)` precarica il registro di uscita con lo stato di riposo, così quando il pin viene abilitato come uscita non c'è più il transiente
+
 ## v0.39.0 — 2026-07-05
 
 SSID dell'Access Point cambiato a "ESP-Geyser" (fisso, senza suffisso MAC).
