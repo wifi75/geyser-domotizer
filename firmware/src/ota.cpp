@@ -262,8 +262,13 @@ void OtaManager::runUpdateTask() {
     littlefsClient.setTimeout(15000);
     t_httpUpdate_return fsRet = httpUpdate.updateSpiffs(littlefsClient, pendingLittlefsAssetUrl_);
     if (fsRet != HTTP_UPDATE_OK) {
-      Serial.printf("Aggiornamento sito fallito (%s), procedo comunque col firmware\n",
-                    httpUpdate.getLastErrorString().c_str());
+      String details = httpUpdate.getLastErrorString();
+      Serial.printf("Aggiornamento sito fallito (%s), procedo comunque col firmware\n", details.c_str());
+      // Va nel registro eventi (non solo su Serial, che nessuno guarda in
+      // uso normale): altrimenti il firmware si aggiorna regolarmente e "OTA
+      // completato" appare comunque, ma il sito web resta silenziosamente
+      // quello vecchio senza che sia visibile da nessuna parte in UI.
+      eventLogAdd("ota", String("aggiornamento sito fallito: ") + details);
     }
   }
 

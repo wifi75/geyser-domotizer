@@ -7,14 +7,28 @@
 # Qui gli slot app crescono a 0x180000 (1.5MB) e la partizione dati si
 # riduce a 0x80000 (512KB, i web assets pesano solo ~76KB): il totale resta
 # comunque sotto i 4MB disponibili su tutte e 3 le board.
-# Il nome "spiffs" nella prima colonna e' voluto (non "littlefs"): la
-# libreria Arduino LittleFS.begin() cerca di default una partizione con
-# quel nome esatto (vedi LittleFS.h, partitionLabel="spiffs"); il campo
-# SubType puo' restare "littlefs" senza conflitti.
-# Name,     Type, SubType,  Offset,   Size,     Flags
-nvs,        data, nvs,      0x9000,   0x5000,
-otadata,    data, ota,      0xe000,   0x2000,
-app0,       app,  ota_0,    0x10000,  0x180000,
-app1,       app,  ota_1,    0x190000, 0x180000,
-spiffs,     data, littlefs, 0x310000, 0x80000,
-coredump,   data, coredump, 0x390000, 0x10000,
+# Il nome "spiffs" nella prima colonna e' voluto: la libreria Arduino
+# LittleFS.begin() cerca di default una partizione con quel nome esatto
+# (vedi LittleFS.h, partitionLabel="spiffs").
+# Il campo SubType invece DEVE essere "spiffs", non "littlefs": un bug
+# preso qui in un primo momento (assumendo fossero intercambiabili) ha
+# rotto silenziosamente ogni aggiornamento OTA del sito per diverse
+# release. L'update via OTA del filesystem (httpUpdate.updateSpiffs(),
+# usato da ota.cpp per il file littlefs-<board>.bin) cerca la partizione
+# per TYPE+SUBTYPE numerico esatto (ESP_PARTITION_SUBTYPE_DATA_SPIFFS),
+# non per nome: con SubType="littlefs" quella ricerca falliva sempre con
+# "Partition Could Not be Found", loggato solo su Serial (mai nel log
+# eventi visibile da UI, altro bug corretto insieme a questo) — il
+# firmware si aggiornava regolarmente, il sito web restava silenziosamente
+# quello vecchio ad ogni OTA. LittleFS.begin() invece cerca per NOME
+# ("spiffs", prima colonna), non per SubType, quindi il mount a runtime
+# ha sempre funzionato regolarmente nonostante l'errore: per questo il
+# problema è passato inosservato finché qualcuno non ha confrontato a
+# mano l'HTML servito dal dispositivo con la sorgente in web/.
+# Name,     Type, SubType, Offset,   Size,     Flags
+nvs,        data, nvs,     0x9000,   0x5000,
+otadata,    data, ota,     0xe000,   0x2000,
+app0,       app,  ota_0,   0x10000,  0x180000,
+app1,       app,  ota_1,   0x190000, 0x180000,
+spiffs,     data, spiffs,  0x310000, 0x80000,
+coredump,   data, coredump,0x390000, 0x10000,

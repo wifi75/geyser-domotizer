@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.45.0 — 2026-07-05
+
+**Fix critico**: l'aggiornamento OTA del sito web (LittleFS) falliva silenziosamente da diverse release, senza che nulla lo segnalasse in UI.
+
+- Causa: `firmware/partitions_4MB.csv` aveva `SubType=littlefs` per la partizione dati, assumendo (erroneamente) fosse equivalente a `SubType=spiffs`. `httpUpdate.updateSpiffs()` (usato da `ota.cpp` per scrivere `littlefs-<board>.bin`) cerca la partizione per **TYPE+SUBTYPE numerico esatto** (subtype SPIFFS), non per nome: con `SubType=littlefs` quella ricerca falliva sempre con `"Partition Could Not be Found"` — il firmware si aggiornava regolarmente, ma il sito web restava silenziosamente quello vecchio ad ogni OTA. `LittleFS.begin()` invece cerca per **nome** (`"spiffs"`, prima colonna) non per subtype, quindi il mount a runtime ha sempre funzionato: per questo il problema è passato inosservato finché qualcuno non ha confrontato a mano l'HTML servito dal dispositivo con la sorgente
+- Corretto: `SubType` ora è `spiffs` (il nome della partizione resta `spiffs` invariato)
+- ⚠️ **Questo fix richiede un reflash completo via USB** (bootloader + partizioni + firmware + littlefs): un OTA normale non può mai correggere la tabella delle partizioni da solo, essendo scritta una volta sola al primo flash. Dopo questo singolo reflash, i futuri OTA del sito funzioneranno regolarmente
+- Corretto anche il logging: un fallimento dell'aggiornamento LittleFS ora finisce anche nel registro eventi visibile da UI (`/api/events`), non più solo su Serial
+- Fix minore: `Pump::begin()` chiamava `digitalWrite()` sul pin del buzzer prima di `pinMode(OUTPUT)` (introdotto per errore nel fix del relè in v0.40.0), causando un errore spurio in log (`IO x is not set as GPIO`) — il buzzer non ha lo stesso rischio di click del relè, quindi non serviva lo stesso trattamento; ripristinato l'ordine normale
+
 ## v0.44.1 — 2026-07-05
 
 Fix: l'emoji 🦟 mancava nel titolo della scheda del browser.

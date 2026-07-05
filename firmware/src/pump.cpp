@@ -21,8 +21,12 @@ void Pump::begin(int relayPin, bool activeHigh) {
   pinMode(relayPin_, activeHigh ? INPUT_PULLDOWN : INPUT_PULLUP);
   digitalWrite(relayPin_, offLevel_);
   pinMode(relayPin_, OUTPUT);
-  digitalWrite(PIN_BUZZER, LOW);
+  // Il buzzer non ha lo stesso problema del relè (nessun click pericoloso da
+  // evitare): digitalWrite prima di pinMode qui produceva solo un errore
+  // spurio in log ("IO x is not set as GPIO") perché il pin non è ancora in
+  // funzione GPIO alla prima chiamata. Ordine normale, pinMode prima.
   pinMode(PIN_BUZZER, OUTPUT);
+  digitalWrite(PIN_BUZZER, LOW);
 }
 
 bool Pump::reconfigure(int relayPin, bool activeHigh) {
