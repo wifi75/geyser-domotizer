@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.47.3 — 2026-07-05
+
+UI: uniformato stile dei pulsanti nella sezione Impostazioni — tutti i pulsanti usano `btn btn-primary btn-small` per coerenza visiva.
+
 ## v0.47.2 — 2026-07-05
 
 UI: controllo logica LED (attivo-basso/alto) ripristinato nella sezione "LED di stato". Era supportato dall'API ma mancava il controllo nella UI.
