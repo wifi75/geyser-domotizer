@@ -508,10 +508,14 @@ input[type="number"], input[type="time"], input[type="text"], input[type="passwo
   font-size: 0.9rem;
 }
 
-#card-gpio label, #card-ntp label { display: block; color: var(--muted); font-size: 0.85rem; margin-bottom: 6px; }
+#card-gpio label, #card-ntp label, #card-led label { display: block; color: var(--muted); font-size: 0.85rem; margin-bottom: 6px; }
 #gpio-relay-select { width: 100%; max-width: 320px; margin-bottom: 4px; }
 #ntp-server { width: 100%; max-width: 320px; }
 #card-ntp p.muted { margin-top: 0; }
+
+#card-led select { width: 100%; max-width: 320px; margin-bottom: 14px; }
+#card-led .settings-row label { display: inline; margin-bottom: 0; color: var(--text); font-size: 1rem; }
+#card-led .settings-row { margin-bottom: 8px; }
 
 #manual-duration { width: 50px; text-align: center; }
 

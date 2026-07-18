@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.49.1 — 2026-07-18
+
+UI: sistemato il layout disordinato della card "LED di stato" (le 3 tendine per pompa/OTA/WiFi si accavallavano sulla stessa riga invece di stare una sotto l'altra).
+
+- Causa: `#card-gpio`/`#card-ntp` avevano una regola CSS dedicata (`display: block` su `label`, larghezza fissa sulle `select`) che rendeva quelle card pulite — `#card-led` non era inclusa in quella regola, quindi label e select restavano inline di default e si accavallavano su schermi stretti
+- Aggiunta la stessa regola anche per `#card-led`, con la checkbox "Logica attivo basso" tenuta separata (resta inline accanto al suo testo, non va a capo come le tendine)
+
 ## v0.49.0 — 2026-07-18
 
 Dispositivo raggiungibile come `http://geyser.local` (mDNS), senza dover cercare l'IP dopo ogni riavvio.
