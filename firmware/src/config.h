@@ -24,6 +24,13 @@
   #define PIN_BATTERY_ADC  34
   #define PIN_I2C_SDA      21  // sensore corrente pompa (INA219)
   #define PIN_I2C_SCL      22
+  // GPIO2 è un pin di strapping del boot, ma è anche il LED blu integrato
+  // ("LED_BUILTIN") sulla stragrande maggioranza dei cloni DevKitV1 — a
+  // differenza del relè (dove un livello sbagliato per qualche istante è
+  // udibile/meccanico), un LED che flickera per la manciata di microsecondi
+  // in cui il bootloader campiona il pin è innocuo e invisibile, per questo
+  // qui va bene anche se altrove in questo file lo si evita.
+  #define PIN_STATUS_LED   2
 #elif defined(BOARD_XIAO_ESP32C6)
   // Pin per Seeed XIAO ESP32-C6. PIN_BUZZER NON può essere GPIO3 come sulla
   // C3: il variant.cpp di Seeed per questa scheda (initVariant(), eseguito
@@ -157,7 +164,7 @@
 // Da bump manuale ad ogni release: deve corrispondere ESATTAMENTE al tag
 // GitHub "vX.Y.Z" (senza la "v"), il confronto è una semplice uguaglianza
 // di stringa, non un confronto semver.
-#define FIRMWARE_VERSION "0.47.3"
+#define FIRMWARE_VERSION "0.47.4"
 #define GITHUB_OWNER "wifi75"
 #define GITHUB_REPO "geyser-domotizer"
 // Nome dell'asset da cercare tra quelli allegati alla release GitHub: deve

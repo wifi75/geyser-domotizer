@@ -40,6 +40,8 @@ pio device monitor -p COM3 -b 115200
 
 Sostituire `esp32dev` con `xiao-esp32c3`/`xiao-esp32c6` e `COM3` con la porta corretta quando si usa un'altra scheda. Su Windows, se il flash fallisce con `UnicodeEncodeError` nella progress bar, impostare `$env:PYTHONIOENCODING = "utf-8"` prima del comando.
 
+Il comando `pio device monitor` serve anche a **trovare l'IP del dispositivo** per raggiungere la dashboard web dal browser: lancialo, poi premi il tasto **EN/RESET** sulla scheda (o ricollega l'USB) — al riavvio il firmware stampa una riga tipo `WiFi connesso, IP: 192.168.1.XX`. In alternativa, controlla la lista dei dispositivi connessi nel pannello di amministrazione del router ("DHCP client list"). Non c'è ancora un hostname mDNS fisso (es. `geyser.local`), quindi finché non c'è va recuperato così a ogni riavvio se il router non assegna un IP fisso al dispositivo.
+
 ## Da fare prima di un vero utilizzo
 
 1. Completare la Fase 0 (vedi [../05-fase0-guida-apertura.md](../05-fase0-guida-apertura.md)) e aggiornare i pin/valori in `config.h`

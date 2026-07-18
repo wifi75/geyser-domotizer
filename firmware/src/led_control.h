@@ -3,8 +3,9 @@
 #include <ESPAsyncWebServer.h>
 
 // Controllo del LED di stato integrato, disponibile solo su schede che ne
-// hanno uno (PIN_STATUS_LED definito in config.h, oggi solo la XIAO
-// ESP32-C6, GPIO15/LED_BUILTIN). Su schede senza LED integrato la classe
+// hanno uno (PIN_STATUS_LED definito in config.h: XIAO ESP32-C6 su GPIO15,
+// ESP32 DevKitV1 su GPIO2 — entrambi LED_BUILTIN delle rispettive schede).
+// Su schede senza LED integrato (XIAO ESP32-C3) la classe
 // resta compilabile ma isAvailable() ritorna false e le API rispondono di
 // conseguenza, così webserver.cpp non necessita di #ifdef per board.
 //

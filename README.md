@@ -56,6 +56,16 @@ Una scheda ESP32 "vergine" non ha né bootloader né partizioni: il primo flash 
    ```
    (sostituisci `esp32dev` con `xiao-esp32c3` o `xiao-esp32c6` se usi quelle schede, e `COM3` con la porta corretta)
 5. Prima del passo 4, personalizza `firmware/src/config.local.h` (copiandolo da `config.local.h.example`) con le tue credenziali WiFi — vedi [firmware/README.md](firmware/README.md). `ADMIN_PASSWORD` è opzionale: se impostata, la UI chiede la password quando esegui azioni amministrative (OTA, riavvio, backup, salvataggio impostazioni, avvio/stop manuale).
+6. **Dopo il flash, trova l'IP del dispositivo** per raggiungere la dashboard web dal browser:
+   ```
+   pio device monitor -p COM3 -b 115200
+   ```
+   poi premi il tasto **EN/RESET** sulla scheda (o ricollega l'USB): il firmware stampa una riga tipo
+   `WiFi connesso, IP: 192.168.1.XX` non appena si connette. In alternativa, controlla la lista dei
+   dispositivi connessi nel pannello di amministrazione del tuo router (di solito sotto "DHCP client
+   list" o "Dispositivi connessi"). Il progetto non espone ancora un hostname mDNS fisso (es.
+   `geyser.local`): finché non c'è, l'IP va sempre recuperato in uno di questi due modi dopo ogni
+   riavvio/riconnessione se il tuo router non assegna un IP fisso al dispositivo.
 
 **Da quel momento in poi** (scheda già avviata almeno una volta con bootloader e partizioni presenti), gli aggiornamenti successivi possono usare solo i file `.bin` delle Release, in due modi:
 - **OTA da GitHub**: pulsante "Controlla su GitHub" → "Aggiorna ora" nella UI web, scarica e flasha da sé firmware+sito

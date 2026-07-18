@@ -19,15 +19,20 @@ Layout standard a 38 pin (ESP32-WROOM-32):
 | DAC2 | **GPIO26** ⚙️ | | GPIO17 | TXD2 |
 | Touch7 | **GPIO27** 🔊 | | GPIO16 | RXD2 |
 | Touch6 | GPIO14 | | GPIO4 | (ADC2) |
-| Touch5 | GPIO12 | | GPIO2 | strapping boot |
+| Touch5 | GPIO12 | | **GPIO2** 💡 | strapping boot |
 | Touch4 | GPIO13 | | GPIO15 | strapping boot |
 | GND | — | | GND | — |
 | VIN (5V) | — | | 3.3V | — |
 
 ⚙️ = pin di default per il relè pompa (`PIN_RELAY_PUMP`, riconfigurabile da web senza riflashare, vedi Impostazioni → "Pin GPIO relè pompa")
 🔊 = pin di default per il buzzer opzionale
+💡 = LED di stato (`PIN_STATUS_LED`, dalla v0.47.4) — il LED blu integrato ("LED_BUILTIN") presente sulla maggior parte dei cloni DevKitV1. È un pin di strapping del boot, per questo il selettore GPIO del relè lo esclude, ma per un LED va bene: il bootloader lo campiona solo per una manciata di microsecondi durante il reset, prima che il nostro `setup()` lo riconfiguri — nessun rischio di boot in modalità sbagliata, a differenza di un relè che resterebbe in quello stato osservabile più a lungo.
 
-**Pin da evitare** (esclusi anche dal selettore GPIO via web): GPIO0/2/5/12/15 (strapping del boot), GPIO1/3 (seriale USB, usati dal monitor), GPIO6-11 (riservati alla flash SPI interna, non hanno nemmeno un pin fisico su questa scheda), GPIO34/35/36/39 (input-only, non utilizzabili per il relè).
+**Pin da evitare per il relè/uscite generiche** (esclusi anche dal selettore GPIO via web): GPIO0/2/5/12/15 (strapping del boot — eccetto GPIO2 per il solo LED di stato, vedi sopra), GPIO1/3 (seriale USB, usati dal monitor), GPIO6-11 (riservati alla flash SPI interna, non hanno nemmeno un pin fisico su questa scheda), GPIO34/35/36/39 (input-only, non utilizzabili per il relè).
+
+## LED di stato
+
+Il LED blu integrato su GPIO2 mostra automaticamente lo stato del dispositivo (nessuna configurazione richiesta, card "LED di stato" visibile in tab Stato): **fisso acceso** durante una nebulizzazione, **lampeggiante** durante un aggiornamento OTA o quando il WiFi è disconnesso, **spento** altrimenti. La logica attivo-alto/basso è calibrabile da UI (`PUT /api/led`) se il verso risultasse invertito sul tuo esemplare specifico — di default attivo-basso, come la maggior parte dei LED integrati ESP32.
 
 ## Alimentazione
 

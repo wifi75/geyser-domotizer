@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.47.4 — 2026-07-18
+
+LED di stato abilitato anche su ESP32 DevKitV1 (prima era solo sulla XIAO ESP32-C6).
+
+- Aggiunto `PIN_STATUS_LED` (GPIO2, il LED blu integrato della maggior parte dei cloni DevKitV1) alla configurazione pin di `BOARD_ESP32DEV` in `config.h` — nessun'altra modifica firmware necessaria: `LedControl`, l'endpoint `/api/led` e la card UI erano già completamente board-agnostici (gated solo su `#ifdef PIN_STATUS_LED`)
+- GPIO2 è un pin di strapping del boot, normalmente evitato in questo progetto (es. per il relè) — per un LED è comunque sicuro: il bootloader lo campiona solo per una manciata di microsecondi durante il reset, prima che `setup()` lo riconfiguri, mentre un relè in stato sbagliato resterebbe osservabile più a lungo
+- Stessa logica automatica già esistente sulla C6: fisso acceso durante una nebulizzazione, lampeggiante durante un aggiornamento OTA o quando il WiFi è disconnesso, spento altrimenti — calibrabile da UI (`PUT /api/led`, `activeLow`) se il verso risultasse invertito
+
 ## v0.47.3 — 2026-07-05
 
 UI: uniformato stile dei pulsanti nella sezione Impostazioni — tutti i pulsanti usano `btn btn-primary btn-small` per coerenza visiva.
