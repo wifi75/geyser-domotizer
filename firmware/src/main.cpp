@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
+#include <ESPmDNS.h>
 #include <LittleFS.h>
 #include <time.h>
 
@@ -64,6 +65,7 @@ String lastCheckedMinuteKey = "";
 bool wifiWasConnected = false;
 bool everConnectedSTA = false;
 bool wifiJustDisconnected = false;
+bool mdnsStarted = false;
 
 void connectWifiIfNeeded() {
   bool isConnected = WiFi.status() == WL_CONNECTED;
@@ -77,6 +79,17 @@ void connectWifiIfNeeded() {
       eventLogAdd("wifi", String("connesso: ") + WiFi.localIP().toString());
       ntpSettings.resync();  // riallinea subito l'orologio dopo ogni riconnessione
       lastNtpResyncMs = millis();
+      // Avviato una sola volta: il responder mDNS resta valido anche dopo
+      // riconnessioni successive con un nuovo IP, non serve ripeterlo.
+      if (!mdnsStarted) {
+        if (MDNS.begin(MDNS_HOSTNAME)) {
+          MDNS.addService("http", "tcp", 80);
+          Serial.println("mDNS avviato: raggiungibile anche su http://" MDNS_HOSTNAME ".local");
+          mdnsStarted = true;
+        } else {
+          Serial.println("Avvio mDNS fallito");
+        }
+      }
     } else {
       wifiJustDisconnected = true;  // WiFi disconnesso, attiva il flag per AP di emergenza
       // Una disconnessione REALE ha sempre priorità su un vecchio override

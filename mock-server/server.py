@@ -36,7 +36,7 @@ PORT = int(os.environ.get("PORT", 8000))
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.48.0"
+MOCK_CURRENT_VERSION = "0.49.0"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 # Rispecchia l'elenco per esp32dev in firmware/src/gpio_settings.cpp

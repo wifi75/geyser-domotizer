@@ -106,6 +106,12 @@
 #define AP_PASSWORD "geyser1234"
 #endif
 
+// --- mDNS ---
+// Raggiungibile come http://geyser.local sulla rete locale (STA) invece di
+// dover cercare l'IP ogni volta (vedi README.md "Flashare una scheda nuova").
+// Avviato una sola volta, alla prima connessione WiFi riuscita (main.cpp).
+#define MDNS_HOSTNAME "geyser"
+
 // --- Sicurezza HTTP opzionale ---
 // Vuota = API aperte sulla LAN, comportamento storico. Se impostata in
 // config.local.h, gli endpoint che modificano stato/configurazione chiedono
@@ -164,7 +170,7 @@
 // Da bump manuale ad ogni release: deve corrispondere ESATTAMENTE al tag
 // GitHub "vX.Y.Z" (senza la "v"), il confronto è una semplice uguaglianza
 // di stringa, non un confronto semver.
-#define FIRMWARE_VERSION "0.48.0"
+#define FIRMWARE_VERSION "0.49.0"
 #define GITHUB_OWNER "wifi75"
 #define GITHUB_REPO "geyser-domotizer"
 // Nome dell'asset da cercare tra quelli allegati alla release GitHub: deve

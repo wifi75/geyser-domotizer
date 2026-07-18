@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.49.0 — 2026-07-18
+
+Dispositivo raggiungibile come `http://geyser.local` (mDNS), senza dover cercare l'IP dopo ogni riavvio.
+
+- `main.cpp` avvia `MDNS.begin("geyser")` + `MDNS.addService("http", "tcp", 80)` una sola volta, alla prima connessione WiFi riuscita — resta valido anche dopo riconnessioni successive con un nuovo IP, non serve ripeterlo
+- Hostname configurabile via `MDNS_HOSTNAME` in `config.h` (default `"geyser"`)
+- Non sostituisce i modi già esistenti per trovare l'IP (log seriale, lista DHCP del router) — utile come alternativa su reti che bloccano mDNS o dispositivi che non lo risolvono
+- +35KB circa di Flash (libreria mDNS): esp32dev ora al 91% di utilizzo sulla partizione da 1.5MB — margine ancora sufficiente ma da monitorare per future aggiunte
+
 ## v0.48.0 — 2026-07-18
 
 Menu per personalizzare il comportamento del LED di stato, e fix di un bug per cui invertire la logica attivo-alto/basso non aveva effetto immediato.
