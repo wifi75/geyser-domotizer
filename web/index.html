@@ -123,16 +123,38 @@
 
     <section class="card hidden" id="card-led">
       <h2>LED di stato</h2>
-      <p class="muted">LED integrato sulla scheda: fisso acceso durante una nebulizzazione, lampeggiante durante un aggiornamento OTA o quando il WiFi è disconnesso, altrimenti spento. Nessun comando manuale.</p>
+      <p class="muted">LED integrato sulla scheda: scegli cosa deve fare per ciascuna condizione. Nessun comando manuale diretto (acceso/spento) — solo automatico secondo le regole qui sotto.</p>
       <p id="led-status-text">Stato attuale: <strong id="led-status-value">--</strong></p>
-      <div class="settings-row">
+
+      <label for="led-pump-mode">Pompa/nebulizzazione attiva</label>
+      <select id="led-pump-mode">
+        <option value="solid">Fisso acceso</option>
+        <option value="blink">Lampeggiante</option>
+        <option value="off">Spento</option>
+      </select>
+
+      <label for="led-ota-mode" style="margin-top:10px">Aggiornamento firmware in corso</label>
+      <select id="led-ota-mode">
+        <option value="blink">Lampeggiante</option>
+        <option value="solid">Fisso acceso</option>
+        <option value="off">Spento</option>
+      </select>
+
+      <label for="led-wifi-mode" style="margin-top:10px">WiFi disconnesso</label>
+      <select id="led-wifi-mode">
+        <option value="blink">Lampeggiante</option>
+        <option value="solid">Fisso acceso</option>
+        <option value="off">Spento</option>
+      </select>
+
+      <div class="settings-row" style="margin-top:10px">
         <label>
           <input type="checkbox" id="led-active-low">
           Logica attivo basso
         </label>
-        <span class="muted">(spunta se il LED è invertito)</span>
+        <span class="muted">(spunta se il LED risulta invertito, cioè acceso quando dovrebbe essere spento)</span>
       </div>
-      <button id="btn-led-save" class="btn btn-primary btn-small">Salva logica LED</button>
+      <button id="btn-led-save" class="btn btn-primary btn-small">Salva impostazioni LED</button>
       <span id="led-feedback" class="feedback"></span>
     </section>
 

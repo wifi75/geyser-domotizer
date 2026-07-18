@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.48.0 — 2026-07-18
+
+Menu per personalizzare il comportamento del LED di stato, e fix di un bug per cui invertire la logica attivo-alto/basso non aveva effetto immediato.
+
+- **Fix**: `PUT /api/led` cambiava `activeLow` in RAM/NVS ma non riapplicava subito il livello fisico del pin — il LED restava al vecchio stato finché non arrivava una transizione reale (pompa/OTA/WiFi). Ora `applyPhysical()` viene richiamato subito dopo ogni modifica salvata.
+- **Fix**: la card "LED di stato" (tab Stato) leggeva `activeLow` da `/api/status`, che però non lo esponeva mai — la checkbox veniva quindi resettata a "non spuntata" a ogni refresh del polling, indipendentemente da cosa era stato salvato. `/api/status`'s `led` ora include anche `activeLow`/`pumpMode`/`otaMode`/`wifiMode`.
+- **Nuovo**: per ciascuna delle 3 condizioni (pompa attiva, aggiornamento OTA in corso, WiFi disconnesso) si sceglie indipendentemente da UI una modalità — Fisso acceso / Lampeggiante / Spento — invece della combinazione fissa precedente (pompa sempre fisso, OTA/WiFi sempre lampeggiante). Priorità tra condizioni invariata (pompa > OTA > WiFi).
+- `GET/PUT /api/led` ora accettano/espongono `pumpMode`/`otaMode`/`wifiMode` (`"off"`/`"solid"`/`"blink"`), persistiti in NVS insieme ad `activeLow`; valori non validi rispondono `400 invalid_mode`.
+- La UI non sovrascrive più i controlli LED mentre l'utente li sta modificando (il polling di `/api/status` gira ogni pochi secondi anche nella tab Stato).
+- `mock-server/server.py` aggiornato con la stessa logica (incluso un lampeggio simulato a cadenza reale per la modalità "blink").
+
 ## v0.47.4 — 2026-07-18
 
 LED di stato abilitato anche su ESP32 DevKitV1 (prima era solo sulla XIAO ESP32-C6).

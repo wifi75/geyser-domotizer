@@ -9,11 +9,10 @@
 // resta compilabile ma isAvailable() ritorna false e le API rispondono di
 // conseguenza, così webserver.cpp non necessita di #ifdef per board.
 //
-// Puramente automatico, nessun controllo manuale (rimosso: un toggle
-// manuale senza logica di rilascio restava "acceso per sempre" appena
-// premuto, causa di confusione reale in test). Priorità (dalla più alta):
-// pompa/relè attivo (fisso acceso), OTA in corso (lampeggiante), WiFi
-// disconnesso (lampeggiante). Nessuna delle tre: spento.
+// Automatico, ma la modalità per ciascuna condizione è configurabile da UI
+// (dalla v0.48.0): per "pompa attiva", "OTA in corso" e "WiFi disconnesso" si
+// sceglie indipendentemente "off"/"solid"/"blink". Priorità fissa (dalla più
+// alta): pompa > OTA > WiFi. Nessuna delle tre condizioni attiva: spento.
 class LedControl {
  public:
   void begin(AsyncWebServer& server);
@@ -21,15 +20,27 @@ class LedControl {
   bool isAvailable() const;
   bool isOn() const { return physicalOn_; }
   const char* reason() const { return reason_; }
+  bool activeLow() const { return activeLow_; }
+  const String& pumpMode() const { return pumpMode_; }
+  const String& otaMode() const { return otaMode_; }
+  const String& wifiMode() const { return wifiMode_; }
 
  private:
   bool physicalOn_ = false;  // stato fisico attuale del LED (dopo automazione/lampeggio)
   bool activeLow_ = true;    // la maggior parte dei LED integrati ESP32 sono attivi bassi
   const char* reason_ = nullptr;  // "pump" | "ota" | "wifi" | nullptr (spento)
   uint32_t lastBlinkToggleMs_ = 0;
+
+  // Modalità per condizione: "off" | "solid" | "blink".
+  String pumpMode_ = "solid";
+  String otaMode_ = "blink";
+  String wifiMode_ = "blink";
+
   bool load();
   bool save();
   void applyPhysical(bool on);
+  void applyMode(const String& mode);
+  static bool isValidMode(const String& mode);
   void handleGet(AsyncWebServerRequest* request);
   void handlePut(AsyncWebServerRequest* request, JsonVariant& body);
 };

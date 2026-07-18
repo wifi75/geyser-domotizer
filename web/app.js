@@ -196,11 +196,12 @@ async function toggleApNow() {
   }
 }
 
-const LED_STATUS_LABELS = {
-  pump: "Acceso — nebulizzazione in corso",
-  ota: "Lampeggia — aggiornamento OTA in corso",
-  wifi: "Lampeggia — WiFi disconnesso",
+const LED_REASON_LABELS = {
+  pump: "Pompa/nebulizzazione attiva",
+  ota: "Aggiornamento firmware in corso",
+  wifi: "WiFi disconnesso",
 };
+const LED_MODE_LABELS = { solid: "fisso acceso", blink: "lampeggiante", off: "spento (per scelta)" };
 
 function renderLed(led) {
   const card = el("card-led");
@@ -209,8 +210,20 @@ function renderLed(led) {
     return;
   }
   card.classList.remove("hidden");
-  el("led-status-value").textContent = (led.reason && LED_STATUS_LABELS[led.reason]) || "Spento";
+  if (led.reason) {
+    const modeLabel = LED_MODE_LABELS[led[led.reason + "Mode"]] || "";
+    el("led-status-value").textContent = `${LED_REASON_LABELS[led.reason]} — ${modeLabel}`;
+  } else {
+    el("led-status-value").textContent = "Spento (nessuna condizione attiva)";
+  }
+  // Non sovrascrivere i controlli mentre l'utente li sta modificando: il
+  // polling di /api/status gira ogni pochi secondi anche nella tab Stato.
+  const controls = ["led-active-low", "led-pump-mode", "led-ota-mode", "led-wifi-mode"];
+  if (controls.includes(document.activeElement && document.activeElement.id)) return;
   el("led-active-low").checked = !!led.activeLow;
+  el("led-pump-mode").value = led.pumpMode || "solid";
+  el("led-ota-mode").value = led.otaMode || "blink";
+  el("led-wifi-mode").value = led.wifiMode || "blink";
 }
 
 async function refreshStatus() {
@@ -1231,12 +1244,15 @@ async function saveLedConfig() {
   feedback.textContent = "";
   feedback.className = "feedback";
   const activeLow = el("led-active-low").checked;
+  const pumpMode = el("led-pump-mode").value;
+  const otaMode = el("led-ota-mode").value;
+  const wifiMode = el("led-wifi-mode").value;
 
   try {
     const r = await api("/api/led", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ activeLow })
+      body: JSON.stringify({ activeLow, pumpMode, otaMode, wifiMode })
     });
     if (r && r.ok === false) {
       feedback.textContent = `Errore: ${r.error}`;

@@ -24,7 +24,7 @@ Stato corrente del dispositivo, interrogato dal frontend ogni 2-3 secondi.
     "channel": 6, "band": "2.4GHz",
     "ap": { "active": false, "ssid": "", "ip": "" }
   },
-  "led": { "available": false, "on": false, "reason": null },
+  "led": { "available": false, "on": false, "reason": null, "activeLow": true, "pumpMode": "solid", "otaMode": "blink", "wifiMode": "blink" },
   "mqtt": { "connected": true },
   "pumpCurrent": { "sensorFound": true, "milliAmps": 1180, "tankEmptySuspected": false, "minMilliAmps": 1100, "maxMilliAmps": 1350 },
   "system": {
@@ -217,16 +217,17 @@ Risposta: `{ "ok": true }`
 ## GET /api/led
 
 ```json
-{ "available": true, "on": false, "activeLow": true, "reason": null }
+{ "available": true, "on": false, "activeLow": true, "reason": null,
+  "pumpMode": "solid", "otaMode": "blink", "wifiMode": "blink" }
 ```
 
-`available` è `false` sulle schede senza LED di stato controllabile (vedi nota su `GET /api/status`). Il LED è puramente automatico (nessun comando "on" manuale): `reason` vale `"pump"`/`"ota"`/`"wifi"`/`null`, stessa semantica del campo in `GET /api/status`.
+`available` è `false` sulle schede senza LED di stato controllabile (vedi nota su `GET /api/status`). Il LED è automatico (nessun comando "on" manuale diretto): `reason` vale `"pump"`/`"ota"`/`"wifi"`/`null` a seconda di quale condizione è attiva al momento (priorità pompa > OTA > WiFi disconnesso), stessa semantica del campo in `GET /api/status`. `pumpMode`/`otaMode`/`wifiMode` (uno tra `"off"`/`"solid"`/`"blink"`) determinano cosa fa fisicamente il LED quando quella condizione è quella attiva — es. con `pumpMode: "off"` il LED resta spento anche durante una nebulizzazione, pur restando `reason: "pump"`.
 
 ## PUT /api/led
 
-Cambia solo la logica attivo-alto/basso del LED (calibrazione hardware, non un comando di accensione). Body: `{ "activeLow": false }`. Persistita in NVS.
+Cambia la logica attivo-alto/basso (calibrazione hardware) e/o la modalità per ciascuna condizione. Tutti i campi sono opzionali, si aggiorna solo quello passato. Body: `{ "activeLow": false, "pumpMode": "solid", "otaMode": "blink", "wifiMode": "off" }`. Persistiti in NVS; il LED fisico viene riapplicato immediatamente con la nuova configurazione (non aspetta la prossima transizione di stato).
 
-Risposta: `{ "ok": true, "on": true, "activeLow": true, "reason": "pump" }` oppure `{ "ok": false, "error": "led_not_available" }` (schede senza LED integrato).
+Risposta: `{ "ok": true, "on": true, "activeLow": true, "reason": "pump", "pumpMode": "solid", "otaMode": "blink", "wifiMode": "blink" }` oppure `{ "ok": false, "error": "led_not_available" }` (schede senza LED integrato) oppure `{ "ok": false, "error": "invalid_mode", "details": "..." }` (HTTP 400, valore fuori da `off`/`solid`/`blink`).
 
 ## GET /api/network
 

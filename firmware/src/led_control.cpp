@@ -21,6 +21,10 @@ bool LedControl::isAvailable() const {
 #endif
 }
 
+bool LedControl::isValidMode(const String& mode) {
+  return mode == "off" || mode == "solid" || mode == "blink";
+}
+
 bool LedControl::load() {
   Preferences prefs;
   if (!prefs.begin(NVS_NAMESPACE, true)) return false;
@@ -33,12 +37,21 @@ bool LedControl::load() {
   if (err) return false;
 
   activeLow_ = doc["activeLow"] | true;
+  String pumpMode = doc["pumpMode"] | "solid";
+  String otaMode = doc["otaMode"] | "blink";
+  String wifiMode = doc["wifiMode"] | "blink";
+  if (isValidMode(pumpMode)) pumpMode_ = pumpMode;
+  if (isValidMode(otaMode)) otaMode_ = otaMode;
+  if (isValidMode(wifiMode)) wifiMode_ = wifiMode;
   return true;
 }
 
 bool LedControl::save() {
   JsonDocument doc;
   doc["activeLow"] = activeLow_;
+  doc["pumpMode"] = pumpMode_;
+  doc["otaMode"] = otaMode_;
+  doc["wifiMode"] = wifiMode_;
   String json;
   serializeJson(doc, json);
 
@@ -72,6 +85,20 @@ void LedControl::begin(AsyncWebServer& server) {
   server.addHandler(handler);
 }
 
+void LedControl::applyMode(const String& mode) {
+  if (mode == "off") {
+    if (physicalOn_) applyPhysical(false);
+  } else if (mode == "solid") {
+    if (!physicalOn_) applyPhysical(true);
+  } else {  // "blink"
+    uint32_t now = millis();
+    if (now - lastBlinkToggleMs_ >= BLINK_INTERVAL_MS) {
+      lastBlinkToggleMs_ = now;
+      applyPhysical(!physicalOn_);
+    }
+  }
+}
+
 void LedControl::tick(bool otaInProgress, bool pumpActive, bool wifiConnected) {
 #ifdef PIN_STATUS_LED
   const char* reason = pumpActive ? "pump" : otaInProgress ? "ota" : !wifiConnected ? "wifi" : nullptr;
@@ -82,17 +109,10 @@ void LedControl::tick(bool otaInProgress, bool pumpActive, bool wifiConnected) {
     return;
   }
 
-  if (strcmp(reason, "pump") == 0) {
-    if (!physicalOn_) applyPhysical(true);
-    return;
-  }
-
-  // "ota" e "wifi" lampeggiano entrambi
-  uint32_t now = millis();
-  if (now - lastBlinkToggleMs_ >= BLINK_INTERVAL_MS) {
-    lastBlinkToggleMs_ = now;
-    applyPhysical(!physicalOn_);
-  }
+  const String& mode = strcmp(reason, "pump") == 0 ? pumpMode_
+                        : strcmp(reason, "ota") == 0 ? otaMode_
+                                                      : wifiMode_;
+  applyMode(mode);
 #endif
 }
 
@@ -102,6 +122,9 @@ void LedControl::handleGet(AsyncWebServerRequest* request) {
   doc["on"] = physicalOn_;
   doc["activeLow"] = activeLow_;
   doc["reason"] = reason_ ? reason_ : nullptr;
+  doc["pumpMode"] = pumpMode_;
+  doc["otaMode"] = otaMode_;
+  doc["wifiMode"] = wifiMode_;
   AsyncResponseStream* response = request->beginResponseStream("application/json");
   serializeJson(doc, *response);
   request->send(response);
@@ -122,13 +145,69 @@ void LedControl::handlePut(AsyncWebServerRequest* request, JsonVariant& body) {
     return;
   }
 
+  // Valida le 3 modalità PRIMA di applicare qualunque modifica, così una
+  // richiesta parzialmente invalida non lascia lo stato a metà.
+  const char* fields[] = {"pumpMode", "otaMode", "wifiMode"};
+  for (const char* field : fields) {
+    if (!body[field].isNull()) {
+      String mode = body[field].as<String>();
+      if (!isValidMode(mode)) {
+        JsonDocument doc;
+        doc["ok"] = false;
+        doc["error"] = "invalid_mode";
+        doc["details"] = String("valori ammessi per ") + field + ": off, solid, blink";
+        AsyncResponseStream* response = request->beginResponseStream("application/json");
+        response->setCode(400);
+        serializeJson(doc, *response);
+        request->send(response);
+        return;
+      }
+    }
+  }
+
+  bool changed = false;
+
   if (!body["activeLow"].isNull()) {
     bool activeLow = body["activeLow"] | true;
     if (activeLow != activeLow_) {
       activeLow_ = activeLow;
-      save();
+      changed = true;
       eventLogAdd("led", activeLow_ ? "logica attivo basso" : "logica attivo alto");
     }
+  }
+  if (!body["pumpMode"].isNull()) {
+    String mode = body["pumpMode"].as<String>();
+    if (mode != pumpMode_) {
+      pumpMode_ = mode;
+      changed = true;
+      eventLogAdd("led", "modalità pompa: " + mode);
+    }
+  }
+  if (!body["otaMode"].isNull()) {
+    String mode = body["otaMode"].as<String>();
+    if (mode != otaMode_) {
+      otaMode_ = mode;
+      changed = true;
+      eventLogAdd("led", "modalità OTA: " + mode);
+    }
+  }
+  if (!body["wifiMode"].isNull()) {
+    String mode = body["wifiMode"].as<String>();
+    if (mode != wifiMode_) {
+      wifiMode_ = mode;
+      changed = true;
+      eventLogAdd("led", "modalità WiFi: " + mode);
+    }
+  }
+
+  if (changed) {
+    save();
+    // Riapplica subito il pin fisico con la logica/modalità aggiornata,
+    // altrimenti resta al livello sbagliato finché tick() non rileva una
+    // transizione di stato reale (bug osservato: la scheda restava sempre
+    // accesa anche invertendo "attivo basso", perché il livello fisico
+    // veniva ricalcolato solo alla prossima accensione/spegnimento pompa).
+    applyPhysical(physicalOn_);
   }
 
   JsonDocument doc;
@@ -136,6 +215,9 @@ void LedControl::handlePut(AsyncWebServerRequest* request, JsonVariant& body) {
   doc["on"] = physicalOn_;
   doc["activeLow"] = activeLow_;
   doc["reason"] = reason_ ? reason_ : nullptr;
+  doc["pumpMode"] = pumpMode_;
+  doc["otaMode"] = otaMode_;
+  doc["wifiMode"] = wifiMode_;
   AsyncResponseStream* response = request->beginResponseStream("application/json");
   serializeJson(doc, *response);
   request->send(response);

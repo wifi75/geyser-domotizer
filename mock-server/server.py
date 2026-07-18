@@ -36,7 +36,7 @@ PORT = int(os.environ.get("PORT", 8000))
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.47.4"
+MOCK_CURRENT_VERSION = "0.48.0"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 # Rispecchia l'elenco per esp32dev in firmware/src/gpio_settings.cpp
@@ -96,6 +96,9 @@ class State:
         # reale (vedi WifiSettings::hasApOverride() in wifi_settings.h).
         self.ap_override = None
         self.led_active_low = True
+        self.led_pump_mode = "solid"
+        self.led_ota_mode = "blink"
+        self.led_wifi_mode = "blink"
         self.gpio_pin, self.gpio_active_high = self._load_gpio_pin()
         self.ntp = self._load_ntp()
         self.pump_current = self._load_pump_current()
@@ -165,15 +168,29 @@ class State:
         # Stessa priorita' del firmware reale (vedi LedControl::tick in
         # led_control.cpp): pompa attiva > OTA in corso > WiFi disconnesso.
         # Il mock simula il WiFi sempre connesso, quindi quella condizione
-        # non scatta mai qui. Puramente automatico, nessun controllo manuale.
+        # non scatta mai qui. Automatico, ma la modalita' per ciascuna
+        # condizione (off/solid/blink) e' configurabile da UI.
         if self.pump_active:
             return "pump"
         if self.ota_progress.get("inProgress"):
             return "ota"
         return None
 
+    def led_mode_for_reason(self, reason):
+        return {"pump": self.led_pump_mode, "ota": self.led_ota_mode,
+                "wifi": self.led_wifi_mode}.get(reason)
+
     def led_display_on(self):
-        return self.led_reason() is not None
+        reason = self.led_reason()
+        if reason is None:
+            return False
+        mode = self.led_mode_for_reason(reason)
+        if mode == "off":
+            return False
+        if mode == "solid":
+            return True
+        # "blink": alterna ogni ~500ms, stessa cadenza di BLINK_INTERVAL_MS nel firmware
+        return int(time.time() * 2) % 2 == 0
 
     def wifi_public(self):
         return {
@@ -281,7 +298,9 @@ class State:
                         "ip": "192.168.4.1" if ap_active else "",
                     },
                 },
-                "led": {"available": True, "on": self.led_display_on(), "reason": self.led_reason()},
+                "led": {"available": True, "on": self.led_display_on(), "reason": self.led_reason(),
+                        "activeLow": self.led_active_low, "pumpMode": self.led_pump_mode,
+                        "otaMode": self.led_ota_mode, "wifiMode": self.led_wifi_mode},
                 "mqtt": {"connected": bool(self.config["mqtt"]["enabled"] and self.config["mqtt"]["host"])},
                 # Simulato: 1200mA con una piccola variazione casuale mentre la
                 # pompa gira, nessun sensore reale nel mock (niente hardware
@@ -595,7 +614,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self._send_json(state.wifi_public())
         if self.path == "/api/led":
             return self._send_json({"available": True, "on": state.led_display_on(),
-                                    "activeLow": state.led_active_low, "reason": state.led_reason()})
+                                    "activeLow": state.led_active_low, "reason": state.led_reason(),
+                                    "pumpMode": state.led_pump_mode, "otaMode": state.led_ota_mode,
+                                    "wifiMode": state.led_wifi_mode})
         if self.path == "/api/gpio":
             return self._send_json({"board": "esp32dev (mock)", "current": state.gpio_pin,
                                     "activeHigh": state.gpio_active_high, "options": GPIO_OPTIONS})
@@ -769,11 +790,28 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if not self._require_admin():
                 return
             body = self._read_json()
+            valid_modes = ("off", "solid", "blink")
+            for field in ("pumpMode", "otaMode", "wifiMode"):
+                if field in body and body[field] not in valid_modes:
+                    return self._send_json({"ok": False, "error": "invalid_mode",
+                                            "details": f"valori ammessi per {field}: off, solid, blink"},
+                                           status=400)
             if "activeLow" in body:
                 state.led_active_low = bool(body["activeLow"])
                 state.add_event("led", "logica attivo basso" if state.led_active_low else "logica attivo alto")
+            if "pumpMode" in body:
+                state.led_pump_mode = body["pumpMode"]
+                state.add_event("led", f"modalità pompa: {state.led_pump_mode}")
+            if "otaMode" in body:
+                state.led_ota_mode = body["otaMode"]
+                state.add_event("led", f"modalità OTA: {state.led_ota_mode}")
+            if "wifiMode" in body:
+                state.led_wifi_mode = body["wifiMode"]
+                state.add_event("led", f"modalità WiFi: {state.led_wifi_mode}")
             return self._send_json({"ok": True, "on": state.led_display_on(),
-                                    "activeLow": state.led_active_low, "reason": state.led_reason()})
+                                    "activeLow": state.led_active_low, "reason": state.led_reason(),
+                                    "pumpMode": state.led_pump_mode, "otaMode": state.led_ota_mode,
+                                    "wifiMode": state.led_wifi_mode})
         if self.path == "/api/gpio":
             if not self._require_admin():
                 return
