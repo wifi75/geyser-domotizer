@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.50.2 — 2026-07-19
+
+Fix: l'upload manuale di un `.bin` non smontava LittleFS prima di attivare il nuovo firmware/sito, a differenza dell'OTA da GitHub.
+
+- `runUpdateTask()` (OTA da GitHub) chiama già `LittleFS.end()` prima di `httpUpdate.update()` apposta per evitare che l'attivazione del firmware (`Update.end()`, che rimappa la flash per verificarne la firma) collida con LittleFS ancora montato — sintomo noto: "Could Not Activate The Firmware" pur con un download riuscito
+- `handleUploadChunk()` (upload manuale via UI) non aveva la stessa protezione, ed è anzi più esposto perché gira dentro la richiesta HTTP stessa, con altre richieste potenzialmente ancora in coda sullo stesso `AsyncWebServer` — aggiunto lo stesso `LittleFS.end()` prima di `Update.end(true)`, con remount automatico se l'attivazione fallisce
+- Verificato in pratica: un caso reale di OTA da GitHub bloccato ripetutamente su questo errore si è risolto passando all'upload manuale (che nella pratica ha un'attivazione più rapida, upload locale invece di download da GitHub/S3) — questo fix estende la stessa protezione anche a quel percorso per il futuro
+
 ## v0.50.1 — 2026-07-18
 
 UI: tradotti in italiano tutti i messaggi di errore mostrati all'utente, prima visualizzati come codice grezzo dell'API (es. "Errore: pump_already_active").

@@ -347,10 +347,20 @@ void OtaManager::handleUploadChunk(AsyncWebServerRequest* request, String filena
     Update.printError(Serial);
   }
   if (final) {
+    // Stessa protezione della OTA da GitHub (vedi il commento in
+    // runUpdateTask()): Update.end() rimappa la flash per verificare/attivare
+    // l'immagine appena scritta, e LittleFS ancora montato durante questo
+    // passo può collidere sullo stesso slot di mmap ("Could Not Activate The
+    // Firmware" pur con un upload riuscito). Qui il rischio è anzi maggiore
+    // che nell'OTA da GitHub, perché questo handler gira dentro la richiesta
+    // HTTP stessa, con altre richieste (es. /api/status) potenzialmente
+    // ancora in coda sullo stesso AsyncWebServer.
+    LittleFS.end();
     if (Update.end(true)) {
       Serial.println("OTA upload completato, riavvio...");
     } else {
       Update.printError(Serial);
+      LittleFS.begin(true);  // rimonta per continuare a servire la webapp dopo il fallimento
     }
   }
 }
