@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.50.0 — 2026-07-18
+
+Watchdog di memoria: il dispositivo si riavvia da solo se rileva una memoria libera critica, invece di restare bloccato in attesa di un intervento fisico.
+
+- Contesto: segnalato un caso in cui il dispositivo risultava irraggiungibile e tornava a rispondere solo dopo un riavvio manuale (via reset hardware, es. aprendo `pio device monitor` che attiva DTR/RTS). Non è possibile escludere con certezza un leak di memoria come causa (il progetto usa già il fork moderno `ESP32Async/ESPAsyncWebServer`, con i fix storici ai leak della libreria originale, ma nessun software è esente da leak su uptime molto lunghi)
+- Nuovo `checkHeapWatchdog()` in `main.cpp`, chiamato ad ogni `loop()`: se `ESP.getFreeHeap()` resta sotto 20000 byte per più di 30 secondi consecutivi, il firmware logga l'evento e si riavvia da solo (`ESP.restart()`). La soglia di 30s evita falsi positivi da normali picchi temporanei (es. una risposta JSON grande); **mai durante un OTA in corso**, per non lasciare un aggiornamento a metà
+- `GET /api/status` espone ora anche `system.ramFreeMinBytes` (`ESP.getMinFreeHeap()`, minimo storico dal boot) per diagnosticare un eventuale leak nel tempo prima che diventi critico
+- Fix minore di documentazione: `06-api.md` diceva ancora "solo la XIAO ESP32-C6" per il LED di stato, superato dalla v0.47.4 che lo ha abilitato anche su ESP32 DevKitV1
+
 ## v0.49.1 — 2026-07-18
 
 UI: sistemato il layout disordinato della card "LED di stato" (le 3 tendine per pompa/OTA/WiFi si accavallavano sulla stessa riga invece di stare una sotto l'altra).

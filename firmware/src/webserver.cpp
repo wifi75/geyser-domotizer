@@ -135,6 +135,11 @@ void WebServerApp::handleStatus(AsyncWebServerRequest* request) {
   }
 
   doc["system"]["ramFreeBytes"] = ESP.getFreeHeap();
+  // Minimo storico dal boot: utile per notare un leak di memoria (es.
+  // AsyncTCP/ESPAsyncWebServer su uptime molto lunghi) prima che diventi
+  // un blocco vero — vedi anche checkHeapWatchdog() in main.cpp, che
+  // riavvia da solo se la memoria libera resta sotto soglia critica.
+  doc["system"]["ramFreeMinBytes"] = ESP.getMinFreeHeap();
   doc["system"]["ramTotalBytes"] = ESP.getHeapSize();
   doc["system"]["flashUsedBytes"] = ESP.getSketchSize();
   doc["system"]["flashFreeBytes"] = ESP.getFreeSketchSpace();

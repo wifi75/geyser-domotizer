@@ -151,6 +151,40 @@ void checkNtpResync() {
   lastNtpResyncMs = millis();
 }
 
+// Rete di sicurezza contro leak di memoria (es. AsyncTCP/ESPAsyncWebServer su
+// uptime molto lunghi): se l'heap libero resta sotto la soglia critica per
+// piu' di HEAP_LOW_GRACE_MS consecutivi, riavvia da solo invece di aspettare
+// che il dispositivo si blocchi del tutto e serva un intervento fisico. La
+// grazia di 30s evita falsi positivi da normali picchi temporanei (es. una
+// risposta JSON grande); MAI durante un OTA in corso, altrimenti un riavvio
+// a meta' flash lascerebbe il dispositivo in uno stato inconsistente.
+static const uint32_t HEAP_CRITICAL_BYTES = 20000;
+static const uint32_t HEAP_LOW_GRACE_MS = 30000;
+uint32_t heapLowSinceMs = 0;
+
+void checkHeapWatchdog() {
+  if (otaUpdateInProgress()) {
+    heapLowSinceMs = 0;
+    return;
+  }
+  uint32_t freeHeap = ESP.getFreeHeap();
+  if (freeHeap >= HEAP_CRITICAL_BYTES) {
+    heapLowSinceMs = 0;
+    return;
+  }
+  uint32_t now = millis();
+  if (heapLowSinceMs == 0) {
+    heapLowSinceMs = now;
+    return;
+  }
+  if (now - heapLowSinceMs >= HEAP_LOW_GRACE_MS) {
+    eventLogAdd("system", "riavvio automatico: memoria libera critica (" + String(freeHeap) + " byte)");
+    Serial.printf("Riavvio automatico: memoria libera critica (%u byte)\n", freeHeap);
+    delay(200);  // lascia uscire il log seriale/eventlog prima del riavvio
+    ESP.restart();
+  }
+}
+
 void checkScheduleTrigger() {
   time_t now = time(nullptr);
   if (now < 100000) return;  // ora non ancora sincronizzata via NTP
@@ -278,6 +312,7 @@ void setup() {
 }
 
 void loop() {
+  checkHeapWatchdog();
   connectWifiIfNeeded();
   updateApState();
   networkSettings.tick();

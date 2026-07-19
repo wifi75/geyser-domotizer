@@ -28,18 +28,18 @@ Stato corrente del dispositivo, interrogato dal frontend ogni 2-3 secondi.
   "mqtt": { "connected": true },
   "pumpCurrent": { "sensorFound": true, "milliAmps": 1180, "tankEmptySuspected": false, "minMilliAmps": 1100, "maxMilliAmps": 1350 },
   "system": {
-    "ramFreeBytes": 210000, "ramTotalBytes": 327680,
+    "ramFreeBytes": 210000, "ramFreeMinBytes": 195000, "ramTotalBytes": 327680,
     "flashUsedBytes": 1111184, "flashFreeBytes": 199536,
     "fsUsedBytes": 5200, "fsTotalBytes": 1441792
   }
 }
 ```
 
-`system.flashFreeBytes` è lo spazio libero nella partizione OTA (quanto margine c'è per il prossimo aggiornamento firmware); `system.fsUsedBytes`/`fsTotalBytes` sono LittleFS (il sito web) e possono essere `null` mentre un OTA è in corso, perché il firmware evita di toccare LittleFS durante il flash. La configurazione runtime vive in NVS, non su LittleFS.
+`system.flashFreeBytes` è lo spazio libero nella partizione OTA (quanto margine c'è per il prossimo aggiornamento firmware); `system.fsUsedBytes`/`fsTotalBytes` sono LittleFS (il sito web) e possono essere `null` mentre un OTA è in corso, perché il firmware evita di toccare LittleFS durante il flash. La configurazione runtime vive in NVS, non su LittleFS. `system.ramFreeMinBytes` (dalla v0.50.0) è il minimo storico di memoria libera dal boot (`ESP.getMinFreeHeap()`): utile per notare un leak di memoria (es. `AsyncTCP`/`ESPAsyncWebServer` su uptime molto lunghi) prima che diventi un blocco vero — il firmware ha comunque un watchdog interno (`checkHeapWatchdog()` in `main.cpp`) che riavvia da solo se `ramFreeBytes` resta sotto una soglia critica per più di 30 secondi consecutivi (mai durante un OTA in corso).
 
 `pump.source` è `"manual"` o `"schedule"` quando `active` è `true`, altrimenti `null`.
 `wifi.ssid`/`wifi.ip` sono stringa vuota quando `wifi.connected` è `false`. La qualità del segnale (barre/percentuale) è calcolata lato frontend da `rssi`, non serve un campo dedicato. `wifi.channel` è `null` se non connesso. `wifi.band` è sempre `"2.4GHz"`: nessun chip ESP32 (nemmeno la XIAO C6, che aggiunge solo 802.11ax/WiFi 6 sulla stessa banda 2.4GHz) ha hardware WiFi 5GHz, il campo è fisso e mostrato solo per trasparenza in UI. `wifi.ap` riflette l'Access Point di emergenza/setup (vedi `GET/PUT /api/wifi`): `ssid`/`ip` sono stringa vuota quando `active` è `false`.
-`led.available` è `false` sulle schede senza LED di stato controllabile (oggi solo la XIAO ESP32-C6 lo espone); `led.on` è sempre `false` quando non disponibile. Il LED è puramente automatico (nessun controllo manuale): `led.reason` è `"pump"` (fisso acceso, nebulizzazione in corso), `"ota"` o `"wifi"` (lampeggiante, aggiornamento OTA in corso o WiFi disconnesso), oppure `null` (spento, nessuna condizione attiva).
+`led.available` è `false` sulle schede senza LED di stato controllabile (oggi XIAO ESP32-C6 ed ESP32 DevKitV1; XIAO C3 non ne ha uno collegato); `led.on` è sempre `false` quando non disponibile. Il LED è puramente automatico (nessun controllo manuale): `led.reason` è `"pump"` (fisso acceso, nebulizzazione in corso), `"ota"` o `"wifi"` (lampeggiante, aggiornamento OTA in corso o WiFi disconnesso), oppure `null` (spento, nessuna condizione attiva).
 `time` è sempre sincronizzato via NTP (vedi `GET/PUT /api/ntp`), non è l'orologio interno dell'ESP32 non sincronizzato.
 `pumpCurrent.sensorFound` è `false` se il sensore INA219 non risponde sul bus I2C (es. non collegato): in quel caso `milliAmps` resta a 0 e `tankEmptySuspected` sempre `false`. `milliAmps` è l'ultima lettura mentre la pompa è attiva (0 a pompa ferma). `tankEmptySuspected` diventa `true` quando il firmware rileva la condizione configurata in `GET/PUT /api/pump-current` e ferma la pompa da solo; resta `true` fino al ciclo successivo.
 `minMilliAmps`/`maxMilliAmps` sono `null` se non è ancora mai girata la pompa da quando sono stati azzerati (vedi sotto), altrimenti il minimo/massimo osservati durante *tutti* i cicli da allora — pensati per tarare a mano la soglia (es. un ciclo a serbatoio pieno, azzera, un ciclo a vuoto, confronta i due intervalli).
