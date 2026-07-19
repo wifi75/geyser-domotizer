@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.51.0 — 2026-07-19
+
+UI: password dell'Access Point di emergenza sempre visibile in tab Rete, non solo quando è acceso.
+
+- `GET /api/status`'s `wifi.ap.ssid`/`wifi.ap.password` ora sempre presenti (prima erano stringa vuota ad AP spento) — sono valori fissi da `config.h`, non dipendono dallo stato di attivazione, e a differenza della password WiFi dell'utente/MQTT non proteggono nulla al di fuori della LAN locale
+- `wifi.ap.ip` resta invece vuoto ad AP spento (l'IP esiste solo quando è realmente attivo)
+- La card "Access Point" mostra ora sempre SSID e password vicino al pulsante "Spegni/Accendi AP ora", con l'IP che compare solo quando l'AP è effettivamente acceso
+
 ## v0.50.2 — 2026-07-19
 
 Fix: l'upload manuale di un `.bin` non smontava LittleFS prima di attivare il nuovo firmware/sito, a differenza dell'OTA da GitHub.

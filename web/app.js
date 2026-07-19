@@ -189,11 +189,14 @@ function renderWifi(wifi) {
     el("wifi-ap-ssid").textContent = ap.ssid || "--";
     el("wifi-ap-ip").textContent = ap.ip || "--";
   }
+  // SSID/password sono valori fissi, mostrati sempre (anche ad AP spento) per
+  // non doverseli ricordare a memoria; l'IP invece esiste solo ad AP attivo.
   const apStatusBox = el("wifi-ap-status-box");
   if (apStatusBox) {
-    apStatusBox.classList.toggle("hidden", !ap.active);
+    el("wifi-ap-status-ssid").textContent = ap.ssid || "--";
+    el("wifi-ap-status-password").textContent = ap.password || "--";
+    el("wifi-ap-status-ip-wrap").classList.toggle("hidden", !ap.active);
     if (ap.active) {
-      el("wifi-ap-status-ssid").textContent = ap.ssid || "--";
       el("wifi-ap-status-ip").textContent = ap.ip || "--";
     }
   }

@@ -110,7 +110,14 @@ void WebServerApp::handleStatus(AsyncWebServerRequest* request) {
   // non un valore letto in runtime, mostrato solo per trasparenza in UI.
   doc["wifi"]["band"] = "2.4GHz";
   doc["wifi"]["ap"]["active"] = apActive_;
-  doc["wifi"]["ap"]["ssid"] = apActive_ ? apSsid_ : "";
+  // ssid/password mostrati sempre, non solo ad AP attivo: sono valori fissi
+  // da config.h (non dipendono dallo stato di attivazione), e a differenza
+  // della password WiFi dell'utente o di MQTT non proteggono nulla al di
+  // fuori della LAN locale (è solo la rete di soccorso di emergenza) — l'utile
+  // pratico di vederli sempre in UI (non doverseli ricordare a memoria)
+  // supera il rischio, comunque minimo essendo un default noto e documentato.
+  doc["wifi"]["ap"]["ssid"] = apSsid_;
+  doc["wifi"]["ap"]["password"] = AP_PASSWORD;
   doc["wifi"]["ap"]["ip"] = apActive_ ? WiFi.softAPIP().toString() : "";
 
   doc["led"]["available"] = ledControl_.isAvailable();

@@ -50,7 +50,10 @@ PumpCurrentMonitor pumpCurrentMonitor;
 WifiSettings wifiSettings;
 LedControl ledControl;
 bool apActiveFlag = false;
-String apSsidInfo = "";
+// SSID e' un valore fisso da config.h, non dipende dallo stato di
+// attivazione: inizializzato subito cosi' la UI puo' mostrarlo (insieme alla
+// password) anche ad AP spento, per non doverselo ricordare a memoria.
+String apSsidInfo = AP_SSID;
 WebServerApp webApp(server, pump, battery, schedule, mqttConnectedFlag, mqttSettings, mqtt, pumpCurrentMonitor,
                      ledControl, apActiveFlag, apSsidInfo);
 OtaManager ota;

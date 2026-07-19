@@ -36,7 +36,7 @@ PORT = int(os.environ.get("PORT", 8000))
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
 # Deve restare allineata a FIRMWARE_VERSION in firmware/src/config.h
-MOCK_CURRENT_VERSION = "0.50.2"
+MOCK_CURRENT_VERSION = "0.51.0"
 GITHUB_REPO = "wifi75/geyser-domotizer"
 
 # Rispecchia l'elenco per esp32dev in firmware/src/gpio_settings.cpp
@@ -294,7 +294,8 @@ class State:
                     "channel": 6, "band": "2.4GHz",
                     "ap": {
                         "active": ap_active,
-                        "ssid": "ESP-Geyser" if ap_active else "",
+                        "ssid": "ESP-Geyser",
+                        "password": "geyser1234",
                         "ip": "192.168.4.1" if ap_active else "",
                     },
                 },
