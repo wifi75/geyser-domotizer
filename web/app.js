@@ -4,6 +4,41 @@ const DAYS = [
 ];
 
 const el = (id) => document.getElementById(id);
+
+// Traduzione dei codici errore restituiti dall'API (in inglese/snake_case,
+// stessi su firmware e mock server) in un'etichetta leggibile in italiano.
+// Codici non mappati mostrano il codice grezzo cosi' com'e', invece di
+// nascondere l'errore silenziosamente.
+const ERROR_LABELS = {
+  pump_already_active: "Pompa già attiva",
+  pump_active: "Pompa attiva, impossibile modificare ora",
+  ota_in_progress: "Aggiornamento firmware in corso",
+  no_pending_update: "Nessun aggiornamento in sospeso",
+  update_already_in_progress: "Aggiornamento già in corso",
+  no_update_needed: "Nessun aggiornamento necessario",
+  download_failed: "Download dell'aggiornamento fallito",
+  flash_failed: "Scrittura del firmware fallita",
+  invalid_backup: "File di backup non valido",
+  invalid_config: "Configurazione non valida",
+  invalid_duration: "Durata non valida",
+  invalid_mode: "Modalità non valida",
+  invalid_network_config: "Configurazione di rete non valida",
+  invalid_ntp_config: "Configurazione NTP non valida",
+  invalid_pin: "Pin GPIO non valido",
+  invalid_pump_current_config: "Configurazione sensore corrente non valida",
+  invalid_schedule: "Programmazione non valida",
+  invalid_ssid: "SSID non valido",
+  led_not_available: "Questa scheda non ha un LED di stato controllabile",
+  network_error: "Errore di rete",
+  restore_failed: "Ripristino del backup fallito",
+};
+
+function errorMessage(r) {
+  const label = (r && r.error && ERROR_LABELS[r.error]) || (r && r.error) || "sconosciuto";
+  const details = r && r.details ? ` — ${r.details}` : "";
+  return `Errore: ${label}${details}`;
+}
+
 let otaBusy = false;
 let latestStatus = null;
 let adminPassword = sessionStorage.getItem("geyser-admin-password") || "";
@@ -187,7 +222,7 @@ async function toggleApNow() {
     body: JSON.stringify({ active: targetActive })
   });
   if (r && r.ok === false) {
-    feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+    feedback.textContent = errorMessage(r);
     feedback.className = "feedback error";
   } else {
     feedback.textContent = "Fatto.";
@@ -322,7 +357,7 @@ async function startManual() {
       feedback.textContent = "Avviato.";
       feedback.className = "feedback ok";
     } else {
-      feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+      feedback.textContent = errorMessage(r);
       feedback.className = "feedback error";
     }
   } catch (e) {
@@ -467,7 +502,7 @@ async function saveSchedule() {
       feedback.textContent = "Programmazione salvata.";
       feedback.className = "feedback ok";
     } else {
-      feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+      feedback.textContent = errorMessage(r);
       feedback.className = "feedback error";
     }
   } catch (e) {
@@ -518,7 +553,7 @@ async function saveMqttConfig() {
       feedback.className = "feedback ok";
       reloadPageSoon();
     } else {
-      feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+      feedback.textContent = errorMessage(r);
       feedback.className = "feedback error";
     }
   } catch (e) {
@@ -556,7 +591,7 @@ async function checkOtaUpdate({ silent } = {}) {
     const r = await api("/api/ota/check", { method: "POST" });
     if (!r.ok) {
       if (!silent) {
-        feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+        feedback.textContent = errorMessage(r);
         feedback.className = "feedback error";
       }
       return;
@@ -721,7 +756,7 @@ async function applyOtaUpdate() {
     return;
   }
   if (start && start.ok === false) {
-    setOtaFeedback(`Errore: ${start.error} ${start.details ?? ""}`, "error");
+    setOtaFeedback(errorMessage(start), "error");
     setOtaBusy(false);
     return;
   }
@@ -752,7 +787,7 @@ async function applyOtaUpdate() {
       // (immagine troncata che poi non passa la verifica interna), non un
       // problema permanente: nella maggior parte dei casi riprovare basta.
       const retryHint = p.error === "download_failed" ? " — riprova, spesso basta." : "";
-      setOtaFeedback(`Errore: ${p.error} ${p.details ?? ""}${retryHint}`, "error");
+      setOtaFeedback(`${errorMessage(p)}${retryHint}`, "error");
       progressWraps.forEach((w) => w.classList.add("hidden"));
       setOtaBusy(false);
       return;
@@ -880,7 +915,7 @@ async function uploadFirmwareFile() {
         feedback.className = "feedback ok";
         waitForDeviceAndReload(bootRef);
       } else {
-        feedback.textContent = `Errore: ${r.error}`;
+        feedback.textContent = errorMessage(r);
         feedback.className = "feedback error";
         setOtaBusy(false);
       }
@@ -943,7 +978,7 @@ async function exportBackup() {
   try {
     const backup = await api("/api/backup");
     if (backup && backup.ok === false) {
-      feedback.textContent = `Errore: ${backup.error}`;
+      feedback.textContent = errorMessage(backup);
       feedback.className = "feedback error";
       return;
     }
@@ -983,7 +1018,7 @@ async function restoreBackup() {
       body: JSON.stringify(backup)
     });
     if (r && r.ok === false) {
-      feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+      feedback.textContent = errorMessage(r);
       feedback.className = "feedback error";
       return;
     }
@@ -1025,7 +1060,7 @@ async function saveGpioConfig() {
       body: JSON.stringify({ pin, activeHigh })
     });
     if (r && r.ok === false) {
-      feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+      feedback.textContent = errorMessage(r);
       feedback.className = "feedback error";
     } else {
       feedback.textContent = "Salvato.";
@@ -1081,7 +1116,7 @@ async function savePumpCurrentConfig() {
       body: JSON.stringify(body)
     });
     if (r && r.ok === false) {
-      feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+      feedback.textContent = errorMessage(r);
       feedback.className = "feedback error";
     } else {
       feedback.textContent = "Salvato.";
@@ -1113,7 +1148,7 @@ async function saveNtpConfig() {
       body: JSON.stringify({ server, intervalHours })
     });
     if (r && r.ok === false) {
-      feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+      feedback.textContent = errorMessage(r);
       feedback.className = "feedback error";
     } else {
       feedback.textContent = "Salvato, orologio risincronizzato.";
@@ -1169,7 +1204,7 @@ async function saveNetworkConfig() {
       body: JSON.stringify(body)
     });
     if (r && r.ok === false) {
-      feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+      feedback.textContent = errorMessage(r);
       feedback.className = "feedback error";
     } else {
       feedback.textContent = "Salvato, il dispositivo si sta riavviando...";
@@ -1211,7 +1246,7 @@ async function saveWifiSettings() {
     body: JSON.stringify(body)
   });
   if (r && r.ok === false) {
-    feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+    feedback.textContent = errorMessage(r);
     feedback.className = "feedback error";
   } else {
     feedback.textContent = "Salvato. Se hai cambiato SSID/password il dispositivo proverà a riconnettersi entro qualche secondo.";
@@ -1231,7 +1266,7 @@ async function saveApSetting() {
     body: JSON.stringify({ apEnabled: el("wifi-ap-enabled").checked })
   });
   if (r && r.ok === false) {
-    feedback.textContent = `Errore: ${r.error} ${r.details ?? ""}`;
+    feedback.textContent = errorMessage(r);
     feedback.className = "feedback error";
   } else {
     feedback.textContent = "Salvato.";
@@ -1255,7 +1290,7 @@ async function saveLedConfig() {
       body: JSON.stringify({ activeLow, pumpMode, otaMode, wifiMode })
     });
     if (r && r.ok === false) {
-      feedback.textContent = `Errore: ${r.error}`;
+      feedback.textContent = errorMessage(r);
       feedback.className = "feedback error";
     } else {
       feedback.textContent = "Logica LED salvata.";

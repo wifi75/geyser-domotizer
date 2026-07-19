@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.50.1 — 2026-07-18
+
+UI: tradotti in italiano tutti i messaggi di errore mostrati all'utente, prima visualizzati come codice grezzo dell'API (es. "Errore: pump_already_active").
+
+- Nuova mappa `ERROR_LABELS` in `web/app.js` con un'etichetta leggibile per ciascuno dei 20 codici errore usati da firmware/mock server (`pump_already_active`, `invalid_schedule`, `ota_in_progress`, ecc.); i codici non mappati restano visibili così come sono invece di sparire silenziosamente
+- Sostituiti tutti i 18 punti dell'interfaccia che mostravano `Errore: ${r.error} ${r.details ?? ""}` col nuovo helper condiviso `errorMessage()` — non solo il caso segnalato, per evitare la stessa inconsistenza altrove
+- `details` (già in italiano quando presente, es. i messaggi di validazione) resta visibile accanto all'etichetta tradotta
+
 ## v0.50.0 — 2026-07-18
 
 Watchdog di memoria: il dispositivo si riavvia da solo se rileva una memoria libera critica, invece di restare bloccato in attesa di un intervento fisico.
