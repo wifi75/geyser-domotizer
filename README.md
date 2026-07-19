@@ -1,85 +1,394 @@
-# Geyser Domotizer
+# 🦟 Geyser Domotizer
 
-Progetto di "domotizzazione" non invasiva dello **Stocker Geyser 12L** (nebulizzatore antizanzare da giardino a batteria, 12V 2.5Ah Li-Ion), per aggiungere:
+**Trasforma il tuo nebulizzatore Stocker Geyser 12L in un dispositivo intelligente con programmazione, automazione e controllo remoto da browser.**
 
-- Interfaccia web (stato, comandi, configurazione)
-- Monitoraggio e notifica stato batteria
-- Programmazione settimanale con più partenze giornaliere, ciascuna con durata impostabile
-- Avvio manuale da remoto
-- Aggiornamenti OTA da GitHub o upload manuale, con protezioni contro azioni concorrenti durante il flash
-- Backup/ripristino della configurazione, eventi recenti e misura pratica dell'autonomia batteria
-- Autenticazione HTTP opzionale per le azioni amministrative (`ADMIN_PASSWORD`)
-- **Convivenza totale con il sistema originale**, senza modifiche irreversibili né rischio di comprometterne il funzionamento
+Progetto di "domotizzazione" non invasiva dello **Stocker Geyser 12L** — aggiunge un'interfaccia web moderna e gestione remota mantenendo **100% compatibilità** con i controlli manuali originali del dispositivo. Niente modifiche permanenti, niente rischi.
 
-## Stato del progetto
+### ✨ Caratteristiche principali
 
-✅ **Testato su hardware reale: ESP32 DevKit V1.** Web UI, batteria, programmazione, MQTT (con Home Assistant Discovery), configurazione IP/GPIO e aggiornamento OTA sono stati verificati end-to-end su una ESP32 DevKit V1 fisica — vedi [boards/esp32dev.md](boards/esp32dev.md). Le funzioni più recenti (backup configurazione, eventi recenti, rollback rete e misura autonomia UI) sono allineate nel firmware/mock server e compilate nel flusso release, ma vanno ancora provate con una sessione hardware dedicata.
+| | |
+|---|---|
+| 📱 **Interfaccia web moderna** | Dashboard responsive con 4 tab (Stato, Programmazione, Rete, Impostazioni) |
+| 🔋 **Monitoraggio batteria** | Percentuale e tensione in tempo reale |
+| 📅 **Programmazione settimanale** | Multipli slot giornalieri con orari/durate configurabili |
+| ⏱️ **Avvio manuale remoto** | Controllo istantaneo dal browser |
+| 🔄 **OTA auto-update** | Aggiornamenti da GitHub direttamente dal device |
+| 🏠 **Home Assistant** | MQTT + Home Assistant Discovery nativo |
+| 🔐 **mDNS** | Raggiungibile sempre come `http://geyser.local` |
+| 💾 **Backup/Restore** | Export/import configurazione in un click |
+| 📊 **Event log** | Storico degli ultimi 24 eventi |
+| 🔒 **Auth opzionale** | HTTP Basic Auth per azioni admin (`ADMIN_PASSWORD`) |
 
-✅ **Testato su hardware reale anche: XIAO ESP32-C6.** Boot, connessione WiFi e dashboard web verificati end-to-end — vedi [boards/xiao-esp32c6.md](boards/xiao-esp32c6.md) per le note specifiche sul toolchain (fork PlatformIO community necessario per questa scheda) e sulla tabella partizioni. Non ancora provati su questa scheda: pompa/relè, batteria reale, sensore corrente.
+## 🚀 Quick Start
 
-⚠️ La XIAO ESP32-C3 (scheda "gemella" alla C6, stesso pinout, entrambe di riferimento per il deployment finale a batteria) compila correttamente ma non è ancora stata provata fisicamente, vedi [boards/xiao-esp32c3.md](boards/xiao-esp32c3.md). La Fase 0 hands-on sul dispositivo Geyser vero (individuare dove derivare i fili di motore e batteria) resta da fare prima del montaggio definitivo.
+### Opzione 1: Test senza hardware (5 minuti)
 
-## Struttura del progetto
+Prova l'interfaccia completa con dati simulati:
 
-- [01-analisi-fattibilita.md](01-analisi-fattibilita.md) — cosa sappiamo del dispositivo, fattibilità di ogni funzione richiesta, architettura scelta, rischi
-- [02-decisioni-aperte.md](02-decisioni-aperte.md) — decisioni prese sull'architettura
-- [03-hardware-bom.md](03-hardware-bom.md) — componenti proposti e stima costi
-- [04-roadmap.md](04-roadmap.md) — fasi di implementazione
-- [05-fase0-guida-apertura.md](05-fase0-guida-apertura.md) — guida operativa per la ricognizione hands-on del dispositivo
-- [06-api.md](06-api.md) — contratto API REST, usato sia dal mock server sia dal firmware
-- [07-schema-collegamento.md](07-schema-collegamento.md) — schema di cablaggio (batteria → step-down → ESP32 → relè → pompa) e mappa pin
-- [boards/esp32dev.md](boards/esp32dev.md) / [boards/xiao-esp32c3.md](boards/xiao-esp32c3.md) / [boards/xiao-esp32c6.md](boards/xiao-esp32c6.md) — pinout, alimentazione e comandi specifici per ciascuna scheda supportata
-- [web/](web/) — interfaccia web condivisa (HTML/CSS/JS vanilla), usata sia dal mock che embeddata nel firmware
-- [mock-server/](mock-server/) — server Python per testare la UI in locale senza hardware
-- [firmware/](firmware/) — progetto PlatformIO per ESP32 (XIAO ESP32-C3/C6 e ESP32 DevKitV1)
-
-## Test locale della UI (senza hardware)
-
-```
+```bash
 cd mock-server
-python server.py
+python server.py   # apre http://localhost:8000
 ```
 
-Poi apri http://localhost:8000 — vedi [mock-server/README.md](mock-server/README.md).
+Perfetto per testare la UI, programmazione, configurazione senza una scheda fisica.
 
-## Flashare una scheda nuova (mai programmata prima)
+### Opzione 2: Deploy su ESP32 (30 minuti per il primo flash)
 
-Una scheda ESP32 "vergine" non ha né bootloader né partizioni: il primo flash **deve** passare da PlatformIO (che genera e scrive bootloader, tabella delle partizioni e app in un solo comando), non è possibile farlo con i soli file `.bin` allegati alle Release GitHub (quelli contengono solo l'applicazione e il sito, pensati per gli **aggiornamenti** via OTA/upload manuale su una scheda già avviata almeno una volta).
+**Prerequisiti**: PlatformIO, scheda ESP32 (DevKit V1 / XIAO ESP32-C3 / XIAO ESP32-C6), cavo USB
 
-1. Installa [PlatformIO](https://platformio.org/) (via VS Code, o CLI: `pip install platformio`)
-2. Clona questo repository
-3. Collega la scheda via USB, individua la porta (`COM3` su Windows, `/dev/ttyUSB0` su Linux, ecc.)
-4. Dalla cartella `firmware/`:
+1. **Clone il repo**:
+   ```bash
+   git clone https://github.com/wifi75/geyser-domotizer.git
+   cd geyser-domotizer/firmware
    ```
-   pio run -e esp32dev -t upload --upload-port COM3     # firmware applicativo (bootloader+partizioni+app, tutto insieme)
-   pio run -e esp32dev -t uploadfs --upload-port COM3   # sito web (LittleFS)
+
+2. **Configura credenziali** (opzionale per il primo flash):
+   ```bash
+   cp src/config.local.h.example src/config.local.h
+   # Edita config.local.h con SSID/password WiFi reali
    ```
-   (sostituisci `esp32dev` con `xiao-esp32c3` o `xiao-esp32c6` se usi quelle schede, e `COM3` con la porta corretta)
-5. Prima del passo 4, personalizza `firmware/src/config.local.h` (copiandolo da `config.local.h.example`) con le tue credenziali WiFi — vedi [firmware/README.md](firmware/README.md). `ADMIN_PASSWORD` è opzionale: se impostata, la UI chiede la password quando esegui azioni amministrative (OTA, riavvio, backup, salvataggio impostazioni, avvio/stop manuale).
-6. **Raggiungi la dashboard web** aprendo `http://geyser.local` nel browser (mDNS, dalla v0.49.0 —
-   funziona su Windows/macOS/Linux/Android sulla stessa rete locale; su reti che bloccano mDNS, o se
-   il tuo dispositivo non lo risolve, trova l'IP così:
+
+3. **Flash la scheda** (sostituisci COM3 con la tua porta):
+   ```bash
+   pio run -e esp32dev -t upload --upload-port COM3
+   pio run -e esp32dev -t uploadfs --upload-port COM3
    ```
+
+4. **Accedi al device**:
+   - Browser: `http://geyser.local` (mDNS, dalla v0.49.0)
+   - Oppure: usa `pio device monitor -p COM3 -b 115200` per trovare l'IP
+
+---
+
+## 📋 Stato del progetto
+
+**Versione corrente**: [v0.51.0](https://github.com/wifi75/geyser-domotizer/releases/tag/v0.51.0) — [All Releases →](https://github.com/wifi75/geyser-domotizer/releases)
+
+### Schede testate
+
+| Scheda | Status | Note |
+|---|---|---|
+| **ESP32 DevKit V1** | ✅ Produzione | Testato end-to-end: Web UI, batteria, programmazione, MQTT, OTA. [Dettagli →](boards/esp32dev.md) |
+| **XIAO ESP32-C6** | ✅ Produzione | Boot, WiFi, dashboard web verificati. Richiede fork PlatformIO community. [Dettagli →](boards/xiao-esp32c6.md) |
+| **XIAO ESP32-C3** | ⚠️ Compila | Compilato ma non ancora provato su hardware fisico. [Dettagli →](boards/xiao-esp32c3.md) |
+
+### Limitazioni note (non sono bug)
+
+- **Deep-sleep disabilitato** — `loop()` sempre attivo per UI reattiva. WiFi modem-sleep + CPU 80MHz attivi per ridurre consumi (dato ancora da validare su hardware reale).
+- **Fase 0 Geyser reale** — Non ancora effettuata. Il banco di test usa un relè standalone, non il motore originale Geyser. Vedi [05-fase0-guida-apertura.md](05-fase0-guida-apertura.md) per la procedura.
+- **INA219 (sensore corrente tank-empty)** — Compilato e integrato in firmware/UI, mai calibrato su hardware reale — direzione soglia è una stima.
+
+## 📁 Struttura del progetto
+
+```
+.
+├── 01-analisi-fattibilita.md      Fattibilità tecnica, architettura, rischi
+├── 02-decisioni-aperte.md          Decisioni di design e trade-off
+├── 03-hardware-bom.md              Componenti hardware e costi stimati
+├── 04-roadmap.md                   Roadmap e fasi di implementazione
+├── 05-fase0-guida-apertura.md      Procedura hands-on per aprire il Geyser
+├── 06-api.md                       ⭐ Contratto API REST (firmware ↔ mock-server)
+├── 07-schema-collegamento.md       Schema cablaggio e mappa pin
+│
+├── boards/
+│   ├── esp32dev.md                 ESP32 DevKit V1 — pinout, alimentazione
+│   ├── xiao-esp32c3.md             XIAO ESP32-C3 — pinout, note
+│   └── xiao-esp32c6.md             XIAO ESP32-C6 — toolchain special (pioarduino)
+│
+├── web/                            Interfaccia web (HTML/CSS/JS vanilla)
+│   ├── index.html                  Layout (4 tab: Stato/Programmazione/Rete/Impostazioni)
+│   ├── app.js                      Logica frontend (API client, UI state)
+│   └── style.css                   Styling (tema scuro, responsive)
+│
+├── mock-server/                    Server Python per testare UI senza hardware
+│   ├── server.py                   Flask app che simula l'API REST
+│   └── README.md                   Istruzioni e dettagli
+│
+└── firmware/                        Progetto PlatformIO per ESP32
+    ├── src/
+    │   ├── main.cpp                Entry point, loop principale
+    │   ├── config.h                Pin e parametri (customizzare qui)
+    │   ├── config.local.h.example  Template per credenziali reali (gitignored)
+    │   ├── webserver.cpp/h         Routing HTTP REST
+    │   ├── pump.cpp/h              Controllo relè pompa
+    │   ├── battery.cpp/h           ADC lettura batteria
+    │   ├── schedule.cpp/h          Programmazione settimanale (NVS)
+    │   ├── mqtt_client.cpp/h       MQTT client + Home Assistant Discovery
+    │   ├── network_settings.cpp/h  Config WiFi/IP (con rollback)
+    │   ├── ota.cpp/h               OTA updates da GitHub
+    │   ├── led_control.cpp/h       Controllo LED (per-condition modes)
+    │   ├── event_log.cpp/h         Ring buffer 24 eventi recenti
+    │   ├── config_backup.cpp/h     Export/import configurazione NVS
+    │   └── ...                     [Auth, GPIO settings, NTP, etc.]
+    │
+    ├── tools/
+    │   └── sync_web_assets.py      (PlatformIO pre-step) copia web/ → data/
+    │
+    ├── data/                       LittleFS image assets (generato, gitignored)
+    ├── platformio.ini              Configurazione build (3 environments)
+    └── README.md                   Build & flash commands
+```
+
+**⭐ Punto di partenza consigliato**: leggi [06-api.md](06-api.md) per capire il contratto REST che both firmware e mock-server implementano identicamente.
+
+## 🔧 Flashing completo (prima volta su una scheda vergine)
+
+Una scheda ESP32 nuova **non ha** bootloader/partizioni/app: tutti e 3 si generano contemporaneamente con il primo `pio run -t upload`.
+
+### Step-by-step
+
+1. **Installa dipendenze**:
+   ```bash
+   pip install platformio
+   ```
+
+2. **Collega la scheda via USB** e identifica la porta:
+   - Windows: `COM3`, `COM4`, ... (vedi Device Manager)
+   - Linux/Mac: `/dev/ttyUSB0`, `/dev/ttyACM0`, `/dev/cu.usbserial-*`
+
+3. **Clone e configura**:
+   ```bash
+   git clone https://github.com/wifi75/geyser-domotizer.git
+   cd firmware
+   
+   # Copia il template e riempi con le tue credenziali WiFi:
+   cp src/config.local.h.example src/config.local.h
+   # Edita src/config.local.h → WIFI_SSID, WIFI_PASSWORD, MQTT credenziali, etc.
+   ```
+
+4. **Compila e flasha firmware**:
+   ```bash
+   # esp32dev = ESP32 DevKit V1
+   # xiao-esp32c3 = XIAO ESP32-C3
+   # xiao-esp32c6 = XIAO ESP32-C6
+   
+   pio run -e esp32dev -t upload --upload-port COM3
+   ```
+
+5. **Flasha il sito (LittleFS)**:
+   ```bash
+   pio run -e esp32dev -t uploadfs --upload-port COM3
+   ```
+
+6. **Verifica il boot**:
+   ```bash
    pio device monitor -p COM3 -b 115200
    ```
-   poi premi il tasto **EN/RESET** sulla scheda (o ricollega l'USB): il firmware stampa una riga tipo
-   `WiFi connesso, IP: 192.168.1.XX` non appena si connette. In alternativa, controlla la lista dei
-   dispositivi connessi nel pannello di amministrazione del tuo router (di solito sotto "DHCP client
-   list" o "Dispositivi connessi").
+   Dovresti vedere nel seriale:
+   ```
+   WiFi connesso, IP: 192.168.1.231
+   ```
 
-**Da quel momento in poi** (scheda già avviata almeno una volta con bootloader e partizioni presenti), gli aggiornamenti successivi possono usare solo i file `.bin` delle Release, in due modi:
-- **OTA da GitHub**: pulsante "Controlla su GitHub" → "Aggiorna ora" nella UI web, scarica e flasha da sé firmware+sito
-- **Upload manuale**: sezione "Aggiornamento manuale" nella UI web, scaricando prima i file dalla [pagina Release più recente](https://github.com/wifi75/geyser-domotizer/releases/latest)
+7. **Accedi al device**:
+   - Browser: `http://geyser.local` oppure `http://192.168.1.231`
+   - La password AP di default (se non connesso a WiFi) è `geyser1234`
 
-Nessuno dei due tocca mai bootloader/partizioni: per questo bastano solo `firmware-<scheda>.bin` e `littlefs-<scheda>.bin`, senza dover ripassare da PlatformIO.
+---
 
-Per l'upload manuale, l'ordine conta — ogni upload sostituisce **un solo file alla volta** e il dispositivo si riavvia da solo al termine di ciascuno:
-1. `firmware-<scheda>.bin` — obbligatorio, va caricato per primo
-2. `littlefs-<scheda>.bin` — solo se è cambiata anche l'interfaccia web (quasi sempre sì); va caricato **dopo**, quando il dispositivo è tornato online dal riavvio del passo 1
+## 🌐 Aggiornamenti OTA (dopo il primo flash)
 
-## Fonti consultate
+Una volta che il device è online, gli aggiornamenti **non necessitano più USB** né PlatformIO.
 
-- [Stocker Geyser 12L — AgriEuro](https://www.agrieuro.com/stocker-geyser-12l-nebulizzatore-antizanzare-da-giardino-batteria-12-litri-12v-25ah-p-62880.html)
-- [Stocker Geyser 12L — Dadolo](https://www.dadolo.com/IT/it/sistemi-antizanzara/1118001283-stocker-geyser-nebulizzatore-antizanzara-a-batteria-12-litri-8016604004117.html)
-- [Manuale ufficiale Stocker (PDF, Geyser 4L/12L, art. 410-411)](https://www.stockergarden.com/wp-content/uploads/2023/01/MKT_410-411_A5_Manual_Revisione-02_lowres-1-8.pdf) — scansionato, non OCR-abile automaticamente: da consultare a video per i dettagli del pannello comandi
-- [Video prodotto — Stocker Garden](https://www.stockergarden.com/video/geyser-nebulizzatore-12-l-li-ion-art-411/)
+### Opzione A: OTA automatico da GitHub
+1. Apri la dashboard → tab **Stato**
+2. Pulsante **"Controlla su GitHub"** — verifica la versione più recente
+3. Pulsante **"Aggiorna ora"** — scarica e flasha firmware + sito
+4. Device si riavvia autonomamente
+
+### Opzione B: Upload manuale
+1. Scarica i file `.bin` dall'ultima [Release](https://github.com/wifi75/geyser-domotizer/releases/latest)
+   - `firmware-esp32dev.bin` (o `-xiao-esp32c3.bin` / `-xiao-esp32c6.bin`)
+   - `littlefs-esp32dev.bin` (o per il tuo board)
+2. Dashboard → tab **Impostazioni** → **Aggiornamento manuale**
+3. Carica **prima** il firmware, **poi** (dopo il riavvio) il sito
+
+---
+
+## 🏠 Integrazione Home Assistant / MQTT
+
+Il firmware pubblica automaticamente entità MQTT con Home Assistant Discovery, visibili in HA senza configurazione manuale.
+
+### Setup MQTT nel device:
+1. Dashboard → tab **Impostazioni**
+2. Sezione **MQTT**: broker IP, user/password
+3. Salva → il device si riconnette e pubblica le entità
+
+### Entità pubblicate (automatiche in HA):
+- `geyser_domotizer/battery/%` — percentuale batteria
+- `geyser_domotizer/battery/v` — tensione batteria
+- `geyser_domotizer/pump/active` — stato pompa
+- `geyser_domotizer/pump/remaining_secs` — tempo rimasto ciclo
+- `geyser_domotizer/online` — device online/offline
+- `geyser_domotizer/schedule/count` — numero slot programmati
+- `geyser_domotizer/command/start` — comando avvia pompa
+- `geyser_domotizer/command/stop` — comando ferma pompa
+
+Consulta [06-api.md § MQTT](06-api.md#mqtt) per la lista completa e i topic.
+
+---
+
+## 🛠️ Sviluppo locale (senza hardware)
+
+Perfetto per testare la UI, customizzarla, o sviluppare nuove funzionalità senza una scheda fisica.
+
+```bash
+cd mock-server
+python server.py
+# Apri http://localhost:8000 nel browser
+```
+
+Il mock server implementa **esattamente** la stessa API REST del firmware ([06-api.md](06-api.md)), con dati simulati e realistici. Qualsiasi modifica alla UI in `web/` si riflette istantaneamente nel mock (no build step).
+
+Vedi [mock-server/README.md](mock-server/README.md) per dettagli su variabili d'ambiente e porte.
+
+## 📊 Dashboard Web
+
+La dashboard è divisa in 4 tab per organizzare tutte le funzionalità:
+
+### Tab **Stato** — Monitoraggio in tempo reale
+
+![Stato](docs/screenshots/01-stato.png)
+
+- **Batteria Geyser**: percentuale e tensione (V) con indicatore grafico
+- **Misura autonomia**: avvia una misura pratica del consumo batteria e registra il delta energetico
+- **Nebulizzazione**: controllo manuale con durata in minuti e secondi
+- **Connessione**: stato WiFi, SSID, segnale (dBm), banda, IP attuale
+- **Aggiornamenti**: pulsante "Controlla su GitHub" per verificare nuove versioni
+- **Access Point**: stato AP di emergenza (SSID, password, IP)
+
+### Tab **Programmazione** — Agenda settimanale
+
+![Programmazione](docs/screenshots/02-programmazione.png)
+
+- **7 giorni della settimana**, ciascuno con multipli slot di partenza
+- **Per ogni slot**: orario e durata (minuti), toggle abilitazione, tasto rimuovi
+- **Funzioni comode**:
+  - `+ Aggiungi partenza` — aggiunge un nuovo slot a quel giorno
+  - `Copia le partenze di questo giorno` — duplica la programmazione
+  - `Incolla le partenze copiate` — applica rapidamente a un altro giorno
+- **Gestione persistente**: tutte le modifiche sono salvate automaticamente in NVS
+
+### Tab **Rete** — Configurazione WiFi e IP
+
+![Rete](docs/screenshots/03-rete.png)
+
+- **Credenziali WiFi**: nome rete (SSID) e password, salvabili senza reboot
+- **Access Point di emergenza**:
+  - Toggle "Accendi AP ora" — attiva istantaneamente l'AP come fallback
+  - SSID fisso: `ESP-Geyser`, password: `geyser1234` (configurabile in `config.h`)
+  - Sempre attivo se WiFi STA non si connette entro 60s da boot (safety net)
+- **Configurazione IP**:
+  - Scelta tra **DHCP** (dinamico) o **Static** (manuale)
+  - Se statico: IP locale, gateway, netmask, DNS — con rollback automatico se il device diventa irraggiungibile
+
+### Tab **Impostazioni** — Configurazione avanzata
+
+![Impostazioni](docs/screenshots/04-impostazioni.png)
+
+Sezioni di configurazione per operazioni più tecniche:
+- **GPIO Settings**: scelta del pin relè pompa e logica (active-high/low)
+- **NTP Server**: configurazione server ora (sincronizzazione oraria)
+- **MQTT**: credenziali broker, topic root, Home Assistant Discovery
+- **Sensore corrente**: configurazione INA219 per rilevamento tank-empty
+- **LED di stato**: controllo LED per pompa/OTA/WiFi (fisso, lampeggiante, spento)
+- **Backup/Restore**: export/import configurazione completa in JSON
+- **Riavvia dispositivo**: pulsante per soft-restart
+- **Info dispositivo**: versione firmware, spazio disponibile, diagnostiche
+
+## 🐛 Troubleshooting
+
+### Device non raggiungibile dopo il flash
+1. **Controlla il seriale** per errori di boot:
+   ```bash
+   pio device monitor -p COM3 -b 115200
+   ```
+2. **Se vedi `nvs_open failed: NOT_FOUND` ripetuto**: la partizione NVS è corrotta
+   - Fix: `esptool.py --port COM3 erase-flash` (cancella TUTTO) + reflash completo
+3. **Se il WiFi non si connette**:
+   - Verifica SSID/password in `config.local.h` prima di compilare
+   - Oppure usa l'AP di emergenza (default `ESP-Geyser` / `geyser1234`)
+
+### OTA fallito con "Could Not Activate The Firmware"
+- Scarica e flasha manualmente i `.bin` tramite la UI (Upload manuale)
+- Non è un bug del firmware, è un race condition rarissimo (già fixato in v0.50.2+)
+
+### mDNS non funziona / `geyser.local` non si risolve
+- Alcune reti enterprise bloccano mDNS
+- Alternativa: usa l'IP diretto trovato dal seriale o dal router
+
+---
+
+## 🏗️ Architettura
+
+**Frontend + Backend separati, stesso API contract:**
+- **Frontend** (`web/`): HTML/CSS/JS vanilla, zero build step, funziona identicamente su mock-server e firmware
+- **Backend firmware** (`firmware/src/webserver.cpp`): AsyncWebServer con routing REST
+- **Backend mock** (`mock-server/server.py`): Flask che simula l'API
+- **API contract** ([06-api.md](06-api.md)): **single source of truth** per ambo i backend
+
+**Persistenza dati:**
+- **Impostazioni** (WiFi, MQTT, GPIO, schedule, etc.): NVS (Non-Volatile Storage), surviva agli OTA
+- **Assets web** (HTML/CSS/JS): LittleFS partition, updatable separatamente
+- **Event log**: RAM ring buffer 24 entries, pulito al reboot
+- **Credenziali**: `config.local.h` (gitignored), mai committa segreti
+
+**Aggiornamenti sicuri:**
+- **OTA firmware**: `HTTPUpdate` library ESP32, protetto da hash + TLS
+- **OTA LittleFS**: `httpUpdate.updateSpiffs()` con partition type check
+- **Parallelizzato**: OTA in un task FreeRTOS separato, UI reattiva durante download
+
+---
+
+## 💬 Supporto & Contributi
+
+- **Segnala bug**: [GitHub Issues](https://github.com/wifi75/geyser-domotizer/issues)
+- **Suggerisci feature**: apri una [Discussion](https://github.com/wifi75/geyser-domotizer/discussions) o Issue etichettata `feature-request`
+- **PRs welcome**: forks + pull request con descrizione del change
+
+### Per contribuire al firmware:
+1. Leggi [CLAUDE.md](CLAUDE.md) — guida architetturale per Claude Code
+2. Crea branch da `master`
+3. Verifica che compili per tutti e 3 gli environment: `pio run -e esp32dev`, `pio run -e xiao-esp32c3`, `pio run -e xiao-esp32c6`
+4. Submitt PR — CI verifica la build
+
+---
+
+## 📜 Licenza
+
+[MIT License](LICENSE) — libero di usare, modificare, distribuire
+
+---
+
+## 📖 Documentazione & Riferimenti
+
+### Progetto
+- **[CLAUDE.md](CLAUDE.md)** — Guida architetturale per sviluppatori (decision records, convenzioni)
+- **[CHANGELOG.md](CHANGELOG.md)** — Storico versioni e cambiamenti
+- **[06-api.md](06-api.md)** — **Contratto API REST completo** (read first!)
+
+### Hardware
+- **[Stocker Geyser 12L](https://www.agrieuro.com/stocker-geyser-12l-nebulizzatore-antizanzare-da-giardino-batteria-12-litri-12v-25ah-p-62880.html)** — Il dispositivo target
+- **[Manuale Stocker ufficiale (PDF)](https://www.stockergarden.com/wp-content/uploads/2023/01/MKT_410-411_A5_Manual_Revisione-02_lowres-1-8.pdf)** — Dettagli meccanici e schema originale
+- **[Analisi fattibilità](01-analisi-fattibilita.md)** — Ricerca su come integrarsi senza modifiche permanenti
+
+### Schede supportate
+- **[ESP32 DevKit V1](boards/esp32dev.md)** — Bench test (produzione), pinout, board.txt customizzato
+- **[XIAO ESP32-C3](boards/xiao-esp32c3.md)** — Reference design per battery deployment (compila, not yet tested)
+- **[XIAO ESP32-C6](boards/xiao-esp32c6.md)** — Reference design per battery deployment (tested, richiede pioarduino fork)
+
+### Tecnologie usate
+| Componente | Docs |
+|---|---|
+| **PlatformIO** | https://docs.platformio.org/ |
+| **AsyncWebServer** | https://github.com/mathieucarbou/ESP32Async |
+| **ArduinoJSON** | https://arduinojson.org/ |
+| **MQTT** | [Home Assistant Discovery](https://www.home-assistant.io/integrations/mqtt/#discovery) |
+| **ESPAsyncTCP** | https://github.com/mathieucarbou/AsyncTCP (leak-fixed fork) |
+
+---
+
+## 👤 Autore
+
+Progetto di **[Tiziano](mailto:tizianowifi@gmail.com)** — hobby project per Smart Home Italy.
+
+Contributi e feedback sempre benvenuti! 🙌
