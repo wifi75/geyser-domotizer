@@ -156,19 +156,28 @@ Una scheda ESP32 nuova **non ha** bootloader/partizioni/app: tutti e 3 si genera
    # Edita src/config.local.h → WIFI_SSID, WIFI_PASSWORD, MQTT credenziali, etc.
    ```
 
-4. **Compila e flasha firmware**:
-   ```bash
-   # esp32dev = ESP32 DevKit V1
-   # xiao-esp32c3 = XIAO ESP32-C3
-   # xiao-esp32c6 = XIAO ESP32-C6
-   
-   pio run -e esp32dev -t upload --upload-port COM3
-   ```
+4. **Compila e flasha firmware** (scegli la TUA scheda):
 
-5. **Flasha il sito (LittleFS)**:
+   **📌 Per ESP32 DevKit V1**:
    ```bash
+   pio run -e esp32dev -t upload --upload-port COM3
    pio run -e esp32dev -t uploadfs --upload-port COM3
    ```
+
+   **📌 Per XIAO ESP32-C3**:
+   ```bash
+   pio run -e xiao-esp32c3 -t upload --upload-port COM3
+   pio run -e xiao-esp32c3 -t uploadfs --upload-port COM3
+   ```
+
+   **📌 Per XIAO ESP32-C6** (richiede fork `pioarduino`):
+   ```bash
+   pio run -e xiao-esp32c6 -t upload --upload-port COM3
+   pio run -e xiao-esp32c6 -t uploadfs --upload-port COM3
+   ```
+   ⚠️ Vedi [boards/xiao-esp32c6.md](boards/xiao-esp32c6.md) per note sul toolchain.
+
+   (Sostituisci `COM3` con la tua porta seriale: `COM4`, `/dev/ttyUSB0`, `/dev/ttyACM0`, ecc.)
 
 6. **Verifica il boot**:
    ```bash
